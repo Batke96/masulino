@@ -1,0 +1,36 @@
+{
+  "name": "@masulino/server",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./auth": "./src/auth.ts"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@masulino/contacts": "workspace:*",
+    "@masulino/contracts": "workspace:*",
+    "@masulino/core": "workspace:*",
+    "@masulino/database": "workspace:*",
+    "@masulino/indoor-play": "workspace:*",
+    "@masulino/loyalty": "workspace:*",
+    "@masulino/marketing": "workspace:*",
+    "@masulino/notices": "workspace:*",
+    "@masulino/operations": "workspace:*",
+    "@masulino/reservations": "workspace:*",
+    "@masulino/workforce": "workspace:*",
+    "better-auth": "^1.7.6",
+    "drizzle-orm": "^0.45.1",
+    "zod": "^4.1.11"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.19",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}

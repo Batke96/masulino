@@ -1,0 +1,38 @@
+packages:
+  - "packages/*"
+  - "packages/modules/*"
+  - "packages/verticals/*"
+  - "server"
+
+# Sites-compatible install policy (UI package stays at the repo root).
+minimumReleaseAge: 10080
+minimumReleaseAgeIgnoreMissingTime: false
+trustLockfile: false
+strictDepBuilds: true
+allowBuilds:
+  esbuild: true
+  fsevents: true
+  sharp: true
+  unrs-resolver: true
+  workerd: true
+  "@embedded-postgres/darwin-arm64": true
+  "@embedded-postgres/darwin-x64": true
+  "@embedded-postgres/linux-arm64": true
+  "@embedded-postgres/linux-x64": true
+onlyBuiltDependencies:
+  - "@embedded-postgres/darwin-arm64"
+  - "@embedded-postgres/darwin-x64"
+  - "@embedded-postgres/linux-arm64"
+  - "@embedded-postgres/linux-x64"
+  - esbuild
+  - sharp
+  - unrs-resolver
+  - workerd
+storeDir: ${SITES_PNPM_SHARED_STORE:-.sites-runtime/pnpm-store}
+cacheDir: ${SITES_PNPM_SHARED_STORE:-.sites-runtime/pnpm-store}/policy-cache
+enableGlobalVirtualStore: false
+packageImportMethod: auto
+verifyDepsBeforeRun: false
+optimisticRepeatInstall: false
+overrides:
+  miniflare>sharp: 0.35.4
