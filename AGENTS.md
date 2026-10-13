@@ -28,3 +28,11 @@ This is a local source export of an interactive UI prototype. Preserve the Germa
 ## First recommended assignment
 
 Establish that this snapshot runs locally; capture reference screenshots; then split the large page into reusable feature modules without changing the UI. See `AGENT_HANDOFF.md` for the proposed boundaries and manual acceptance checks.
+
+## Cursor Cloud specific instructions
+
+- The default image already has Node 22.14+ and Corepack. Activate the declared package manager with `corepack prepare pnpm@11.25.0 --activate`, then install with `pnpm install --frozen-lockfile`.
+- `.env` is gitignored. Copy `.env.example` to `.env` before the first workspace start. The checked-in values are local-only.
+- `pnpm dev:workspace` is the full local stack: embedded Postgres on `127.0.0.1:54329`, the API on `8787`, and the UI on `http://localhost:5173`. `pnpm dev` is the UI only and expects that API to already be running.
+- Embedded Postgres `initdb` uses locale `en_US.UTF-8`, which the default image already provides.
+- Staff sign-in is the end-to-end check. Admin is `user@example.test` / `password`. Other synthetic accounts use `Synthetic-Staff-1`; the role table is in `README.md`.
