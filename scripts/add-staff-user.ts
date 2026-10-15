@@ -1,22 +1,15 @@
 import { randomUUID } from "node:crypto";
 import pg from "pg";
-import { loadRootEnv } from "./load-env";
+import { loadProductionOperatorEnv, loadRootEnv } from "./load-env";
 
 loadRootEnv();
+loadProductionOperatorEnv();
 
 /**
  * Add one staff login to the existing production tenant.
- * Does not run seed. Safe to re-run: refreshes password and ensures membership/grant.
+ * Put Neon/Vercel URLs once in gitignored `.env.production.local`, then:
  *
- * Example:
- *   DATABASE_URL_MIGRATE='…' \
- *   DATABASE_URL='…' DATABASE_URL_AUTH='…' DATABASE_URL_WORKER='…' \
- *   BETTER_AUTH_SECRET='…' BETTER_AUTH_URL='…' CRON_SECRET='…' \
- *   STAFF_ADD_CONFIRM=1 \
- *   STAFF_EMAIL='user@example.test' \
- *   STAFF_PASSWORD='password' \
- *   STAFF_ROLE='tenant_owner' \
- *   pnpm staff:add
+ *   STAFF_ADD_CONFIRM=1 STAFF_EMAIL='user@example.test' STAFF_PASSWORD='password' STAFF_CLEAR_MFA=1 pnpm staff:add
  */
 if (process.env.STAFF_ADD_CONFIRM !== "1") {
   throw new Error("Set STAFF_ADD_CONFIRM=1 to add a staff user.");
