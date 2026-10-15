@@ -6,6 +6,21 @@ import { env } from "./env";
 
 let cached: ReturnType<typeof createAuth> | undefined;
 
+function originFromHost(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  if (value.startsWith("https://") || value.startsWith("http://")) return value;
+  return `https://${value}`;
+}
+
+function trustedOrigins(baseUrl: string): string[] {
+  const origins = new Set<string>([baseUrl, "http://localhost:5173", "http://127.0.0.1:5173"]);
+  for (const host of [process.env.VERCEL_URL, process.env.VERCEL_BRANCH_URL, process.env.VERCEL_PROJECT_PRODUCTION_URL]) {
+    const origin = originFromHost(host);
+    if (origin) origins.add(origin);
+  }
+  return [...origins];
+}
+
 function createAuth() {
   const config = env();
   return betterAuth({
@@ -37,7 +52,7 @@ function createAuth() {
       window: 60,
       max: 20,
     },
-    trustedOrigins: [config.BETTER_AUTH_URL, "http://localhost:5173", "http://127.0.0.1:5173"],
+    trustedOrigins: trustedOrigins(config.BETTER_AUTH_URL),
     plugins: [
       organization({
         allowUserToCreateOrganization: false,

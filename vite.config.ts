@@ -1,5 +1,9 @@
+import { readdirSync } from "node:fs";
+import { createRequire } from "node:module";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import vinext from "vinext";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import hostingConfig from "./.openai/hosting.json";
 import { readExecutionProfile } from "./scripts/execution-profile.mjs";
 import { sites } from "./build/sites-vite-plugin";
@@ -36,40 +40,70 @@ const localBindingConfig = {
     : [],
 };
 
-export default defineConfig(async ({ command }) => {
-  // Use Miniflare's local Request.cf placeholder unless fetching is requested.
-  process.env.CLOUDFLARE_CF_FETCH_ENABLED ??= "false";
-  process.env.WRANGLER_SEND_METRICS ??= "false";
+const deployingToVercel = process.env.VERCEL === "1";
+const requireFromServer = createRequire(fileURLToPath(new URL("./server/package.json", import.meta.url)));
 
-  // Keep Wrangler and Miniflare state project-local. These are non-secret tool
-  // settings; application environment belongs in ignored `.env*` files.
-  process.env.WRANGLER_WRITE_LOGS ??= "false";
-  process.env.WRANGLER_LOG_PATH ??= ".wrangler/logs";
-  process.env.WRANGLER_REGISTRY_PATH ??= ".wrangler/dev-registry";
-  process.env.MINIFLARE_REGISTRY_PATH ??= ".wrangler/registry";
-
-  // Wrangler snapshots its log path while the Cloudflare plugin is imported.
-  const { cloudflare } = await import("@cloudflare/vite-plugin");
-
+function serverZodPlugin(): Plugin {
   return {
-    server: {
-      ...(managedLinux
-        ? { host: "0.0.0.0", allowedHosts: ["terminal.local"] }
-        : {}),
-      ...(isCodexSeatbeltSandbox
-        ? { watch: { useFsEvents: false, usePolling: true } }
-        : {}),
-      proxy: {
-        "/api": {
-          target: process.env.MASULINO_API_URL ?? "http://127.0.0.1:8787",
-          changeOrigin: false,
-        },
-      },
+    name: "masulino-server-zod",
+    enforce: "pre",
+    resolveId(source) {
+      if (this.environment?.name === "client") return null;
+      if (source !== "zod" && !source.startsWith("zod/")) return null;
+      return requireFromServer.resolve(source);
     },
-    plugins: [
-      vinext(),
-      sites({ mockAuth: !managedLinux }),
-      connectorPreview(),
+  };
+}
+
+function tslibEsmPlugin(): Plugin {
+  const store = fileURLToPath(new URL("./node_modules/.pnpm/", import.meta.url));
+  const directory = readdirSync(store).find((name) => name.startsWith("tslib@"));
+  const esm = directory ? join(store, directory, "node_modules/tslib/tslib.es6.mjs") : null;
+  return {
+    name: "masulino-tslib-esm",
+    enforce: "pre",
+    resolveId(source) {
+      if (!esm || source !== "tslib" || this.environment?.name === "client") return null;
+      return esm;
+    },
+  };
+}
+
+export default defineConfig(async ({ command }) => {
+  const plugins = [
+    ...(deployingToVercel ? [serverZodPlugin(), tslibEsmPlugin()] : []),
+    vinext(),
+    sites({ mockAuth: !managedLinux }),
+    connectorPreview(),
+  ];
+
+  if (deployingToVercel) {
+    const { nitro } = await import("nitro/vite");
+    plugins.push(
+      ...nitro({
+        preset: "vercel",
+        vercel: {
+          functions: {
+            regions: ["fra1"],
+          },
+        },
+      }),
+    );
+  } else {
+    // Use Miniflare's local Request.cf placeholder unless fetching is requested.
+    process.env.CLOUDFLARE_CF_FETCH_ENABLED ??= "false";
+    process.env.WRANGLER_SEND_METRICS ??= "false";
+
+    // Keep Wrangler and Miniflare state project-local. These are non-secret tool
+    // settings; application environment belongs in ignored `.env*` files.
+    process.env.WRANGLER_WRITE_LOGS ??= "false";
+    process.env.WRANGLER_LOG_PATH ??= ".wrangler/logs";
+    process.env.WRANGLER_REGISTRY_PATH ??= ".wrangler/dev-registry";
+    process.env.MINIFLARE_REGISTRY_PATH ??= ".wrangler/registry";
+
+    // Wrangler snapshots its log path while the Cloudflare plugin is imported.
+    const { cloudflare } = await import("@cloudflare/vite-plugin");
+    plugins.push(
       cloudflare({
         viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
         inspectorPort: false,
@@ -101,6 +135,31 @@ export default defineConfig(async ({ command }) => {
             }
           : {}),
       }),
-    ],
+    );
+  }
+
+  return {
+    resolve: deployingToVercel
+      ? undefined
+      : {
+          alias: {
+            "@masulino/server/api-entry": fileURLToPath(new URL("./build/api-local-stub.ts", import.meta.url)),
+          },
+        },
+    server: {
+      ...(managedLinux
+        ? { host: "0.0.0.0", allowedHosts: ["terminal.local"] }
+        : {}),
+      ...(isCodexSeatbeltSandbox
+        ? { watch: { useFsEvents: false, usePolling: true } }
+        : {}),
+      proxy: {
+        "/api": {
+          target: process.env.MASULINO_API_URL ?? "http://127.0.0.1:8787",
+          changeOrigin: false,
+        },
+      },
+    },
+    plugins,
   };
 });

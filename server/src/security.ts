@@ -15,3 +15,20 @@ export const apiSecurityHeaders: Record<string, string> = {
   "permissions-policy": "camera=(), microphone=(), geolocation=()",
   "cache-control": "no-store",
 };
+
+export function withSecurityHeaders(response: Response): Response {
+  const headers = new Headers(response.headers);
+  const cookies = response.headers.getSetCookie?.() ?? [];
+  if (cookies.length > 0) {
+    headers.delete("set-cookie");
+    for (const cookie of cookies) headers.append("set-cookie", cookie);
+  }
+  for (const [key, value] of Object.entries(apiSecurityHeaders)) {
+    if (!headers.has(key)) headers.set(key, value);
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
