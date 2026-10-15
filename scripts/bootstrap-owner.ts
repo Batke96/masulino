@@ -27,44 +27,65 @@ if (existing.rowCount) {
 const { getAuth } = await import("../server/src/auth.ts");
 const context = await getAuth().$context;
 const hashed = await context.password.hash(password);
-const user = await context.internalAdapter.createUser({ email, name: email, emailVerified: true });
-await context.internalAdapter.linkAccount({
-  userId: user.id,
-  accountId: user.id,
-  providerId: "credential",
-  password: hashed,
-});
+
+// A previous failed run may have created the auth user before the domain txn committed.
+const prior = await client.query<{ id: string }>(`select id from identity."user" where email = $1`, [email]);
+let userId: string;
+if (prior.rowCount) {
+  userId = prior.rows[0].id;
+  await client.query(
+    `update identity.account set password = $1, updated_at = now() where user_id = $2 and provider_id = 'credential'`,
+    [hashed, userId],
+  );
+} else {
+  const user = await context.internalAdapter.createUser({ email, name: email, emailVerified: true });
+  await context.internalAdapter.linkAccount({
+    userId: user.id,
+    accountId: user.id,
+    providerId: "credential",
+    password: hashed,
+  });
+  userId = user.id;
+}
+
 const tenantId = randomUUID();
 const principalId = randomUUID();
 const membershipId = randomUUID();
+const correlationId = randomUUID();
 await client.query("begin");
-await client.query(`insert into tenants (id, slug, name) values ($1, $2, $3)`, [
-  tenantId,
-  slugify(tenantName),
-  tenantName,
-]);
-await client.query(
-  `insert into principals (id, issuer, subject, email, display_name) values ($1, 'urn:masulino:better-auth', $2, $3, $3)`,
-  [principalId, user.id, email],
-);
-await client.query(
-  `insert into memberships (id, tenant_id, principal_id, status) values ($1, $2, $3, 'active')`,
-  [membershipId, tenantId, principalId],
-);
-await client.query(
-  `insert into grants (tenant_id, membership_id, role_key) values ($1, $2, 'tenant_owner')`,
-  [tenantId, membershipId],
-);
-await client.query(
-  `insert into module_entitlements (tenant_id, module_id, enabled) values ($1, 'core', true), ($1, 'reservations', true)`,
-  [tenantId],
-);
-await client.query(
-  `insert into audit_events (tenant_id, actor_principal_id, action, target_type, target_id, outcome, correlation_id, changes)
-   values ($1, $2, 'core.bootstrap.owner', 'tenant', $1, 'success', $3, '{}'::jsonb)`,
-  [tenantId, principalId, randomUUID()],
-);
-await client.query("commit");
+try {
+  await client.query(`insert into tenants (id, slug, name) values ($1, $2, $3)`, [
+    tenantId,
+    slugify(tenantName),
+    tenantName,
+  ]);
+  await client.query(
+    `insert into principals (id, issuer, subject, email, display_name) values ($1, 'urn:masulino:better-auth', $2, $3, $3)`,
+    [principalId, userId, email],
+  );
+  await client.query(
+    `insert into memberships (id, tenant_id, principal_id, status) values ($1, $2, $3, 'active')`,
+    [membershipId, tenantId, principalId],
+  );
+  await client.query(
+    `insert into grants (tenant_id, membership_id, role_key) values ($1, $2, 'tenant_owner')`,
+    [tenantId, membershipId],
+  );
+  await client.query(
+    `insert into module_entitlements (tenant_id, module_id, enabled) values ($1, 'core', true), ($1, 'reservations', true)`,
+    [tenantId],
+  );
+  // target_id is text; tenant_id is uuid — reuse of $1 makes Postgres reject the statement.
+  await client.query(
+    `insert into audit_events (tenant_id, actor_principal_id, action, target_type, target_id, outcome, correlation_id, changes)
+     values ($1, $2, 'core.bootstrap.owner', 'tenant', $3, 'success', $4, '{}'::jsonb)`,
+    [tenantId, principalId, tenantId, correlationId],
+  );
+  await client.query("commit");
+} catch (error) {
+  await client.query("rollback");
+  throw error;
+}
 await client.end();
 console.log(`Bootstrapped owner ${email}. Unset BOOTSTRAP_TOKEN.`);
 
