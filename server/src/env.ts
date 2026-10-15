@@ -12,6 +12,8 @@ const schema = z.object({
   CRON_SECRET: z.string().min(16),
   MASULINO_API_PORT: z.coerce.number().int().positive().default(8787),
   MASULINO_DEV_SESSION: z.enum(["0", "1"]).optional(),
+  /** Default on. Set to "0" to skip privileged TOTP enrollment during testing. */
+  MASULINO_REQUIRE_MFA: z.enum(["0", "1"]).optional(),
 });
 
 export function env() {
@@ -24,10 +26,16 @@ export function env() {
     CRON_SECRET: process.env.CRON_SECRET,
     MASULINO_API_PORT: process.env.MASULINO_API_PORT ?? "8787",
     MASULINO_DEV_SESSION: process.env.MASULINO_DEV_SESSION,
+    MASULINO_REQUIRE_MFA: process.env.MASULINO_REQUIRE_MFA,
   });
 }
 
 export function allowDevSession(): boolean {
   if (process.env.NODE_ENV === "production") return false;
   return env().MASULINO_DEV_SESSION === "1";
+}
+
+/** Privileged roles must enroll TOTP unless explicitly set to "0" for testing. */
+export function requireMfa(): boolean {
+  return env().MASULINO_REQUIRE_MFA !== "0";
 }

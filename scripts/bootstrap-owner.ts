@@ -51,6 +51,7 @@ if (prior.rowCount) {
 const tenantId = randomUUID();
 const principalId = randomUUID();
 const membershipId = randomUUID();
+const locationId = randomUUID();
 const correlationId = randomUUID();
 await client.query("begin");
 try {
@@ -74,6 +75,10 @@ try {
   await client.query(
     `insert into module_entitlements (tenant_id, module_id, enabled) values ($1, 'core', true), ($1, 'reservations', true)`,
     [tenantId],
+  );
+  await client.query(
+    `insert into locations (id, tenant_id, slug, name, timezone) values ($1, $2, 'hauptstandort', $3, 'Europe/Berlin')`,
+    [locationId, tenantId, tenantName],
   );
   // target_id is text; tenant_id is uuid — reuse of $1 makes Postgres reject the statement.
   await client.query(

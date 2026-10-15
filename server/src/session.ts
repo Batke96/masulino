@@ -6,12 +6,12 @@ import {
   mfaSatisfiedForSession,
   type ActorContext,
 } from "@masulino/core";
-import { AppError } from "@masulino/contracts";
+import { AppError, isAppError } from "@masulino/contracts";
 import { getAuthDb, rows, withTenant } from "@masulino/database";
 import { sql } from "drizzle-orm";
 import { getAuth } from "./auth";
 import { staffCapabilities } from "./capabilities";
-import { allowDevSession } from "./env";
+import { allowDevSession, requireMfa } from "./env";
 import { json } from "./errors";
 import { readTwoFactorEnabled, rotatePreMfaSessions } from "./mfa";
 
@@ -96,13 +96,15 @@ export async function loadRequestActor(
     mfaSatisfied: false,
   });
   if (!preview || preview.membershipStatus !== "active") return preview;
-  const satisfied = mfaSatisfiedForSession({
-    grants: preview.grants,
-    twoFactorEnabled: enrolled,
-    devBypass: staff.source === "dev" && allowDevSession(),
-  });
+  const satisfied =
+    !requireMfa() ||
+    mfaSatisfiedForSession({
+      grants: preview.grants,
+      twoFactorEnabled: enrolled,
+      devBypass: staff.source === "dev" && allowDevSession(),
+    });
   if (!satisfied) return preview;
-  if (enrolled && staff.sessionToken) {
+  if (requireMfa() && enrolled && staff.sessionToken) {
     await rotatePreMfaSessions(staff.user.id, staff.sessionToken);
   }
   return loadActor({
@@ -162,7 +164,7 @@ export async function handleStaffSession(request: Request): Promise<Response> {
   if (!actor || actor.membershipStatus !== "active") {
     return json({ authenticated: true, access: "none" }, 403);
   }
-  if (holdsPrivilegedGrant(actor.grants) && !actor.mfaSatisfied) {
+  if (requireMfa() && holdsPrivilegedGrant(actor.grants) && !actor.mfaSatisfied) {
     return json({
       authenticated: true,
       access: "mfa_enroll",
@@ -171,8 +173,19 @@ export async function handleStaffSession(request: Request): Promise<Response> {
   }
 
   const { roleKey, roleLabel } = describeRole(actor.grants);
-  const scope = await resolveDefaultScope(request);
-  const capabilities = staffCapabilities(scope.actor, scope.locationId);
+  // Bootstrap used to create a tenant without a location. Missing location must not
+  // look like a logged-out session (the UI treats non-auth JSON as login).
+  let locationName: string | null = null;
+  let localDate: string | null = null;
+  let capabilities = staffCapabilities(actor, null);
+  try {
+    const scope = await resolveDefaultScope(request);
+    locationName = scope.locationName;
+    localDate = todayInTimezone(scope.timezone);
+    capabilities = staffCapabilities(scope.actor, scope.locationId);
+  } catch (error) {
+    if (!isAppError(error) || error.code !== "not_found") throw error;
+  }
 
   return json({
     authenticated: true,
@@ -183,8 +196,8 @@ export async function handleStaffSession(request: Request): Promise<Response> {
     roleLabel,
     tenantName: membership.tenant_name,
     tenantSlug: membership.tenant_slug,
-    locationName: scope.locationName,
-    localDate: todayInTimezone(scope.timezone),
+    locationName,
+    localDate,
     capabilities,
   });
 }
