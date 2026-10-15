@@ -29,6 +29,32 @@ export function loadProductionOperatorEnv(): void {
     );
   }
   loadFile(file, true);
+  assertProductionOperatorEnv();
+}
+
+const PLACEHOLDER = /REPLACE_|…|\.\.\.|your-production-host|ep-…/i;
+
+function assertProductionOperatorEnv(): void {
+  const keys = [
+    "DATABASE_URL_MIGRATE",
+    "DATABASE_URL",
+    "DATABASE_URL_AUTH",
+    "DATABASE_URL_WORKER",
+    "BETTER_AUTH_SECRET",
+    "BETTER_AUTH_URL",
+    "CRON_SECRET",
+  ] as const;
+  const bad: string[] = [];
+  for (const key of keys) {
+    const value = process.env[key] ?? "";
+    if (!value || PLACEHOLDER.test(value)) bad.push(key);
+  }
+  if (bad.length) {
+    throw new Error(
+      `.env.production.local still has example placeholders for: ${bad.join(", ")}. ` +
+        "Paste the real Neon Connect / Vercel values (same ones used for migrate and bootstrap).",
+    );
+  }
 }
 
 function loadFile(file: string, override: boolean): void {
