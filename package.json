@@ -23,7 +23,8 @@
     "db:seed": "tsx scripts/seed.ts",
     "db:generate": "drizzle-kit generate",
     "bootstrap:owner": "tsx scripts/bootstrap-owner.ts",
-    "db:ensure-location": "tsx scripts/ensure-default-location.ts"
+    "db:ensure-location": "tsx scripts/ensure-default-location.ts",
+    "staff:add": "tsx scripts/add-staff-user.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

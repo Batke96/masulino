@@ -56,6 +56,8 @@ Inhaber, Verwaltung, and Standortleitung cannot open the workplace until they en
 
 A tenant needs at least one active `locations` row. `pnpm bootstrap:owner` creates `hauptstandort`. If an older bootstrap omitted it, run `DATABASE_URL_MIGRATE='…' pnpm db:ensure-location` once.
 
+To add another staff login on the existing tenant (not seed), use `pnpm staff:add` with `STAFF_ADD_CONFIRM=1`, `STAFF_EMAIL`, `STAFF_PASSWORD`, and the same four Neon URLs plus auth secrets as bootstrap. Default role is `tenant_owner`. Set `STAFF_CLEAR_MFA=1` if you want that account password-only while `MASULINO_REQUIRE_MFA=0`.
+
 ## What this hosting still is not
 
 The shell is still the Vinext prototype. Domain packages stay the source of the business rules. Mail, SMS, cards, Ready2Order, weather, and public guest booking stay off. The build machine region in the Vercel log is separate from the function region: `fra1` is where the function runs, not necessarily where the build logs say the compiler ran.
