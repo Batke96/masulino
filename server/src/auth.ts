@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { organization } from "better-auth/plugins";
+import { organization, twoFactor } from "better-auth/plugins";
 import { authSchema, getAuthDb } from "@masulino/database";
 import { env } from "./env";
 
@@ -41,6 +41,9 @@ function createAuth() {
     plugins: [
       organization({
         allowUserToCreateOrganization: false,
+      }),
+      twoFactor({
+        issuer: "Masulino",
       }),
     ],
   });

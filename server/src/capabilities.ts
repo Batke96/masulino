@@ -15,7 +15,6 @@ export type StaffCapabilities = {
 export function staffCapabilities(actor: ActorContext, locationId: string): StaffCapabilities {
   const granted = new Set<Action>(allowedActions({ ...actor, locationId }));
   const has = (action: Action) => granted.has(action);
-  const campaigns = has("marketing.audience.read");
   const team =
     has("workforce.schedule.read") ||
     has("workforce.availability.read") ||
@@ -26,8 +25,9 @@ export function staffCapabilities(actor: ActorContext, locationId: string): Staf
     families: has("loyalty.ledger.read") || has("contacts.consent.read"),
     team,
     reports: has("reporting.booked_value.read"),
-    campaigns,
+    campaigns: has("marketing.audience.read"),
     portal: has("content.notice.read"),
-    agents: campaigns || has("workforce.schedule.propose"),
+    // The agent inbox is still a fixture. Keep it out of a signed-in workplace.
+    agents: false,
   };
 }

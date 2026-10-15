@@ -434,7 +434,7 @@ These are real gaps. The new interface should not paper over them with sample co
 
 - Neon is not provisioned. Vercel production deploy still needs the GitHub Actions secrets in `docs/deploy.md`.
 - Venue tables, hours, prices, deposits, cancellation wording, and guest edit deadlines are proposed. Fixtures demonstrate them. Production must keep rejecting them until a decision is confirmed.
-- MFA recovery is not designed.
+- MFA recovery beyond one-time backup codes is not designed. Privileged roles must enroll TOTP before `mfaSatisfied` is true. Phishing-resistant keys and a helpdesk reset do not exist.
 - Content-Security-Policy still allows inline scripts. Production should move to a nonce when the new shell’s framework supports it.
 - Combined-table overlap has unit coverage and the exclusion constraint, and still wants a dedicated integration test.
 - There is no staff screen to edit resources and packages. Seed SQL creates the fixture venue.

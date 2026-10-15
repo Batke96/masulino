@@ -26,4 +26,5 @@
 .staff-gate-error{color:#a33b32;font-size:.875rem}
 .staff-gate-hint{font-size:.8125rem;color:#70798b}
 .staff-gate-hint p{margin-top:6px}
+.staff-gate-secret,.staff-gate-codes{font-family:ui-monospace,SFMono-Regular,monospace;font-size:.85rem;background:#f3f4f7;padding:10px 12px;border-radius:10px;word-break:break-all;white-space:pre-wrap}
 .full-width{width:100%}

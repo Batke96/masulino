@@ -16,6 +16,7 @@ import {
   handleWorkspaceBootstrap,
 } from "./handlers/sections";
 import { handleComposedOutbox } from "./outbox";
+import { apiSecurityHeaders, bearerMatches } from "./security";
 
 function collectBody(req: IncomingMessage): Promise<Buffer> {
   return new Promise((resolve, reject) => {
@@ -57,6 +58,9 @@ async function writeResponse(res: ServerResponse, response: Response): Promise<v
   });
   const cookies = response.headers.getSetCookie();
   if (cookies.length > 0) headers["set-cookie"] = cookies;
+  for (const [key, value] of Object.entries(apiSecurityHeaders)) {
+    if (headers[key] === undefined) headers[key] = value;
+  }
   res.writeHead(response.status, headers);
   const buffer = Buffer.from(await response.arrayBuffer());
   res.end(buffer);
@@ -78,8 +82,7 @@ async function route(request: Request): Promise<Response> {
     (pathname === "/api/cron/outbox" && (request.method === "GET" || request.method === "POST"))
   ) {
     const config = env();
-    const header = request.headers.get("authorization");
-    if (header !== `Bearer ${config.CRON_SECRET}`) {
+    if (!bearerMatches(request.headers.get("authorization"), config.CRON_SECRET)) {
       return json({ error: "unauthorized" }, 401);
     }
     const result = await drainOutbox("node-cron", handleComposedOutbox);

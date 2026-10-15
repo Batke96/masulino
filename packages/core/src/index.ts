@@ -1,4 +1,13 @@
-export { allowedActions, authorize, canAssignRole, permissionMatrix, privilegedRoles, redactChanges } from "./authz/policy";
+export {
+  allowedActions,
+  authorize,
+  canAssignRole,
+  holdsPrivilegedGrant,
+  mfaSatisfiedForSession,
+  permissionMatrix,
+  privilegedRoles,
+  redactChanges,
+} from "./authz/policy";
 export type { AuthzDecision, AuthzInput, Grant } from "./authz/policy";
 export {
   IDENTITY_ISSUER,
