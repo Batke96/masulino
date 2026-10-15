@@ -56,7 +56,13 @@ Inhaber, Verwaltung, and Standortleitung cannot open the workplace until they en
 
 A tenant needs at least one active `locations` row. `pnpm bootstrap:owner` creates `hauptstandort`. If an older bootstrap omitted it, run `DATABASE_URL_MIGRATE='…' pnpm db:ensure-location` once.
 
-To add another staff login on the existing tenant (not seed), use `pnpm staff:add` with `STAFF_ADD_CONFIRM=1`, `STAFF_EMAIL`, `STAFF_PASSWORD`, and the same four Neon URLs plus auth secrets as bootstrap. Default role is `tenant_owner`. Set `STAFF_CLEAR_MFA=1` if you want that account password-only while `MASULINO_REQUIRE_MFA=0`.
+To add another staff login on the existing tenant (not seed), copy `.env.production.local.example` to `.env.production.local` once (gitignored), fill the Neon/Vercel values, then run a short command:
+
+```sh
+STAFF_ADD_CONFIRM=1 STAFF_EMAIL='user@example.test' STAFF_PASSWORD='password' STAFF_CLEAR_MFA=1 pnpm staff:add
+```
+
+Default role is `tenant_owner`. Do not put Neon URLs or passwords in tracked files. The long-term path is an in-app invite (`core.users.invite` already exists in domain code); the HTTP/UI surface for that is not wired yet.
 
 ## What this hosting still is not
 
