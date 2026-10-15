@@ -12,7 +12,7 @@ export type StaffCapabilities = {
   agents: boolean;
 };
 
-export function staffCapabilities(actor: ActorContext, locationId: string): StaffCapabilities {
+export function staffCapabilities(actor: ActorContext, locationId: string | null): StaffCapabilities {
   const granted = new Set<Action>(allowedActions({ ...actor, locationId }));
   const has = (action: Action) => granted.has(action);
   const team =
