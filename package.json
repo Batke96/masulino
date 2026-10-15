@@ -27,6 +27,7 @@
   "dependencies": {
     "@base-ui/react": "^1.7.0",
     "@hookform/resolvers": "^5.7.1",
+    "@masulino/server": "workspace:*",
     "@shadcn/react": "^0.3.0",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
@@ -69,6 +70,7 @@
     "eslint": "9.39.4",
     "eslint-config-next": "16.3.4",
     "json-rpc-2.0": "1.7.1",
+    "nitro": "3.0.260903-beta",
     "pg": "^8.16.3",
     "raw-body": "3.0.2",
     "react-server-dom-webpack": "19.2.6",

@@ -1,7 +1,9 @@
 import {
   ensurePrincipal,
+  holdsPrivilegedGrant,
   listMemberships,
   loadActor,
+  mfaSatisfiedForSession,
   type ActorContext,
 } from "@masulino/core";
 import { AppError } from "@masulino/contracts";
@@ -11,6 +13,7 @@ import { getAuth } from "./auth";
 import { staffCapabilities } from "./capabilities";
 import { allowDevSession } from "./env";
 import { json } from "./errors";
+import { readTwoFactorEnabled, rotatePreMfaSessions } from "./mfa";
 
 const DEV_OWNER_EMAIL = "owner.masulino@example.test";
 
@@ -19,6 +22,7 @@ export type StaffSession = {
   principalId: string;
   memberships: Awaited<ReturnType<typeof listMemberships>>;
   source: "session" | "dev";
+  sessionToken: string | null;
 };
 
 export async function getStaffSession(request: Request): Promise<StaffSession | null> {
@@ -39,6 +43,7 @@ export async function getStaffSession(request: Request): Promise<StaffSession | 
       principalId,
       memberships,
       source: "session",
+      sessionToken: session.session.token,
     };
   }
 
@@ -76,7 +81,35 @@ async function loadDevOwnerSession(): Promise<StaffSession | null> {
     principalId,
     memberships,
     source: "dev",
+    sessionToken: null,
   };
+}
+
+export async function loadRequestActor(
+  staff: StaffSession,
+  tenantId: string,
+): Promise<ActorContext | null> {
+  const enrolled = staff.source === "session" ? await readTwoFactorEnabled(staff.user.id) : false;
+  const preview = await loadActor({
+    principalId: staff.principalId,
+    tenantId,
+    mfaSatisfied: false,
+  });
+  if (!preview || preview.membershipStatus !== "active") return preview;
+  const satisfied = mfaSatisfiedForSession({
+    grants: preview.grants,
+    twoFactorEnabled: enrolled,
+    devBypass: staff.source === "dev" && allowDevSession(),
+  });
+  if (!satisfied) return preview;
+  if (enrolled && staff.sessionToken) {
+    await rotatePreMfaSessions(staff.user.id, staff.sessionToken);
+  }
+  return loadActor({
+    principalId: staff.principalId,
+    tenantId,
+    mfaSatisfied: true,
+  });
 }
 
 const roleLabels: Record<string, string> = {
@@ -125,13 +158,16 @@ export async function handleStaffSession(request: Request): Promise<Response> {
   const membership = staff.memberships.find((item) => item.status === "active");
   if (!membership) return json({ authenticated: true, access: "none" }, 403);
 
-  const actor = await loadActor({
-    principalId: staff.principalId,
-    tenantId: membership.tenant_id,
-    mfaSatisfied: true,
-  });
+  const actor = await loadRequestActor(staff, membership.tenant_id);
   if (!actor || actor.membershipStatus !== "active") {
     return json({ authenticated: true, access: "none" }, 403);
+  }
+  if (holdsPrivilegedGrant(actor.grants) && !actor.mfaSatisfied) {
+    return json({
+      authenticated: true,
+      access: "mfa_enroll",
+      user: { name: staff.user.name, email: staff.user.email },
+    });
   }
 
   const { roleKey, roleLabel } = describeRole(actor.grants);
@@ -161,11 +197,7 @@ export async function requireStaffSession(request: Request): Promise<StaffSessio
 
 export async function requireActor(request: Request, tenantId: string): Promise<ActorContext> {
   const staff = await requireStaffSession(request);
-  const actor = await loadActor({
-    principalId: staff.principalId,
-    tenantId,
-    mfaSatisfied: true,
-  });
+  const actor = await loadRequestActor(staff, tenantId);
   if (!actor || actor.membershipStatus !== "active") {
     throw new AppError("forbidden", "membership");
   }

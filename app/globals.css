@@ -1,5 +1,6 @@
-@import "tailwindcss";
-@import "tw-animate-css";
+/* Explicit files: Vite's SSR CSS resolver cannot load the package root (vitejs/vite#23096). */
+@import "tailwindcss/index.css";
+@import "../node_modules/tw-animate-css/dist/tw-animate.css";
 @import "../vendor/shadcn-tailwind-4.13.0.css";
 
 :root{--background:#fff;--foreground:#242732;--card:#fff;--card-foreground:#242732;--popover:#fff;--popover-foreground:#242732;--primary:#ef603b;--primary-foreground:#fff;--secondary:#f4f5f7;--secondary-foreground:#353845;--muted:#f2f3f6;--muted-foreground:#6d7180;--accent:#f0f1f5;--accent-foreground:#262934;--destructive:#d34141;--border:#e6e7ec;--input:#e0e2e8;--ring:#ee714f;--radius:.7rem;--sidebar:#fff;--sidebar-foreground:#5f6371;--sidebar-primary:#ed623e;--sidebar-primary-foreground:#fff;--sidebar-accent:#fff0ea;--sidebar-accent-foreground:#d44925;--sidebar-border:#e6e7ec;--sidebar-ring:#f17e61;--orange:#f56a43;--navy:#222a44;--text:#252937;--soft-text:#747989}
@@ -26,4 +27,5 @@
 .staff-gate-error{color:#a33b32;font-size:.875rem}
 .staff-gate-hint{font-size:.8125rem;color:#70798b}
 .staff-gate-hint p{margin-top:6px}
+.staff-gate-secret,.staff-gate-codes{font-family:ui-monospace,SFMono-Regular,monospace;font-size:.85rem;background:#f3f4f7;padding:10px 12px;border-radius:10px;word-break:break-all;white-space:pre-wrap}
 .full-width{width:100%}

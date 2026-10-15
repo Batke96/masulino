@@ -260,10 +260,28 @@ export const grantableRoles: Record<RoleKey, readonly RoleKey[]> = {
   employee: [],
 };
 
-function holdsPrivilegedRole(grants: readonly Grant[]): boolean {
+export function holdsPrivilegedGrant(grants: readonly Grant[]): boolean {
   return grants.some((grant) =>
     (privilegedRoles as readonly string[]).includes(grant.roleKey),
   );
+}
+
+/**
+ * Privileged roles stay blocked until this session's user has completed TOTP.
+ * `devBypass` is only for the local `MASULINO_DEV_SESSION` path, which production refuses.
+ */
+export function mfaSatisfiedForSession(input: {
+  grants: readonly Grant[];
+  twoFactorEnabled: boolean;
+  devBypass: boolean;
+}): boolean {
+  if (input.devBypass) return true;
+  if (!holdsPrivilegedGrant(input.grants)) return true;
+  return input.twoFactorEnabled;
+}
+
+function holdsPrivilegedRole(grants: readonly Grant[]): boolean {
+  return holdsPrivilegedGrant(grants);
 }
 
 export function authorize(input: AuthzInput, action: Action): AuthzDecision {

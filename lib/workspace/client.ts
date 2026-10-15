@@ -226,11 +226,44 @@ export async function fetchPortalNotices(): Promise<
   return data.notices;
 }
 
-export async function fetchTeamLive(): Promise<{ source: "live" } | null> {
+export type TeamShift = {
+  id: string;
+  displayName: string | null;
+  localDate: string;
+  startMinute: number;
+  endMinute: number;
+};
+
+export type TeamLive = {
+  source: "live";
+  weekStartsOn: string;
+  availabilityScope: "location" | "self" | "none";
+  availability: Array<{
+    displayName: string | null;
+    windows: Array<{ weekday: number; startMinute: number; endMinute: number }>;
+  }>;
+  week: {
+    published: {
+      status: string;
+      shifts: TeamShift[];
+      warnings: Array<{ code: string; localDate?: string }>;
+    } | null;
+    draftCount: number;
+  } | null;
+  punches: Array<{
+    id: string;
+    displayName: string | null;
+    kind: "in" | "out";
+    localDate: string;
+    localTime: string;
+  }>;
+};
+
+export async function fetchTeamLive(): Promise<TeamLive | null> {
   if (!isWorkspaceMode()) return null;
-  const data = await getJson<{ source: string }>("/api/sections/team");
+  const data = await getJson<TeamLive & { source: string }>("/api/sections/team");
   if (!data || data.source !== "live") return null;
-  return { source: "live" };
+  return data;
 }
 
 export function newIdempotencyKey(): string {

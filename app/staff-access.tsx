@@ -4,10 +4,13 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import type { StaffCapabilities } from "@/lib/workspace/capabilities";
 import { enableWorkspace } from "@/lib/workspace/client";
 import {
+  enableStaffTotp,
   fetchStaffSession,
   formatStaffDate,
   signInStaff,
   signOutStaff,
+  verifyStaffBackupCode,
+  verifyStaffTotp,
   type StaffSession,
 } from "@/lib/workspace/session";
 
@@ -49,7 +52,7 @@ function firstName(name: string): string {
   return name.trim().split(/\s+/)[0] || name;
 }
 
-function toIdentity(session: Extract<StaffSession, { authenticated: true }>, signOut: () => void): StaffIdentity {
+function toIdentity(session: Extract<StaffSession, { access: "active" }>, signOut: () => void): StaffIdentity {
   return {
     name: session.user.name,
     firstName: firstName(session.user.name),
@@ -63,13 +66,23 @@ function toIdentity(session: Extract<StaffSession, { authenticated: true }>, sig
   };
 }
 
+type Gate = "checking" | "login" | "denied" | "mfa_enroll" | "mfa_challenge" | "app";
+
+function totpSecret(uri: string): string {
+  try {
+    return new URL(uri).searchParams.get("secret") ?? "";
+  } catch {
+    return "";
+  }
+}
+
 export function StaffAccess({ children }: { children: ReactNode }) {
-  const [access, setAccess] = useState<"checking" | "login" | "denied" | "app">(
-    wantsWorkspace() ? "checking" : "app",
-  );
+  const [access, setAccess] = useState<Gate>(wantsWorkspace() ? "checking" : "app");
   const [identity, setIdentity] = useState<StaffIdentity | null>(null);
-  const [error, setError] = useState<"none" | "invalid" | "offline">("none");
+  const [error, setError] = useState<"none" | "invalid" | "offline" | "code">("none");
   const [pending, setPending] = useState(false);
+  const [totpUri, setTotpUri] = useState("");
+  const [backupCodes, setBackupCodes] = useState<string[]>([]);
 
   function signOut() {
     void signOutStaff().then(() => {
@@ -85,6 +98,15 @@ export function StaffAccess({ children }: { children: ReactNode }) {
       return;
     }
     if (session.access === "none") {
+      setAccess("denied");
+      return;
+    }
+    if (session.access === "mfa_enroll") {
+      setIdentity(null);
+      setAccess("mfa_enroll");
+      return;
+    }
+    if (session.access !== "active") {
       setAccess("denied");
       return;
     }
@@ -142,6 +164,10 @@ export function StaffAccess({ children }: { children: ReactNode }) {
                   setError(result.offline ? "offline" : "invalid");
                   return;
                 }
+                if (result.twoFactorRedirect) {
+                  setAccess("mfa_challenge");
+                  return;
+                }
                 await applySession(await fetchStaffSession());
               }}
             >
@@ -153,16 +179,191 @@ export function StaffAccess({ children }: { children: ReactNode }) {
             </form>
             <details className="staff-gate-hint">
               <summary>Lokale Testzugänge</summary>
-              <p>user@example.test · Passwort password · Inhaber mit allen Rechten</p>
-              <p>Übrige Konten: Synthetic-Staff-1</p>
-              <p>reception.masulino@example.test · Empfang, Buchungen</p>
-              <p>employee.masulino@example.test · Team, ohne Buchungsliste</p>
-              <p>manager.masulino@example.test · Standortleitung</p>
-              <p>owner.masulino@example.test · Inhaber</p>
+              <p>Empfang und Team melden sich nur mit Passwort an.</p>
+              <p>Inhaber, Verwaltung und Standortleitung richten danach einen zweiten Faktor ein.</p>
+              <p>reception.masulino@example.test · Synthetic-Staff-1</p>
+              <p>employee.masulino@example.test · Synthetic-Staff-1</p>
+              <p>owner.masulino@example.test und manager.masulino@example.test · Synthetic-Staff-1</p>
+              <p>user@example.test · password</p>
             </details>
           </>
         ) : null}
+        {access === "mfa_challenge" ? (
+          <MfaCodeForm
+            title="Zweiter Faktor."
+            lead="Gib den Code aus deiner Authenticator-App ein. Ein Wiederherstellungscode gilt einmal."
+            pending={pending}
+            error={error === "code"}
+            onTotp={async (code) => {
+              setPending(true);
+              setError("none");
+              const result = await verifyStaffTotp(code);
+              setPending(false);
+              if (!result.ok) {
+                setError("code");
+                return;
+              }
+              await applySession(await fetchStaffSession());
+            }}
+            onBackup={async (code) => {
+              setPending(true);
+              setError("none");
+              const result = await verifyStaffBackupCode(code);
+              setPending(false);
+              if (!result.ok) {
+                setError("code");
+                return;
+              }
+              await applySession(await fetchStaffSession());
+            }}
+            onCancel={signOut}
+          />
+        ) : null}
+        {access === "mfa_enroll" ? (
+          <MfaEnroll
+            pending={pending}
+            error={error}
+            totpUri={totpUri}
+            backupCodes={backupCodes}
+            onEnable={async (password) => {
+              setPending(true);
+              setError("none");
+              const result = await enableStaffTotp(password);
+              setPending(false);
+              if (!result.ok) {
+                setError("invalid");
+                return;
+              }
+              setTotpUri(result.totpURI);
+              setBackupCodes(result.backupCodes);
+            }}
+            onVerify={async (code) => {
+              setPending(true);
+              setError("none");
+              const result = await verifyStaffTotp(code);
+              setPending(false);
+              if (!result.ok) {
+                setError("code");
+                return;
+              }
+              setBackupCodes([]);
+              setTotpUri("");
+              await applySession(await fetchStaffSession());
+            }}
+            onCancel={signOut}
+          />
+        ) : null}
       </section>
     </main>
+  );
+}
+
+function MfaCodeForm({
+  title,
+  lead,
+  pending,
+  error,
+  onTotp,
+  onBackup,
+  onCancel,
+}: {
+  title: string;
+  lead: string;
+  pending: boolean;
+  error: boolean;
+  onTotp: (code: string) => Promise<void>;
+  onBackup: (code: string) => Promise<void>;
+  onCancel: () => void;
+}) {
+  const [backup, setBackup] = useState(false);
+  return (
+    <>
+      <h1>{title}</h1>
+      <p>{lead}</p>
+      {error ? <p className="staff-gate-error">Der Code ist ungültig oder abgelaufen.</p> : null}
+      <form
+        className="staff-gate-form"
+        onSubmit={async (event) => {
+          event.preventDefault();
+          const data = new FormData(event.currentTarget);
+          const code = String(data.get("code") ?? "").trim();
+          if (!code) return;
+          if (backup) await onBackup(code);
+          else await onTotp(code);
+        }}
+      >
+        <label className="field-label">
+          {backup ? "Wiederherstellungscode" : "Code"}
+          <input name="code" inputMode={backup ? "text" : "numeric"} autoComplete="one-time-code" required />
+        </label>
+        <button className="button dark full-width" type="submit" disabled={pending}>
+          {pending ? "Wird geprüft …" : "Bestätigen"}
+        </button>
+      </form>
+      <button className="text-button" type="button" onClick={() => setBackup((value) => !value)}>
+        {backup ? "Authenticator-Code verwenden" : "Wiederherstellungscode verwenden"}
+      </button>
+      <button className="button soft" type="button" onClick={onCancel}>Abmelden</button>
+    </>
+  );
+}
+
+function MfaEnroll({
+  pending,
+  error,
+  totpUri,
+  backupCodes,
+  onEnable,
+  onVerify,
+  onCancel,
+}: {
+  pending: boolean;
+  error: "none" | "invalid" | "offline" | "code";
+  totpUri: string;
+  backupCodes: string[];
+  onEnable: (password: string) => Promise<void>;
+  onVerify: (code: string) => Promise<void>;
+  onCancel: () => void;
+}) {
+  const secret = totpSecret(totpUri);
+  return (
+    <>
+      <h1>Zwei-Faktor einrichten.</h1>
+      <p>Für Inhaber, Verwaltung und Standortleitung ist ein zweiter Faktor erforderlich, bevor der Betrieb zugänglich ist.</p>
+      {error === "invalid" ? <p className="staff-gate-error">Das Passwort stimmt nicht.</p> : null}
+      {error === "code" ? <p className="staff-gate-error">Der Code ist ungültig. Prüfe die Uhrzeit des Geräts.</p> : null}
+      {secret ? (
+        <>
+          <p>Trag dieses Geheimnis in eine Authenticator-App ein. Es wird nur hier angezeigt.</p>
+          <p className="staff-gate-secret">{secret}</p>
+          <p>Speichere die Wiederherstellungscodes jetzt. Jeder Code gilt einmal. Es gibt keinen anderen Wiederherstellungsweg.</p>
+          <pre className="staff-gate-codes">{backupCodes.join("\n")}</pre>
+          <form
+            className="staff-gate-form"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              const data = new FormData(event.currentTarget);
+              await onVerify(String(data.get("code") ?? "").trim());
+            }}
+          >
+            <label className="field-label">Code aus der App<input name="code" inputMode="numeric" autoComplete="one-time-code" required /></label>
+            <button className="button dark full-width" type="submit" disabled={pending}>Bestätigen</button>
+          </form>
+        </>
+      ) : (
+        <form
+          className="staff-gate-form"
+          onSubmit={async (event) => {
+            event.preventDefault();
+            const data = new FormData(event.currentTarget);
+            await onEnable(String(data.get("password") ?? ""));
+          }}
+        >
+          <label className="field-label">Passwort zur Bestätigung<input name="password" type="password" autoComplete="current-password" required /></label>
+          <button className="button dark full-width" type="submit" disabled={pending}>Geheimnis erzeugen</button>
+        </form>
+      )}
+      <button className="button soft" type="button" onClick={onCancel}>Abmelden</button>
+    </>
   );
 }

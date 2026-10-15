@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { actions, type Action, type RoleKey } from "@masulino/contracts";
-import { authorize, canAssignRole, permissionMatrix, redactChanges } from "./policy";
+import { authorize, canAssignRole, mfaSatisfiedForSession, permissionMatrix, redactChanges } from "./policy";
 import type { AuthzInput } from "./policy";
 
 function actor(role: RoleKey, locationId: string | null, extra: Partial<AuthzInput> = {}): AuthzInput {
@@ -61,6 +61,44 @@ describe("permission matrix", () => {
         "reservations.booking.create",
       ),
     ).toEqual({ allow: false, reason: "entitlement" });
+  });
+
+  it("keeps privileged roles blocked until TOTP is enabled", () => {
+    expect(
+      mfaSatisfiedForSession({
+        grants: [{ roleKey: "tenant_owner", locationId: null }],
+        twoFactorEnabled: false,
+        devBypass: false,
+      }),
+    ).toBe(false);
+    expect(
+      mfaSatisfiedForSession({
+        grants: [{ roleKey: "location_manager", locationId: "loc-a" }],
+        twoFactorEnabled: false,
+        devBypass: false,
+      }),
+    ).toBe(false);
+    expect(
+      mfaSatisfiedForSession({
+        grants: [{ roleKey: "tenant_administrator", locationId: null }],
+        twoFactorEnabled: true,
+        devBypass: false,
+      }),
+    ).toBe(true);
+    expect(
+      mfaSatisfiedForSession({
+        grants: [{ roleKey: "reception", locationId: "loc-a" }],
+        twoFactorEnabled: false,
+        devBypass: false,
+      }),
+    ).toBe(true);
+    expect(
+      mfaSatisfiedForSession({
+        grants: [{ roleKey: "tenant_owner", locationId: null }],
+        twoFactorEnabled: false,
+        devBypass: true,
+      }),
+    ).toBe(true);
   });
 
   it("requires MFA for privileged roles and keeps role management with the owner", () => {

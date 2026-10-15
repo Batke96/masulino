@@ -31,6 +31,7 @@ import {
 import {
   listLocationAvailability,
   listPunches,
+  readAvailability,
   readWeek,
 } from "@masulino/workforce";
 import { handleComposedOutbox } from "../outbox";
@@ -175,7 +176,7 @@ export async function handleSection(
       }
       case "families": {
         const adults = await listLocationAdults({ actor, locationId });
-        const ledger = await listLedger(actor, locationId).catch((error) => {
+        const ledger = await listLedger(actor, locationId).catch((error: unknown) => {
           if (isAppError(error) && error.code === "forbidden") return [];
           throw error;
         });
@@ -190,7 +191,7 @@ export async function handleSection(
           families: adults.map((adult) => ({
             id: adult.contactId,
             name: adult.displayName,
-            lastVisit: "—",
+            lastVisit: "Nicht erfasst",
             points: balanceBySubject.get(adult.contactId) ?? 0,
             consent: adult.marketingDecision === "granted",
             longAbsent: false,
@@ -199,19 +200,46 @@ export async function handleSection(
       }
       case "team": {
         const weekStartsOn = mondayOf(localDate);
-        const [availability, week, punches] = await Promise.all([
-          listLocationAvailability(actor, locationId),
-          readWeek({ actor, locationId, weekStartsOn }),
-          listPunches(actor, locationId),
-        ]);
+        const availability = await locationOrOwnAvailability(actor, locationId);
+        const week = await ifForbidden(
+          () => readWeek({ actor, locationId, weekStartsOn }),
+          null,
+        );
+        const punches = await ifForbidden(() => listPunches(actor, locationId), []);
         return json({
           source: "live",
           section,
           weekStartsOn,
-          availability,
-          week,
-          punches,
-          fixtureGapCopy: true,
+          availabilityScope: availability.scope,
+          availability: availability.rows.map((row) => ({
+            displayName: row.displayName,
+            windows: row.windows,
+          })),
+          week: week
+            ? {
+                published: week.published
+                  ? {
+                      status: week.published.status,
+                      shifts: week.published.shifts.map((shift) => ({
+                        id: shift.id,
+                        displayName: shift.displayName,
+                        localDate: shift.localDate,
+                        startMinute: shift.startMinute,
+                        endMinute: shift.endMinute,
+                      })),
+                      warnings: week.published.warnings,
+                    }
+                  : null,
+                draftCount: week.draft?.shifts.length ?? 0,
+              }
+            : null,
+          punches: punches.slice(0, 12).map((punch) => ({
+            id: punch.id,
+            displayName: punch.displayName,
+            kind: punch.kind,
+            localDate: punch.localDate,
+            localTime: punch.localTime,
+          })),
         });
       }
       case "reports": {
@@ -282,8 +310,8 @@ export async function handleCreateBooking(request: Request): Promise<Response> {
       adultCount: Number(body.adultCount ?? 2),
       packageId: body.packageId,
       organizerName: body.organizerName,
-      organizerEmail: body.organizerEmail ?? "staff.demo@example.test",
-      organizerPhone: body.organizerPhone ?? "030000000",
+      organizerEmail: body.organizerEmail,
+      organizerPhone: body.organizerPhone,
       honoreeFirstName: body.honoreeFirstName,
       sourceChannel: body.sourceChannel ?? "staff_walk_in",
       notes: body.notes ?? "",
@@ -413,6 +441,36 @@ export async function handleRedeemReward(request: Request): Promise<Response> {
     return json({ source: "live", ok: true });
   } catch (error) {
     return errorResponse(error);
+  }
+}
+
+async function ifForbidden<T>(work: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await work();
+  } catch (error) {
+    if (isAppError(error) && error.code === "forbidden") return fallback;
+    throw error;
+  }
+}
+
+async function locationOrOwnAvailability(
+  actor: ActorContext,
+  locationId: string,
+): Promise<{
+  scope: "location" | "self" | "none";
+  rows: Awaited<ReturnType<typeof listLocationAvailability>>;
+}> {
+  try {
+    return { scope: "location", rows: await listLocationAvailability(actor, locationId) };
+  } catch (error) {
+    if (!isAppError(error) || error.code !== "forbidden") throw error;
+  }
+  try {
+    const own = await readAvailability(actor, locationId, actor.principalId);
+    return { scope: "self", rows: own ? [own] : [] };
+  } catch (error) {
+    if (!isAppError(error) || error.code !== "forbidden") throw error;
+    return { scope: "none", rows: [] };
   }
 }
 
