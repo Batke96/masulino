@@ -31,6 +31,8 @@ Set these on the API, not in the browser bundle:
 - `BETTER_AUTH_SECRET`
 - `BETTER_AUTH_URL`
 - `CRON_SECRET`
+- `MASULINO_SITE_KEY` (website server only; the birthday form sends it as `Authorization: Bearer`)
+- `MASULINO_PUBLIC_VENUE_SLUG` (the published venue the form books)
 - `NODE_ENV=production`
 
 Leave `MASULINO_DEV_SESSION` unset. Production refuses that bypass. Leave `DATABASE_URL_MIGRATE` off the runtime.

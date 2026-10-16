@@ -75,6 +75,7 @@ You can then create a private repository on your chosen Git host and push it the
 | `server/` | Node composition root: Better Auth, section handlers, outbox drain |
 | `packages/` | Framework-free domain packages from the ERP handover (`contracts`, `core`, `database`, modules, indoor-play) |
 | `docs/domain-handover.md` | Portable contract for identity, authorization, tenancy and booking invariants |
+| `docs/birthday-form.md` | Website API: free times for a day, then save the birthday form |
 | `app/globals.css` | Visual tokens, layouts, responsive behavior, component styling and reduced-motion support |
 | `app/layout.tsx` | German document language, page metadata and global styles |
 | `components/ui/` | Existing shadcn/Radix UI primitives; dialogs, sheets, tabs, command palette, sidebar and other controls |
