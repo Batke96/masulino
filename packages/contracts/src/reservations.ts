@@ -27,10 +27,15 @@ export const createBookingSchema = z.object({
   childrenCount: z.number().int().min(1).max(40),
   adultCount: z.number().int().min(0).max(40),
   packageId: z.uuid(),
-  organizerName: z.string().trim().min(1).max(120),
+  organizerName: z.string().trim().min(1).max(161),
   organizerEmail: z.email(),
   organizerPhone: z.string().trim().min(3).max(40),
   honoreeFirstName: z.string().trim().max(80).optional(),
+  honoreeAge: z.number().int().min(1).max(17).optional(),
+  organizerGivenName: z.string().trim().min(1).max(80).optional(),
+  organizerFamilyName: z.string().trim().min(1).max(80).optional(),
+  adultFlatRate: z.boolean().optional(),
+  referralSource: z.string().trim().max(80).optional(),
   sourceChannel: z.enum(sourceChannels),
   notes: z.string().trim().max(500).default(""),
   mode: z.enum(["confirm", "request"]).default("confirm"),
@@ -118,6 +123,64 @@ export const rescheduleBookingSchema = z.object({
 });
 
 export type RescheduleBookingInput = z.infer<typeof rescheduleBookingSchema>;
+
+export const birthdayPackageCodes = ["comfort", "deluxe"] as const;
+export type BirthdayPackageCode = (typeof birthdayPackageCodes)[number];
+
+/** Euro cents. Comfort 14,80 €, Deluxe 21,80 €, adult flat rate 2,50 €. */
+export const adultFlatRateMinor = 250;
+
+export const birthdayPackages = [
+  {
+    code: "comfort" as const,
+    name: "Geburtstag Comfort",
+    durationMinutes: 120,
+    priceMinor: 1480,
+    currency: "EUR",
+  },
+  {
+    code: "deluxe" as const,
+    name: "Geburtstag Deluxe",
+    durationMinutes: 120,
+    priceMinor: 2180,
+    currency: "EUR",
+  },
+] as const;
+
+const birthdayPackageSchema = z
+  .string()
+  .trim()
+  .transform((value) => value.toLowerCase())
+  .pipe(z.enum(birthdayPackageCodes));
+
+export const birthdayTimesSchema = z.object({
+  date: localDate,
+  children: z.coerce.number().int().min(1).max(40).default(8),
+  adults: z.coerce.number().int().min(0).max(40).default(4),
+  package: birthdayPackageSchema.optional(),
+});
+
+export type BirthdayTimesQuery = z.infer<typeof birthdayTimesSchema>;
+
+export const birthdayFormSchema = z.object({
+  idempotencyKey: z.string().trim().min(8).max(80),
+  date: localDate,
+  time: localTime,
+  package: birthdayPackageSchema,
+  childName: z.string().trim().min(1).max(80),
+  childAge: z.coerce.number().int().min(1).max(17),
+  children: z.coerce.number().int().min(1).max(40),
+  adults: z.coerce.number().int().min(0).max(40),
+  adultFlatRate: z.boolean().default(false),
+  givenName: z.string().trim().min(1).max(80),
+  familyName: z.string().trim().min(1).max(80),
+  email: z.email(),
+  phone: z.string().trim().min(3).max(40),
+  message: z.string().trim().max(500).default(""),
+  referral: z.string().trim().max(80).default(""),
+});
+
+export type BirthdayFormInput = z.infer<typeof birthdayFormSchema>;
 
 export const availabilityQuerySchema = z.object({
   venueSlug: publicVenueSlugSchema,

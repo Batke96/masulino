@@ -11,7 +11,12 @@ export {
 export type { Action, ModuleDefinition, ModuleId, PermissionScope, RoleKey } from "./permissions";
 export {
   adultSeatingModes,
+  adultFlatRateMinor,
   availabilityQuerySchema,
+  birthdayFormSchema,
+  birthdayPackageCodes,
+  birthdayPackages,
+  birthdayTimesSchema,
   cancelBookingSchema,
   createBookingSchema,
   dailyViewSchema,
@@ -29,6 +34,9 @@ export {
 } from "./reservations";
 export type {
   AdultSeatingMode,
+  BirthdayFormInput,
+  BirthdayPackageCode,
+  BirthdayTimesQuery,
   CancelBookingInput,
   CreateBookingInput,
   GuestBookingInput,
