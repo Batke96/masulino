@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import pg from "pg";
+import { birthdayPackages } from "@masulino/contracts";
 import { loadRootEnv } from "./load-env";
 
 loadRootEnv();
@@ -209,6 +210,15 @@ await client.query(
   ) values ($1, $2, $3, 'Geburtstagsfeier Fixture', 120, 25000, 'EUR', 1, 16, true)`,
   [packageId, tenantA, locationA],
 );
+for (const pkg of birthdayPackages) {
+  await client.query(
+    `insert into packages (
+      id, tenant_id, location_id, name, duration_minutes, price_minor, currency,
+      min_children, max_children, public_code, fixture
+    ) values ($1, $2, $3, $4, $5, $6, $7, 1, 40, $8, false)`,
+    [randomUUID(), tenantA, locationA, pkg.name, pkg.durationMinutes, pkg.priceMinor, pkg.currency, pkg.code],
+  );
+}
 const ruleId = randomUUID();
 await client.query(
   `insert into venue_rules (

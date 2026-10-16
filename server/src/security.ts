@@ -1,5 +1,15 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 
+/** Stable guest id for the website key, so a repeated submit finds the same booking. */
+export function websiteActorId(secret: string): string {
+  const bytes = createHash("sha256").update(`masulino-website:${secret}`).digest();
+  const id = Buffer.from(bytes.subarray(0, 16));
+  id[6] = (id[6]! & 0x0f) | 0x40;
+  id[8] = (id[8]! & 0x3f) | 0x80;
+  const hex = id.toString("hex");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 /** Compare a bearer token without leaking the secret through an early length check. */
 export function bearerMatches(header: string | null, secret: string): boolean {
   const token = header?.startsWith("Bearer ") ? header.slice("Bearer ".length) : "";

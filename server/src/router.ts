@@ -15,6 +15,7 @@ import {
   handleWorkspaceBootstrap,
 } from "./handlers/sections";
 import { handleComposedOutbox } from "./outbox";
+import { handleBirthdaySubmit, handleBirthdayTimes } from "./handlers/birthdays";
 import { bearerMatches } from "./security";
 
 export async function route(request: Request): Promise<Response> {
@@ -53,6 +54,14 @@ export async function route(request: Request): Promise<Response> {
 
   if (pathname === "/api/packages" && request.method === "GET") {
     return handlePackages(request);
+  }
+
+  if (pathname === "/api/public/birthdays/times" && request.method === "GET") {
+    return handleBirthdayTimes(request);
+  }
+
+  if (pathname === "/api/public/birthdays" && request.method === "POST") {
+    return handleBirthdaySubmit(request);
   }
 
   if (pathname === "/api/bookings" && request.method === "POST") {

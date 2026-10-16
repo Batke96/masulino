@@ -19,7 +19,7 @@ Nothing in this repository publishes itself. The steps below are the ones that n
 | Vercel project | Connect the Git branch that contains `vercel.json`. Leave the framework preset unset so the file’s `"framework": null` is used. The build command stays `pnpm run build`. Do not set an output directory; Nitro writes `.vercel/output`. Set the function region to `fra1` if the dashboard overrides the file. Do not put `DATABASE_URL_MIGRATE` on the runtime. |
 | First owner invitation | Public sign-up is disabled. Bootstrap one owner against the EU database, then invite everyone else. Do not run `pnpm db:seed` against Neon. |
 
-Apply `packages/database/migrations/0001_platform.sql` through `0006_mfa_session.sql` with the direct migration URL before the first request. Run the integration tests against the `masulino_app` role on that database so row-level security is proven there, not only on a laptop.
+Apply `packages/database/migrations/0001_platform.sql` through `0007_birthday_intake.sql` with the direct migration URL before the first request. Run the integration tests against the `masulino_app` role on that database so row-level security is proven there, not only on a laptop.
 
 ## Runtime variables
 
@@ -31,6 +31,8 @@ Set these on the API, not in the browser bundle:
 - `BETTER_AUTH_SECRET`
 - `BETTER_AUTH_URL`
 - `CRON_SECRET`
+- `MASULINO_SITE_KEY` (website server only; the birthday form sends it as `Authorization: Bearer`)
+- `MASULINO_PUBLIC_VENUE_SLUG` (the published venue the form books)
 - `NODE_ENV=production`
 
 Leave `MASULINO_DEV_SESSION` unset. Production refuses that bypass. Leave `DATABASE_URL_MIGRATE` off the runtime.
@@ -66,4 +68,4 @@ Default role is `tenant_owner`. Do not put Neon URLs or passwords in tracked fil
 
 ## What this hosting still is not
 
-The shell is still the Vinext prototype. Domain packages stay the source of the business rules. Mail, SMS, cards, Ready2Order, weather, and public guest booking stay off. The build machine region in the Vercel log is separate from the function region: `fra1` is where the function runs, not necessarily where the build logs say the compiler ran.
+The shell is still the Vinext prototype. Domain packages stay the source of the business rules. Mail, SMS, cards, Ready2Order, and weather stay off. The birthday form routes are on: `GET /api/public/birthdays/times` and `POST /api/public/birthdays` on the same Vercel origin. They write to Neon only after `MASULINO_SITE_KEY`, `MASULINO_PUBLIC_VENUE_SLUG`, migration `0007`, a published non-fixture venue rule, and the Comfort and Deluxe packages are in place. The contract is in the README. The build machine region in the Vercel log is separate from the function region: `fra1` is where the function runs, not necessarily where the build logs say the compiler ran.

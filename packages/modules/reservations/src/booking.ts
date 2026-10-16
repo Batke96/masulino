@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import {
   AppError,
+  adultFlatRateMinor,
   isAppError,
   type AllocationInput,
   type AllocationResult,
@@ -81,13 +82,21 @@ export async function createGuestBooking(args: {
   correlationId: string;
   allocate: Allocate;
   preparationTasks: () => string[];
+  createLimit?: number;
 }): Promise<BookingResult> {
   if (!UUID.test(args.caller.capabilityId)) throw new AppError("validation", "capability");
   if (args.input.locationId !== args.caller.locationId) throw new AppError("forbidden", "location");
   if (args.input.sourceChannel !== "guest_web" || args.input.mode !== "confirm") {
     throw new AppError("validation", "guest_channel");
   }
-  return createReservation(args);
+  return createReservation({
+    caller: args.caller,
+    input: args.input,
+    correlationId: args.correlationId,
+    allocate: args.allocate,
+    preparationTasks: args.preparationTasks,
+    guestCreateLimit: args.createLimit ?? 10,
+  });
 }
 
 async function createReservation(args: {
@@ -96,6 +105,7 @@ async function createReservation(args: {
   correlationId: string;
   allocate: Allocate;
   preparationTasks: () => string[];
+  guestCreateLimit?: number;
 }): Promise<BookingResult> {
   const tenantId = tenantOf(args.caller);
   const payloadHash = hashPayload(args.input);
@@ -121,7 +131,7 @@ async function createReservation(args: {
       if (args.caller.kind === "guest") {
         await assertModuleEnabled(tx, "reservations");
         await assertPublishedVenue(tx, args.input.locationId);
-        await bumpRate(tx, tenantId, `guest-booking:${args.caller.capabilityId}`, 10);
+        await bumpRate(tx, tenantId, `guest-booking:${args.caller.capabilityId}`, args.guestCreateLimit ?? 10);
       } else {
         await bumpRate(tx, tenantId, `booking:${args.caller.actor.principalId}`, 30);
       }
@@ -155,17 +165,24 @@ async function createReservation(args: {
       }
       const id = randomUUID();
       const reference = `MS-${randomBytes(5).toString("hex").toUpperCase()}`;
+      const flatUnit = args.input.adultFlatRate ? adultFlatRateMinor : 0;
+      const flatTotal = flatUnit * args.input.adultCount;
       await tx.execute(sql`
         insert into reservations (
           id, tenant_id, location_id, reference, status, organizer_name, organizer_email,
-          organizer_phone, honoree_first_name, starts_at, ends_at, local_date, children_count,
+          organizer_phone, honoree_first_name, honoree_age, organizer_given_name, organizer_family_name,
+          adult_flat_rate, adult_flat_unit_minor, adult_flat_total_minor, referral_source,
+          starts_at, ends_at, local_date, children_count,
           adult_count, package_id, package_name_snapshot, price_minor_snapshot, currency_snapshot,
           rule_id, rule_version_snapshot, combination_id, source_channel, notes, version,
           created_by_principal_id
         ) values (
           ${id}, ${tenantId}, ${args.input.locationId}, ${reference}, ${status},
           ${args.input.organizerName}, ${args.input.organizerEmail}, ${args.input.organizerPhone},
-          ${args.input.honoreeFirstName ?? null}, ${start.toJSDate().toISOString()}::timestamptz,
+          ${args.input.honoreeFirstName ?? null}, ${args.input.honoreeAge ?? null},
+          ${args.input.organizerGivenName ?? null}, ${args.input.organizerFamilyName ?? null},
+          ${flatUnit > 0}, ${flatUnit}, ${flatTotal}, ${args.input.referralSource ?? ""},
+          ${start.toJSDate().toISOString()}::timestamptz,
           ${end.toJSDate().toISOString()}::timestamptz, ${args.input.localDate}::date,
           ${args.input.childrenCount}, ${args.input.adultCount}, ${loaded.pkg.id}, ${loaded.pkg.name},
           ${loaded.pkg.priceMinor}, ${loaded.pkg.currency}, ${loaded.rule.id}, ${loaded.rule.version},
@@ -262,6 +279,69 @@ async function createReservation(args: {
     }
     throw error;
   }
+}
+
+export type BirthdayReceipt = {
+  reference: string;
+  date: string;
+  time: string;
+  package: string;
+  children: number;
+  adults: number;
+  adultFlatRate: boolean;
+  pricePerChildMinor: number;
+  adultFlatMinor: number;
+  totalMinor: number;
+  currency: string;
+};
+
+export async function readBirthdayReceipt(
+  tenantId: string,
+  reservationId: string,
+): Promise<BirthdayReceipt | null> {
+  return withTenant(tenantId, async (tx) => {
+    const found = await rows<{
+      reference: string;
+      local_date: string;
+      starts_at: Date;
+      children_count: number;
+      adult_count: number;
+      adult_flat_rate: boolean;
+      price_minor_snapshot: number;
+      adult_flat_total_minor: number;
+      currency_snapshot: string;
+      public_code: string | null;
+      timezone: string;
+    }>(
+      tx,
+      sql`
+        select r.reference, r.local_date::text as local_date, r.starts_at, r.children_count,
+               r.adult_count, r.adult_flat_rate, r.price_minor_snapshot, r.adult_flat_total_minor,
+               r.currency_snapshot, p.public_code, l.timezone
+        from reservations r
+        join packages p on p.id = r.package_id
+        join locations l on l.id = r.location_id
+        where r.id = ${reservationId}
+      `,
+    );
+    const row = found[0];
+    if (!row || !row.public_code) return null;
+    const pricePerChildMinor = row.price_minor_snapshot;
+    const adultFlatMinor = row.adult_flat_total_minor;
+    return {
+      reference: row.reference,
+      date: row.local_date,
+      time: DateTime.fromJSDate(new Date(row.starts_at)).setZone(row.timezone).toFormat("HH:mm"),
+      package: row.public_code,
+      children: row.children_count,
+      adults: row.adult_count,
+      adultFlatRate: row.adult_flat_rate,
+      pricePerChildMinor,
+      adultFlatMinor,
+      totalMinor: pricePerChildMinor * row.children_count + adultFlatMinor,
+      currency: row.currency_snapshot.trim(),
+    };
+  });
 }
 
 export async function cancelReservation(args: {

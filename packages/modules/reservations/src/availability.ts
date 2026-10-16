@@ -106,3 +106,78 @@ export async function publicAvailability(args: {
     return { closed: false, slots };
   });
 }
+
+export async function birthdayPackage(
+  slug: string,
+  code: string,
+): Promise<{ tenantId: string; locationId: string; packageId: string }> {
+  const venue = await resolvePublishedVenue(slug);
+  if (!venue) throw new AppError("not_found", "venue");
+  const found = await withTenant(venue.tenantId, async (tx) => {
+    await assertModuleEnabled(tx, "reservations");
+    return rows<{ id: string }>(
+      tx,
+      sql`
+        select id from packages
+        where location_id = ${venue.locationId}
+          and status = 'active'
+          and public_code = ${code}
+      `,
+    );
+  });
+  const pkg = found[0];
+  if (!pkg) throw new AppError("not_found", "package", { package: code });
+  return { tenantId: venue.tenantId, locationId: venue.locationId, packageId: pkg.id };
+}
+
+/** Times that can be booked for every requested package. Both packages share a duration today. */
+export async function birthdayTimes(args: {
+  slug: string;
+  localDate: string;
+  childrenCount: number;
+  adultCount: number;
+  packageCodes: readonly string[];
+  allocate: Allocate;
+}): Promise<{ closed: boolean; times: string[] }> {
+  const venue = await resolvePublishedVenue(args.slug);
+  if (!venue) throw new AppError("not_found", "venue");
+  const packages = await withTenant(venue.tenantId, async (tx) => {
+    await assertModuleEnabled(tx, "reservations");
+    return rows<{ id: string; public_code: string }>(
+      tx,
+      sql`
+        select id, public_code
+        from packages
+        where location_id = ${venue.locationId}
+          and status = 'active'
+          and public_code in (${sql.join(
+            args.packageCodes.map((code) => sql`${code}`),
+            sql`, `,
+          )})
+      `,
+    );
+  });
+  for (const code of args.packageCodes) {
+    if (!packages.some((row) => row.public_code === code)) {
+      throw new AppError("not_found", "package", { package: code });
+    }
+  }
+  const lists: string[][] = [];
+  for (const code of args.packageCodes) {
+    const pkg = packages.find((row) => row.public_code === code);
+    if (!pkg) throw new AppError("not_found", "package", { package: code });
+    const result = await publicAvailability({
+      slug: args.slug,
+      localDate: args.localDate,
+      childrenCount: args.childrenCount,
+      adultCount: args.adultCount,
+      packageId: pkg.id,
+      allocate: args.allocate,
+    });
+    if (result.closed) return { closed: true, times: [] };
+    lists.push(result.slots.filter((slot) => slot.available).map((slot) => slot.localTime));
+  }
+  const [first, ...rest] = lists;
+  const times = (first ?? []).filter((time) => rest.every((list) => list.includes(time)));
+  return { closed: false, times };
+}

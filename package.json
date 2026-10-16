@@ -24,6 +24,7 @@
     "db:generate": "drizzle-kit generate",
     "bootstrap:owner": "tsx scripts/bootstrap-owner.ts",
     "db:ensure-location": "tsx scripts/ensure-default-location.ts",
+    "db:birthday-packages": "tsx scripts/ensure-birthday-packages.ts",
     "staff:add": "tsx scripts/add-staff-user.ts"
   },
   "dependencies": {
