@@ -136,7 +136,7 @@ The row is a normal reservation. Staff see it under Geburtstage. Stored with it:
 
 ## Production
 
-The routes run on the Vercel Node function in `fra1` and write to Neon through `DATABASE_URL` (the pooled `masulino_app` role). They work on that setup after the items below. A freshly bootstrapped production database does not have them yet, and `NODE_ENV=production` refuses to confirm on a fixture rule.
+The routes run on the Vercel Node function in `fra1` and write to the Neon database that is already running, through `DATABASE_URL` (the pooled `masulino_app` role). `NODE_ENV=production` still refuses to confirm on a fixture rule. On that live database, check the items below. Skip any that are already there.
 
 1. Deploy the API that contains these routes.
 2. Set `MASULINO_SITE_KEY` and `MASULINO_PUBLIC_VENUE_SLUG` on Vercel. Leave `DATABASE_URL_MIGRATE` off the runtime.
