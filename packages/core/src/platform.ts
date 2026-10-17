@@ -135,7 +135,7 @@ export async function loadActor(input: {
 }
 
 function locationRequired(role: RoleKey): boolean {
-  return role !== "tenant_owner" && role !== "tenant_administrator";
+  return role !== "tenant_owner" && role !== "tenant_administrator" && role !== "it";
 }
 
 export async function inviteStaff(
@@ -342,6 +342,164 @@ export async function countActiveOwners(tx: Tx): Promise<number> {
     `,
   );
   return result[0]?.count ?? 0;
+}
+
+export async function listStaffDirectory(actor: ActorContext): Promise<{
+  members: Array<{
+    id: string;
+    displayName: string;
+    email: string;
+    status: "active" | "suspended" | "revoked";
+    grants: Array<{ roleKey: string; locationId: string | null; locationName: string | null }>;
+  }>;
+  invitations: Array<{
+    id: string;
+    email: string;
+    roleKey: string;
+    locationId: string | null;
+    locationName: string | null;
+    expiresAt: string;
+  }>;
+}> {
+  requirePermission(actor, "core.membership.read");
+  return withTenant(actor.tenantId, async (tx) => {
+    const memberRows = await rows<{
+      id: string;
+      status: "active" | "suspended" | "revoked";
+      display_name: string;
+      email: string;
+      role_key: string | null;
+      location_id: string | null;
+      location_name: string | null;
+    }>(
+      tx,
+      sql`
+        select m.id, m.status, p.display_name, p.email, g.role_key, g.location_id, l.name as location_name
+        from memberships m
+        join principals p on p.id = m.principal_id
+        left join grants g on g.membership_id = m.id
+        left join locations l on l.id = g.location_id
+        order by p.display_name, g.role_key
+      `,
+    );
+    const members = new Map<
+      string,
+      {
+        id: string;
+        displayName: string;
+        email: string;
+        status: "active" | "suspended" | "revoked";
+        grants: Array<{ roleKey: string; locationId: string | null; locationName: string | null }>;
+      }
+    >();
+    for (const row of memberRows) {
+      const current = members.get(row.id) ?? {
+        id: row.id,
+        displayName: row.display_name,
+        email: row.email,
+        status: row.status,
+        grants: [],
+      };
+      if (row.role_key) {
+        current.grants.push({
+          roleKey: row.role_key,
+          locationId: row.location_id,
+          locationName: row.location_name,
+        });
+      }
+      members.set(row.id, current);
+    }
+    const invitationRows = await rows<{
+      id: string;
+      email: string;
+      role_key: string;
+      location_id: string | null;
+      location_name: string | null;
+      expires_at: Date | string;
+    }>(
+      tx,
+      sql`
+        select i.id, i.email, i.role_key, i.location_id, l.name as location_name, i.expires_at
+        from staff_invitations i
+        left join locations l on l.id = i.location_id
+        where i.accepted_at is null and i.revoked_at is null and i.expires_at > now()
+        order by i.created_at desc
+      `,
+    );
+    return {
+      members: [...members.values()],
+      invitations: invitationRows.map((row) => ({
+        id: row.id,
+        email: row.email,
+        roleKey: row.role_key,
+        locationId: row.location_id,
+        locationName: row.location_name,
+        expiresAt: row.expires_at instanceof Date ? row.expires_at.toISOString() : String(row.expires_at),
+      })),
+    };
+  });
+}
+
+async function setMembershipStatus(input: {
+  actor: ActorContext;
+  membershipId: string;
+  status: "active" | "suspended";
+  correlationId: string;
+}): Promise<void> {
+  requirePermission(input.actor, "core.users.invite");
+  await withTenant(input.actor.tenantId, async (tx) => {
+    const target = await rows<{ id: string; status: string }>(
+      tx,
+      sql`select id, status from memberships where id = ${input.membershipId} for update`,
+    );
+    const membership = target[0];
+    if (!membership) throw new AppError("not_found", "membership");
+    if (membership.status === input.status) return;
+    if (membership.status === "revoked" || (input.status === "active" && membership.status !== "suspended")) {
+      throw new AppError("validation", "membership_status");
+    }
+    if (input.status === "suspended") {
+      const ownerGrant = await rows<{ id: string }>(
+        tx,
+        sql`
+          select id from grants
+          where membership_id = ${membership.id} and role_key = 'tenant_owner'
+        `,
+      );
+      if (ownerGrant[0] && (await countActiveOwners(tx)) <= 1) {
+        throw new AppError("last_owner", "last_owner");
+      }
+    }
+    await tx.execute(sql`
+      update memberships set status = ${input.status}, updated_at = now() where id = ${membership.id}
+    `);
+    await insertAudit(tx, {
+      tenantId: input.actor.tenantId,
+      actorPrincipalId: input.actor.principalId,
+      action: input.status === "suspended" ? "core.membership.suspend" : "core.membership.restore",
+      targetType: "membership",
+      targetId: membership.id,
+      outcome: "success",
+      correlationId: input.correlationId,
+      changes: { status: input.status },
+    });
+  });
+}
+
+export async function suspendMembership(input: {
+  actor: ActorContext;
+  membershipId: string;
+  correlationId: string;
+}): Promise<void> {
+  await setMembershipStatus({ ...input, status: "suspended" });
+}
+
+export async function restoreMembership(input: {
+  actor: ActorContext;
+  membershipId: string;
+  correlationId: string;
+}): Promise<void> {
+  await setMembershipStatus({ ...input, status: "active" });
 }
 
 export async function revokeMembership(input: {

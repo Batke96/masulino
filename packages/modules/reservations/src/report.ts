@@ -2,6 +2,7 @@ import { AppError } from "@masulino/contracts";
 import { requirePermission, type ActorContext } from "@masulino/core";
 import { rows, withTenant } from "@masulino/database";
 import { sql } from "drizzle-orm";
+import { DateTime } from "luxon";
 
 export const bookedValueStatuses = ["confirmed"] as const;
 
@@ -88,6 +89,84 @@ export async function readBookedValueReport(args: {
       collectedPayments: fact("collected_payment"),
       reportableSales: fact("reportable_sale"),
       refunds: fact("refund"),
+    };
+  });
+}
+
+export type DayCount = { localDate: string; count: number };
+
+export type UpcomingReservation = {
+  id: string;
+  reference: string;
+  status: string;
+  localDate: string;
+  localTime: string;
+  organizerName: string;
+  packageName: string;
+};
+
+export async function readReservationActivity(args: {
+  actor: ActorContext;
+  locationId: string;
+  fromDate: string;
+  toDate: string;
+}): Promise<{ countsByDay: DayCount[]; upcoming: UpcomingReservation[] }> {
+  requirePermission(args.actor, "reservations.booking.read", args.locationId);
+  if (args.toDate < args.fromDate) throw new AppError("validation", "date_range");
+  return withTenant(args.actor.tenantId, async (tx) => {
+    const location = await rows<{ timezone: string }>(
+      tx,
+      sql`select timezone from locations where id = ${args.locationId} and status = 'active'`,
+    );
+    const timezone = location[0]?.timezone;
+    if (!timezone) throw new AppError("not_found", "location");
+    const counts = await rows<{ local_date: string; count: number }>(
+      tx,
+      sql`
+        select local_date::text as local_date, count(*)::int as count
+        from reservations
+        where location_id = ${args.locationId}
+          and local_date >= ${args.fromDate}::date
+          and local_date <= ${args.toDate}::date
+          and status in ('confirmed', 'requested', 'completed')
+        group by local_date
+        order by local_date
+      `,
+    );
+    const upcoming = await rows<{
+      id: string;
+      reference: string;
+      status: string;
+      local_date: string;
+      starts_at: Date;
+      organizer_name: string;
+      package_name_snapshot: string;
+    }>(
+      tx,
+      sql`
+        select r.id, r.reference, r.status, r.local_date::text as local_date, r.starts_at,
+               r.organizer_name, r.package_name_snapshot
+        from reservations r
+        join locations l on l.id = r.location_id
+        where r.location_id = ${args.locationId}
+          and r.local_date >= greatest(${args.fromDate}::date, (timezone(l.timezone, now()))::date)
+          and r.local_date <= ${args.toDate}::date
+          and r.status in ('confirmed', 'requested')
+        order by r.starts_at
+        limit 80
+      `,
+    );
+    return {
+      countsByDay: counts.map((row) => ({ localDate: row.local_date, count: row.count })),
+      upcoming: upcoming.map((row) => ({
+        id: row.id,
+        reference: row.reference,
+        status: row.status,
+        localDate: row.local_date,
+        localTime: DateTime.fromJSDate(new Date(row.starts_at)).setZone(timezone).toFormat("HH:mm"),
+        organizerName: row.organizer_name,
+        packageName: row.package_name_snapshot,
+      })),
     };
   });
 }

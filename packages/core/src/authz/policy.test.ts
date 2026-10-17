@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { actions, type Action, type RoleKey } from "@masulino/contracts";
-import { authorize, canAssignRole, mfaSatisfiedForSession, permissionMatrix, redactChanges } from "./policy";
+import { authorize, canAssignRole, mfaSatisfiedForSession, permissionMatrix, redactChanges, rolesActorMayAssign } from "./policy";
 import type { AuthzInput } from "./policy";
 
 function actor(role: RoleKey, locationId: string | null, extra: Partial<AuthzInput> = {}): AuthzInput {
@@ -30,6 +30,7 @@ describe("permission matrix", () => {
       "location_manager",
       "shift_lead",
       "reception",
+      "it",
       "employee",
     ]);
     for (const role of roles) {
@@ -87,6 +88,13 @@ describe("permission matrix", () => {
     ).toBe(true);
     expect(
       mfaSatisfiedForSession({
+        grants: [{ roleKey: "it", locationId: null }],
+        twoFactorEnabled: false,
+        devBypass: false,
+      }),
+    ).toBe(false);
+    expect(
+      mfaSatisfiedForSession({
         grants: [{ roleKey: "reception", locationId: "loc-a" }],
         twoFactorEnabled: false,
         devBypass: false,
@@ -124,6 +132,30 @@ describe("permission matrix", () => {
     expect(canAssignRole(admin, "tenant_owner", null)).toBe(false);
     expect(canAssignRole(admin, "location_manager", "loc-a")).toBe(false);
     expect(canAssignRole(actor("reception", "loc-a"), "employee", "loc-a")).toBe(false);
+    const itRole = actor("it", null);
+    expect(canAssignRole(itRole, "it", null)).toBe(true);
+    expect(canAssignRole(itRole, "tenant_administrator", null)).toBe(true);
+    expect(canAssignRole(itRole, "location_manager", "loc-a")).toBe(true);
+    expect(canAssignRole(itRole, "shift_lead", "loc-a")).toBe(true);
+    expect(canAssignRole(itRole, "reception", "loc-a")).toBe(true);
+    expect(canAssignRole(itRole, "employee", "loc-a")).toBe(true);
+    expect(canAssignRole(itRole, "tenant_owner", null)).toBe(false);
+    expect(canAssignRole(actor("tenant_owner", null), "it", null)).toBe(false);
+    expect(canAssignRole(actor("tenant_owner", null), "reception", "loc-a")).toBe(true);
+    expect(rolesActorMayAssign(itRole)).toEqual([
+      "tenant_administrator",
+      "location_manager",
+      "shift_lead",
+      "reception",
+      "employee",
+      "it",
+    ]);
+    expect(rolesActorMayAssign(actor("tenant_owner", null))).not.toContain("it");
+    expect(rolesActorMayAssign(actor("tenant_administrator", null))).toEqual([
+      "shift_lead",
+      "reception",
+      "employee",
+    ]);
   });
 
   it("lets a location manager publish notices and keeps reception on read", () => {
@@ -203,6 +235,20 @@ describe("permission matrix", () => {
     expect(authorize(actor("tenant_owner", null), "loyalty.reward.issue")).toEqual({ allow: true });
     expect(authorize(actor("tenant_owner", null), "loyalty.reward.redeem")).toEqual({ allow: true });
     expect(authorize(actor("tenant_owner", null), "reporting.booked_value.read")).toEqual({ allow: true });
+    expect(authorize(actor("tenant_owner", null), "core.records.manage")).toEqual({ allow: true });
+    expect(authorize(actor("it", null), "core.records.manage")).toEqual({ allow: true });
+    expect(authorize(actor("it", null), "core.users.invite")).toEqual({ allow: true });
+    expect(authorize(actor("it", null), "reservations.booking.update")).toEqual({ allow: true });
+    expect(authorize(actor("it", null), "reporting.booked_value.read")).toEqual({ allow: true });
+    expect(authorize(actor("it", null, { mfaSatisfied: false }), "core.records.manage")).toEqual({
+      allow: false,
+      reason: "mfa",
+    });
+    expect(authorize(actor("it", null), "core.roles.manage")).toEqual({ allow: false, reason: "permission" });
+    expect(authorize(actor("it", null), "workforce.compensation.read")).toEqual({
+      allow: false,
+      reason: "permission",
+    });
     expect(authorize(actor("location_manager", "loc-a", location), "marketing.audience.read")).toEqual({
       allow: true,
     });
@@ -356,6 +402,13 @@ describe("documented denies", () => {
     ["tenant_administrator", "loyalty.reward.issue"],
     ["tenant_administrator", "contacts.consent.read"],
     ["tenant_administrator", "reporting.booked_value.read"],
+    ["tenant_administrator", "core.records.manage"],
+    ["location_manager", "core.records.manage"],
+    ["reception", "core.records.manage"],
+    ["employee", "core.records.manage"],
+    ["it", "core.roles.manage"],
+    ["it", "reservations.booking.create"],
+    ["it", "workforce.compensation.read"],
   ];
 
   it.each(denied)("denies %s for %s", (role, action) => {

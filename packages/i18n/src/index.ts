@@ -303,6 +303,7 @@ const messages = {
   "workspace.openTasks": "Offene Aufgaben",
   "workspace.role.tenant_owner": "Inhaber",
   "workspace.role.tenant_administrator": "Verwaltung",
+  "workspace.role.it": "IT",
   "workspace.role.location_manager": "Standortleitung",
   "workspace.role.shift_lead": "Schichtleitung",
   "workspace.role.reception": "Empfang",

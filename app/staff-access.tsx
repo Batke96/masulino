@@ -46,6 +46,7 @@ const noCapabilities: StaffCapabilities = {
   campaigns: false,
   portal: false,
   agents: false,
+  it: false,
 };
 
 function firstName(name: string): string {
@@ -180,7 +181,8 @@ export function StaffAccess({ children }: { children: ReactNode }) {
             <details className="staff-gate-hint">
               <summary>Lokale Testzugänge</summary>
               <p>Empfang und Team melden sich nur mit Passwort an.</p>
-              <p>Inhaber, Verwaltung und Standortleitung richten danach einen zweiten Faktor ein.</p>
+              <p>Inhaber, Verwaltung, IT und Standortleitung richten danach einen zweiten Faktor ein.</p>
+              <p>it.masulino@example.test · Synthetic-Staff-1</p>
               <p>reception.masulino@example.test · Synthetic-Staff-1</p>
               <p>employee.masulino@example.test · Synthetic-Staff-1</p>
               <p>owner.masulino@example.test und manager.masulino@example.test · Synthetic-Staff-1</p>
@@ -329,7 +331,7 @@ function MfaEnroll({
   return (
     <>
       <h1>Zwei-Faktor einrichten.</h1>
-      <p>Für Inhaber, Verwaltung und Standortleitung ist ein zweiter Faktor erforderlich, bevor der Betrieb zugänglich ist.</p>
+      <p>Für Inhaber, Verwaltung, IT und Standortleitung ist ein zweiter Faktor erforderlich, bevor der Betrieb zugänglich ist.</p>
       {error === "invalid" ? <p className="staff-gate-error">Das Passwort stimmt nicht.</p> : null}
       {error === "code" ? <p className="staff-gate-error">Der Code ist ungültig. Prüfe die Uhrzeit des Geräts.</p> : null}
       {secret ? (

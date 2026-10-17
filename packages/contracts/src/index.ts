@@ -73,6 +73,24 @@ export type {
   OpenIssueInput,
 } from "./operations";
 export {
+  closureRecordSchema,
+  combinationRecordSchema,
+  membershipActionSchema,
+  packageRecordSchema,
+  publicCodeSchema,
+  reservationContactSchema,
+  resourceRecordSchema,
+  venueSlugRecordSchema,
+} from "./records";
+export type {
+  ClosureRecordInput,
+  CombinationRecordInput,
+  PackageRecordInput,
+  ReservationContactInput,
+  ResourceRecordInput,
+  VenueSlugRecordInput,
+} from "./records";
+export {
   bookedValueQuerySchema,
   campaignDraftSchema,
   consentEventSchema,

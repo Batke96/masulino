@@ -28,8 +28,9 @@ Open the local URL printed by the development server, normally `http://localhost
 | `employee.masulino@example.test` | Team only. No booking list. |
 | `manager.masulino@example.test` | Location operations. |
 | `owner.masulino@example.test` | Reports, campaigns, families and team, after a second factor is enrolled. |
+| `it.masulino@example.test` | IT. Benutzer, Auswertungen and Stammdaten, after a second factor is enrolled. |
 
-Inhaber, Verwaltung and Standortleitung stop on the second-factor screen until they enroll an authenticator. Empfang and Team do not. The one-time recovery codes are shown only during enrollment. `user@example.test` is also an owner, so that account follows the same step.
+Inhaber, Verwaltung, IT and Standortleitung stop on the second-factor screen until they enroll an authenticator. Empfang and Team do not. The one-time recovery codes are shown only during enrollment. `user@example.test` is also an owner, so that account follows the same step.
 
 `pnpm dev:workspace` starts Postgres, applies migrations, seeds synthetic tenants, and starts the API and the UI. If Postgres is already running, it is reused.
 
