@@ -93,7 +93,7 @@ A principal is `(issuer, subject)`. Email is an attribute on the principal and o
 
 Better Auth organization tables (`identity.organization`, `identity.member`, roles `owner` / `admin` / `member`) exist because the library creates them. Masulino never consults them. Roles live in `grants.role_key`.
 
-Privileged roles are `tenant_owner`, `tenant_administrator`, and `location_manager`. `authorize` returns `mfa` for any of their actions until the session has a completed second factor. A sign-in that still needs that factor stays on the second-factor step. Recovery codes and phishing-resistant methods are not built yet. Do not bypass the MFA check to make a manager screen reachable.
+Privileged roles are `tenant_owner`, `tenant_administrator`, `location_manager`, and `it`. `authorize` returns `mfa` for any of their actions until the session has a completed second factor. A sign-in that still needs that factor stays on the second-factor step. Recovery codes and phishing-resistant methods are not built yet. Do not bypass the MFA check to make a manager screen reachable.
 
 Sessions are server-managed HttpOnly cookies from Better Auth. Privileged bearer tokens do not go in `localStorage`. The new shell should keep that. A shared tablet is a kiosk device cookie, described below, and is a different cookie from the staff session.
 
@@ -102,9 +102,10 @@ Sessions are server-managed HttpOnly cookies from Better Auth. Privileged bearer
 - The token is 32 random bytes, base64url. The database stores SHA-256 only.
 - Lookup goes through `app.lookup_invitation(hash)`, a `SECURITY DEFINER` function that returns one unaccepted, unrevoked, unexpired row.
 - Acceptance checks that the signed-in email matches the invitation email, inserts one membership if needed, inserts the grant, and stamps `accepted_at` only when it is still null.
-- Location roles require a location. Owner and administrator grants are tenant-wide (`location_id` null).
-- An administrator may invite only `shift_lead`, `reception`, and `employee`. An administrator cannot grant owner, administrator, or location manager.
-- Revoking the last active owner is rejected (`last_owner`).
+- Location roles require a location. Owner, administrator, and IT grants are tenant-wide (`location_id` null).
+- An administrator may invite only `shift_lead`, `reception`, and `employee`. An administrator cannot grant owner, administrator, location manager, or IT.
+- IT may invite `it`, `tenant_administrator`, `location_manager`, `shift_lead`, `reception`, and `employee`. IT cannot grant `tenant_owner`. The owner grant list is unchanged and does not include `it`.
+- Suspending or revoking the last active owner is rejected (`last_owner`).
 
 `canAssignRole` is the grant boundary. It is separate from `authorize(..., "core.users.invite")`.
 
@@ -209,6 +210,8 @@ Scope in the table: **T** tenant-wide, **L** the granted location, blank means d
 | Booked value read | T | | L | | | |
 
 Administrators do not receive workforce, checklist, consent, marketing, loyalty, or booked-value actions in the default templates. Compensation is the owner template only. No hourly rate is stored, so a compensation screen shows an estimate label and no amount.
+
+The role `it` (German: IT) is privileged and tenant-wide. It may invite the roles listed above, except `tenant_owner`. Its actions are `core.users.invite`, `core.membership.read`, `core.settings.read`, `core.audit.read`, `core.records.manage`, `reservations.booking.read`, `reservations.booking.update`, `reservations.booking.cancel`, `resources.manage`, and `reporting.booked_value.read`. Stammdaten writes use `core.records.manage`. Compensation stays with the owner.
 
 ### Rules the matrix does not express
 
@@ -437,7 +440,7 @@ These are real gaps. The new interface should not paper over them with sample co
 - MFA recovery beyond one-time backup codes is not designed. Privileged roles must enroll TOTP before `mfaSatisfied` is true. Phishing-resistant keys and a helpdesk reset do not exist.
 - Content-Security-Policy still allows inline scripts. Production should move to a nonce when the new shell’s framework supports it.
 - Combined-table overlap has unit coverage and the exclusion constraint, and still wants a dedicated integration test.
-- There is no staff screen to edit resources and packages. Seed SQL creates the fixture venue.
+- The IT workspace edits a fixed catalog (packages, resources, combinations, closures, and the published slug) through `core.records.manage`. It is not a generic table editor. Seed SQL still creates the fixture venue.
 - Ready2Order is not integrated. Do not invent endpoints. Booked value, payments, sales, and refunds stay separate facts.
 - No live email, SMS, push, or card payment exists. A preview is not delivery.
 - Purchasing suggestions, weather-driven campaigns, and AI actions are not built. When they are, a model may draft a proposal. The service rechecks permission, entitlement, consent, and capacity at approval time and again before a delayed send, and writes an audit row. The model does not grant roles, publish, price, approve time, refund, or order.

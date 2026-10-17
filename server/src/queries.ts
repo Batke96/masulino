@@ -18,6 +18,9 @@ export async function locationsFor(actor: ActorContext) {
     "marketing.audience.read",
     "reporting.booked_value.read",
     "loyalty.ledger.read",
+    "core.records.manage",
+    "core.settings.read",
+    "resources.manage",
   ];
   return locations.filter((location) =>
     doors.some((action) => authorize({ ...actor, locationId: location.id }, action).allow),

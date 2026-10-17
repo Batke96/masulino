@@ -173,6 +173,60 @@ export async function applyGuestPatch(args: {
   });
 }
 
+export async function updateReservationContact(args: {
+  actor: ActorContext;
+  reservationId: string;
+  expectedVersion: number;
+  organizerPhone: string;
+  notes: string;
+  correlationId: string;
+}): Promise<{ version: number }> {
+  return withTenant(args.actor.tenantId, async (tx) => {
+    const found = await rows<{ id: string; location_id: string; version: number; status: string }>(
+      tx,
+      sql`
+        select id, location_id, version, status
+        from reservations
+        where id = ${args.reservationId}
+        for update
+      `,
+    );
+    const current = found[0];
+    if (!current) throw new AppError("not_found", "reservation");
+    requirePermission(args.actor, "reservations.booking.update", current.location_id);
+    if (current.status === "cancelled" || current.status === "completed" || current.status === "no_show") {
+      throw new AppError("conflict", "invalid_transition");
+    }
+    if (current.version !== args.expectedVersion) throw new AppError("stale", "stale_version");
+    const updated = await rows<{ version: number }>(
+      tx,
+      sql`
+        update reservations
+        set organizer_phone = ${args.organizerPhone},
+            notes = ${args.notes},
+            version = version + 1,
+            updated_at = now()
+        where id = ${current.id} and version = ${args.expectedVersion}
+        returning version
+      `,
+    );
+    const next = updated[0];
+    if (!next) throw new AppError("stale", "stale_version");
+    await insertAudit(tx, {
+      tenantId: args.actor.tenantId,
+      locationId: current.location_id,
+      actorPrincipalId: args.actor.principalId,
+      action: "reservations.booking.update",
+      targetType: "reservation",
+      targetId: current.id,
+      outcome: "success",
+      correlationId: args.correlationId,
+      changes: { organizerPhone: args.organizerPhone, notes: args.notes, version: next.version },
+    });
+    return { version: next.version };
+  });
+}
+
 export async function routeGuestToStaff(args: {
   sessionToken: string;
   expectedVersion: number;

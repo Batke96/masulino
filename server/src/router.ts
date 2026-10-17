@@ -4,6 +4,21 @@ import { env } from "./env";
 import { handleStaffSession } from "./session";
 import { json } from "./errors";
 import {
+  handleInviteStaff,
+  handleItClosure,
+  handleItCombination,
+  handleItDirectory,
+  handleItPackage,
+  handleItRecords,
+  handleItReport,
+  handleItResource,
+  handleItVenue,
+  handleRescheduleBooking,
+  handleReservationContact,
+  handleRestoreMembership,
+  handleSuspendMembership,
+} from "./handlers/it";
+import {
   handleApproveCampaign,
   handleCancelBooking,
   handleCreateBooking,
@@ -61,6 +76,58 @@ export async function route(request: Request): Promise<Response> {
 
   if (pathname === "/api/bookings/cancel" && request.method === "POST") {
     return handleCancelBooking(request);
+  }
+
+  if (pathname === "/api/bookings/reschedule" && request.method === "POST") {
+    return handleRescheduleBooking(request);
+  }
+
+  if (pathname === "/api/bookings/contact" && request.method === "POST") {
+    return handleReservationContact(request);
+  }
+
+  if (pathname === "/api/invitations" && request.method === "POST") {
+    return handleInviteStaff(request);
+  }
+
+  if (pathname === "/api/it/directory" && request.method === "GET") {
+    return handleItDirectory(request);
+  }
+
+  if (pathname === "/api/it/memberships/suspend" && request.method === "POST") {
+    return handleSuspendMembership(request);
+  }
+
+  if (pathname === "/api/it/memberships/restore" && request.method === "POST") {
+    return handleRestoreMembership(request);
+  }
+
+  if (pathname === "/api/it/report" && request.method === "GET") {
+    return handleItReport(request);
+  }
+
+  if (pathname === "/api/it/records" && request.method === "GET") {
+    return handleItRecords(request);
+  }
+
+  if (pathname === "/api/it/packages" && request.method === "POST") {
+    return handleItPackage(request);
+  }
+
+  if (pathname === "/api/it/resources" && request.method === "POST") {
+    return handleItResource(request);
+  }
+
+  if (pathname === "/api/it/combinations" && request.method === "POST") {
+    return handleItCombination(request);
+  }
+
+  if (pathname === "/api/it/closures" && request.method === "POST") {
+    return handleItClosure(request);
+  }
+
+  if (pathname === "/api/it/venue" && request.method === "POST") {
+    return handleItVenue(request);
   }
 
   if (pathname === "/api/campaigns/draft" && request.method === "POST") {
