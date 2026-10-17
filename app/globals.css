@@ -29,3 +29,13 @@
 .staff-gate-hint p{margin-top:6px}
 .staff-gate-secret,.staff-gate-codes{font-family:ui-monospace,SFMono-Regular,monospace;font-size:.85rem;background:#f3f4f7;padding:10px 12px;border-radius:10px;word-break:break-all;white-space:pre-wrap}
 .full-width{width:100%}
+.it-directory{display:grid;gap:18px}
+.it-directory-grid{display:grid;gap:18px}
+.it-form{display:grid;gap:4px;margin-top:14px}
+.it-credential{display:grid;gap:10px;margin:14px 0;padding:14px;border:1px solid #e7ebf2;border-radius:12px;background:#f8f9fb}
+.it-credential dl{display:grid;gap:10px;margin:0}
+.it-credential dt{font-size:.75rem;color:#737c8d}
+.it-row-actions{display:flex;gap:8px;justify-content:flex-end}
+.field-label select{display:block;width:100%;border:1px solid #e0e5ed;border-radius:7px;padding:10px 12px;color:#57667e;background:#fff;font-size:.875rem;line-height:1.6;margin-top:7px;outline:none;font-weight:400}
+.field-label select:focus{border-color:#e4997b;box-shadow:0 0 0 2px #f4dfd655}
+@media(min-width:960px){.it-directory-grid{grid-template-columns:minmax(280px,420px) minmax(0,1fr);align-items:start}}

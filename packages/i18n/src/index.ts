@@ -1,7 +1,7 @@
 const messages = {
   "app.name": "Masulino",
   "login.title": "Anmeldung",
-  "login.lead": "Zugang nur mit Einladung. Es gibt kein öffentliches Konto.",
+  "login.lead": "Zugang nur für eingerichtete Konten. Es gibt kein öffentliches Konto.",
   "login.email": "E-Mail",
   "login.password": "Passwort",
   "login.submit": "Anmelden",
@@ -302,6 +302,7 @@ const messages = {
   "workspace.retry": "Erneut versuchen",
   "workspace.openTasks": "Offene Aufgaben",
   "workspace.role.tenant_owner": "Inhaber",
+  "workspace.role.it": "IT",
   "workspace.role.tenant_administrator": "Verwaltung",
   "workspace.role.location_manager": "Standortleitung",
   "workspace.role.shift_lead": "Schichtleitung",

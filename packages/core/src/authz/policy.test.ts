@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { actions, type Action, type RoleKey } from "@masulino/contracts";
-import { authorize, canAssignRole, mfaSatisfiedForSession, permissionMatrix, redactChanges } from "./policy";
+import {
+  authorize,
+  canAssignRole,
+  canRemoveGrants,
+  grantableRoles,
+  mfaSatisfiedForSession,
+  permissionMatrix,
+  redactChanges,
+  roleNeedsLocation,
+  rolesActorMayGrant,
+} from "./policy";
 import type { AuthzInput } from "./policy";
 
 function actor(role: RoleKey, locationId: string | null, extra: Partial<AuthzInput> = {}): AuthzInput {
@@ -27,6 +37,7 @@ describe("permission matrix", () => {
     expect(roles).toEqual([
       "tenant_owner",
       "tenant_administrator",
+      "it",
       "location_manager",
       "shift_lead",
       "reception",
@@ -124,6 +135,48 @@ describe("permission matrix", () => {
     expect(canAssignRole(admin, "tenant_owner", null)).toBe(false);
     expect(canAssignRole(admin, "location_manager", "loc-a")).toBe(false);
     expect(canAssignRole(actor("reception", "loc-a"), "employee", "loc-a")).toBe(false);
+    expect(grantableRoles.tenant_administrator).toEqual(["shift_lead", "reception", "employee"]);
+    expect(grantableRoles.tenant_owner).toEqual([
+      "tenant_owner",
+      "tenant_administrator",
+      "location_manager",
+      "shift_lead",
+      "reception",
+      "employee",
+    ]);
+  });
+
+  it("lets IT grant every role except the owner", () => {
+    const itActor = actor("it", null);
+    expect(authorize(itActor, "core.users.invite")).toEqual({ allow: true });
+    expect(authorize({ ...itActor, mfaSatisfied: false }, "core.users.invite")).toEqual({ allow: true });
+    expect(rolesActorMayGrant(itActor)).toEqual([
+      "it",
+      "tenant_administrator",
+      "location_manager",
+      "shift_lead",
+      "reception",
+      "employee",
+    ]);
+    expect(canAssignRole(itActor, "it", null)).toBe(true);
+    expect(canAssignRole(itActor, "tenant_administrator", null)).toBe(true);
+    expect(canAssignRole(itActor, "location_manager", "loc-a")).toBe(true);
+    expect(canAssignRole(itActor, "reception", "loc-a")).toBe(true);
+    expect(canAssignRole(itActor, "employee", "loc-a")).toBe(true);
+    expect(canAssignRole(itActor, "tenant_owner", null)).toBe(false);
+    expect(canAssignRole(actor("tenant_owner", null), "tenant_owner", null)).toBe(true);
+    expect(roleNeedsLocation("reception")).toBe(true);
+    expect(roleNeedsLocation("location_manager")).toBe(true);
+    expect(roleNeedsLocation("it")).toBe(false);
+    expect(roleNeedsLocation("tenant_administrator")).toBe(false);
+    expect(roleNeedsLocation("tenant_owner")).toBe(false);
+    expect(canRemoveGrants(itActor, [{ roleKey: "reception", locationId: "loc-a" }])).toBe(true);
+    expect(canRemoveGrants(itActor, [{ roleKey: "tenant_owner", locationId: null }])).toBe(false);
+    expect(canRemoveGrants(itActor, [{ roleKey: "tenant_administrator", locationId: null }])).toBe(true);
+    expect(
+      canRemoveGrants(actor("tenant_administrator", null), [{ roleKey: "location_manager", locationId: "loc-a" }]),
+    ).toBe(false);
+    expect(canRemoveGrants(actor("tenant_owner", null), [{ roleKey: "tenant_owner", locationId: null }])).toBe(true);
   });
 
   it("lets a location manager publish notices and keeps reception on read", () => {
@@ -299,12 +352,14 @@ describe("permission matrix", () => {
         organizerEmail: "a@example.test",
         organizerPhone: "123",
         notes: "secret",
+        password: "not-stored",
       }),
     ).toEqual({
       status: "confirmed",
       organizerEmail: "[redacted]",
       organizerPhone: "[redacted]",
       notes: "[redacted]",
+      password: "[redacted]",
     });
   });
 });
@@ -356,6 +411,10 @@ describe("documented denies", () => {
     ["tenant_administrator", "loyalty.reward.issue"],
     ["tenant_administrator", "contacts.consent.read"],
     ["tenant_administrator", "reporting.booked_value.read"],
+    ["it", "reservations.booking.read"],
+    ["it", "core.roles.manage"],
+    ["it", "core.audit.read"],
+    ["it", "workforce.schedule.read"],
   ];
 
   it.each(denied)("denies %s for %s", (role, action) => {

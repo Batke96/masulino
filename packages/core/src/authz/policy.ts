@@ -140,6 +140,11 @@ export const permissionMatrix: Matrix = {
     "loyalty.reward.redeem": none,
     "reporting.booked_value.read": none,
   },
+  it: {
+    ...noAccess,
+    "core.users.invite": "tenant",
+    "core.membership.read": "tenant",
+  },
   location_manager: {
     "reservations.booking.read": "location",
     "reservations.booking.create": "location",
@@ -244,6 +249,22 @@ export const privilegedRoles = [
   "location_manager",
 ] as const satisfies readonly RoleKey[];
 
+export const staffRoleOrder = [
+  "tenant_owner",
+  "it",
+  "tenant_administrator",
+  "location_manager",
+  "shift_lead",
+  "reception",
+  "employee",
+] as const satisfies readonly RoleKey[];
+
+export const tenantWideRoles = ["tenant_owner", "tenant_administrator", "it"] as const satisfies readonly RoleKey[];
+
+export function roleNeedsLocation(role: RoleKey): boolean {
+  return !(tenantWideRoles as readonly string[]).includes(role);
+}
+
 export const grantableRoles: Record<RoleKey, readonly RoleKey[]> = {
   tenant_owner: [
     "tenant_owner",
@@ -254,11 +275,34 @@ export const grantableRoles: Record<RoleKey, readonly RoleKey[]> = {
     "employee",
   ],
   tenant_administrator: ["shift_lead", "reception", "employee"],
+  it: [
+    "it",
+    "tenant_administrator",
+    "location_manager",
+    "shift_lead",
+    "reception",
+    "employee",
+  ],
   location_manager: [],
   shift_lead: [],
   reception: [],
   employee: [],
 };
+
+export function rolesActorMayGrant(actor: AuthzInput): RoleKey[] {
+  if (!authorize(actor, "core.users.invite").allow) return [];
+  const allowed = new Set<RoleKey>();
+  for (const grant of actor.grants) {
+    for (const role of grantableRoles[grant.roleKey]) allowed.add(role);
+  }
+  return staffRoleOrder.filter((role) => allowed.has(role));
+}
+
+export function canRemoveGrants(actor: AuthzInput, grants: readonly Grant[]): boolean {
+  if (!authorize(actor, "core.users.invite").allow) return false;
+  if (grants.length === 0) return true;
+  return grants.every((grant) => canAssignRole(actor, grant.roleKey, grant.locationId));
+}
 
 export function holdsPrivilegedGrant(grants: readonly Grant[]): boolean {
   return grants.some((grant) =>
