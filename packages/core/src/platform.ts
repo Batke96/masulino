@@ -103,6 +103,7 @@ export async function loadActor(input: {
   principalId: string;
   tenantId: string;
   mfaSatisfied: boolean;
+  mfaRequired?: boolean;
 }): Promise<ActorContext | null> {
   return withTenant(input.tenantId, async (tx) => {
     const membershipRows = await rows<{ id: string; status: ActorContext["membershipStatus"] }>(
@@ -130,6 +131,7 @@ export async function loadActor(input: {
       grants,
       entitlements: Object.fromEntries(entitlementRows.map((row) => [row.module_id, row.enabled])),
       mfaSatisfied: input.mfaSatisfied,
+      mfaRequired: input.mfaRequired === true,
     };
   });
 }

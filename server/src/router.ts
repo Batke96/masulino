@@ -1,5 +1,6 @@
 import { drainOutbox } from "@masulino/core";
 import { getAuth } from "./auth";
+import { clearSyntheticAuthenticators } from "./mfa";
 import { env } from "./env";
 import { handleStaffSession } from "./session";
 import { json } from "./errors";
@@ -35,6 +36,10 @@ import { bearerMatches } from "./security";
 export async function route(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const { pathname } = url;
+
+  if (pathname.startsWith("/api/auth") || pathname === "/api/session") {
+    await clearSyntheticAuthenticators();
+  }
 
   if (pathname.startsWith("/api/auth")) {
     return getAuth().handler(request);

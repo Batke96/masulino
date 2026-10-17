@@ -13,6 +13,8 @@ export type AuthzInput = {
   grants: readonly Grant[];
   entitlements: Readonly<Record<string, boolean>>;
   mfaSatisfied: boolean;
+  /** Privileged TOTP applies only when this is true. Password sign-in leaves it unset. */
+  mfaRequired?: boolean;
   locationId?: string | null;
 };
 
@@ -287,15 +289,17 @@ export function holdsPrivilegedGrant(grants: readonly Grant[]): boolean {
 }
 
 /**
- * Privileged roles stay blocked until this session's user has completed TOTP.
+ * Password is enough unless this deployment explicitly requires a second factor.
  * `devBypass` is only for the local `MASULINO_DEV_SESSION` path, which production refuses.
  */
 export function mfaSatisfiedForSession(input: {
   grants: readonly Grant[];
   twoFactorEnabled: boolean;
   devBypass: boolean;
+  mfaRequired?: boolean;
 }): boolean {
   if (input.devBypass) return true;
+  if (input.mfaRequired !== true) return true;
   if (!holdsPrivilegedGrant(input.grants)) return true;
   return input.twoFactorEnabled;
 }
@@ -314,7 +318,7 @@ export function authorize(input: AuthzInput, action: Action): AuthzDecision {
     return { allow: false, reason: "entitlement" };
   }
 
-  if (holdsPrivilegedRole(input.grants) && !input.mfaSatisfied) {
+  if (input.mfaRequired === true && holdsPrivilegedRole(input.grants) && !input.mfaSatisfied) {
     return { allow: false, reason: "mfa" };
   }
 

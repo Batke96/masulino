@@ -180,12 +180,12 @@ export function StaffAccess({ children }: { children: ReactNode }) {
             </form>
             <details className="staff-gate-hint">
               <summary>Lokale Testzugänge</summary>
-              <p>Empfang und Team melden sich nur mit Passwort an.</p>
-              <p>Inhaber, Verwaltung, IT und Standortleitung richten danach einen zweiten Faktor ein.</p>
+              <p>Jede Rolle meldet sich mit E-Mail und Passwort an.</p>
               <p>it.masulino@example.test · Synthetic-Staff-1</p>
+              <p>owner.masulino@example.test · Synthetic-Staff-1</p>
               <p>reception.masulino@example.test · Synthetic-Staff-1</p>
               <p>employee.masulino@example.test · Synthetic-Staff-1</p>
-              <p>owner.masulino@example.test und manager.masulino@example.test · Synthetic-Staff-1</p>
+              <p>manager.masulino@example.test · Synthetic-Staff-1</p>
               <p>user@example.test · password</p>
             </details>
           </>
