@@ -28,6 +28,7 @@ const users: Array<{ email: string; name: string; password?: string }> = [
   { email: "revoked.masulino@example.test", name: "Ria Revoked" },
   { email: "owner.beispiel@example.test", name: "Otto Beispiel" },
   { email: "user@example.test", name: "User", password: "password" },
+  { email: "it.masulino@example.test", name: "Ira IT" },
 ];
 
 const auth = getAuth();
@@ -109,6 +110,7 @@ const manager = await principal(created["manager.masulino@example.test"]!, "mana
 const revoked = await principal(created["revoked.masulino@example.test"]!, "revoked.masulino@example.test", "Ria Revoked");
 const ownerB = await principal(created["owner.beispiel@example.test"]!, "owner.beispiel@example.test", "Otto Beispiel");
 const simpleAdmin = await principal(created["user@example.test"]!, "user@example.test", "User");
+const itPrincipal = await principal(created["it.masulino@example.test"]!, "it.masulino@example.test", "Ira IT");
 
 async function membership(tenantId: string, principalId: string, status: string) {
   const id = randomUUID();
@@ -126,6 +128,7 @@ const managerMembership = await membership(tenantA, manager, "active");
 await membership(tenantA, revoked, "revoked");
 const ownerBMembership = await membership(tenantB, ownerB, "active");
 const simpleAdminMembership = await membership(tenantA, simpleAdmin, "active");
+const itMembership = await membership(tenantA, itPrincipal, "active");
 
 await client.query(
   `insert into grants (tenant_id, membership_id, role_key, location_id) values
@@ -134,8 +137,9 @@ await client.query(
     ($1, $5, 'employee', $4),
     ($1, $8, 'location_manager', $4),
     ($6, $7, 'tenant_owner', null),
-    ($1, $9, 'tenant_owner', null)`,
-  [tenantA, ownerMembership, receptionMembership, locationA, employeeMembership, tenantB, ownerBMembership, managerMembership, simpleAdminMembership],
+    ($1, $9, 'tenant_owner', null),
+    ($1, $10, 'it', null)`,
+  [tenantA, ownerMembership, receptionMembership, locationA, employeeMembership, tenantB, ownerBMembership, managerMembership, simpleAdminMembership, itMembership],
 );
 
 const moduleIds = [

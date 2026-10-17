@@ -46,6 +46,7 @@ const noCapabilities: StaffCapabilities = {
   campaigns: false,
   portal: false,
   agents: false,
+  it: false,
 };
 
 function firstName(name: string): string {
@@ -145,7 +146,7 @@ export function StaffAccess({ children }: { children: ReactNode }) {
         {access === "login" ? (
           <>
             <h1>Anmeldung.</h1>
-            <p>Zugang nur mit Einladung. Es gibt kein öffentliches Konto.</p>
+            <p>Zugang nur für eingerichtete Konten. Es gibt kein öffentliches Konto.</p>
             {error === "invalid" ? <p className="staff-gate-error">Anmeldung fehlgeschlagen. Bitte Angaben prüfen.</p> : null}
             {error === "offline" ? <p className="staff-gate-error">Der Anmeldedienst ist nicht erreichbar. Postgres und die API müssen laufen.</p> : null}
             <form
@@ -184,6 +185,7 @@ export function StaffAccess({ children }: { children: ReactNode }) {
               <p>reception.masulino@example.test · Synthetic-Staff-1</p>
               <p>employee.masulino@example.test · Synthetic-Staff-1</p>
               <p>owner.masulino@example.test und manager.masulino@example.test · Synthetic-Staff-1</p>
+              <p>it.masulino@example.test · Synthetic-Staff-1</p>
               <p>user@example.test · password</p>
             </details>
           </>
