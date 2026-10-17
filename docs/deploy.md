@@ -35,7 +35,7 @@ Set these on the API, not in the browser bundle:
 
 Leave `MASULINO_DEV_SESSION` unset. Production refuses that bypass. Leave `DATABASE_URL_MIGRATE` off the runtime.
 
-For temporary production testing you may set `MASULINO_REQUIRE_MFA=0` on Vercel Production so privileged roles are not forced through TOTP enrollment. Default (unset or `1`) keeps MFA required. If someone already enrolled TOTP, Better Auth still asks for a code on sign-in until that enrollment is cleared in the database. Turn the flag back on before go-live.
+Leave `MASULINO_REQUIRE_MFA` unset. Password sign-in is the default for every role, including a production deploy and including people who already enrolled an authenticator. Set `MASULINO_REQUIRE_MFA=1` only when that deployment should ask for a second factor again. `0` is the same as unset.
 
 The UI build does not need a database URL. Signed-in requests call `/api` on the same origin, and the Vercel function runs the Node router for that path. `VITE_MASULINO_FIXTURES` must not be set in production; that flag skips login and shows the demonstration.
 
@@ -48,11 +48,15 @@ Add a Vercel cron for `GET /api/cron/outbox` once the project plan allows the sc
 - Venue hours, prices, deposits, cancellation wording, and guest-edit deadlines. Production refuses to confirm a booking on a fixture rule. Record the decisions in `docs/business-decisions.md` before publishing a rule.
 - A mailbox, SMS gateway, push provider, card processor, and Ready2Order. Campaign send and booking reminders stay previews. Booked value is not cash received.
 - A weather provider. The signed-in workplace does not show the sample forecast.
-- MFA recovery beyond the one-time backup codes shown at enrollment. There is no phishing-resistant key and no helpdesk reset.
+- A second factor, until you set `MASULINO_REQUIRE_MFA=1`. There is no phishing-resistant key and no helpdesk reset.
 
-## Second factor
+## Sign-in
 
-Inhaber, Verwaltung, and Standortleitung cannot open the workplace until they enroll TOTP, unless `MASULINO_REQUIRE_MFA=0`. Empfang, Schichtleitung, and Team do not. Backup codes are shown once and stored hashed. The first request after enrollment revokes other sessions that were created before the second factor existed.
+Staff open the workplace with email and password. Inhaber, Verwaltung, IT, Standortleitung, Empfang, Schichtleitung, and Team follow that path. Better Auth stays mounted. The TOTP plugin, the enroll screen, and the code screen run only when `MASULINO_REQUIRE_MFA=1`. While the flag is off, an existing authenticator does not ask for a code or a backup code.
+
+Synthetic `@example.test` accounts have their authenticator rows removed on the next sign-in, through the auth database role. That clears the current IT and owner logins without a backup-code step. Other people’s authenticator secrets stay stored, and they are used again only after the flag is turned on.
+
+When the flag is on, backup codes are shown once at enrollment and stored hashed. The first request after enrollment revokes other sessions that were created before the second factor existed.
 
 A tenant needs at least one active `locations` row. `pnpm bootstrap:owner` creates `hauptstandort`. If an older bootstrap omitted it, run `DATABASE_URL_MIGRATE='…' pnpm db:ensure-location` once.
 

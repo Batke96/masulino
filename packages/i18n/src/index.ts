@@ -12,7 +12,7 @@ const messages = {
   "mfa.submit": "Bestätigen",
   "mfa.enroll.title": "Zwei-Faktor einrichten",
   "mfa.enroll.lead":
-    "Für diese Rolle ist ein zweiter Faktor erforderlich, bevor der Betrieb zugänglich ist.",
+    "Ein zweiter Faktor ist nur erforderlich, wenn er für diesen Betrieb eingeschaltet ist.",
   "mfa.secret": "Geheimnis",
   "shell.logout": "Abmelden",
   "shell.daily": "Tagesplan",

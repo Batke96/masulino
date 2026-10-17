@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { organization, twoFactor } from "better-auth/plugins";
 import { authSchema, getAuthDb } from "@masulino/database";
-import { env } from "./env";
+import { env, requireMfa } from "./env";
 
 let cached: ReturnType<typeof createAuth> | undefined;
 
@@ -57,9 +57,9 @@ function createAuth() {
       organization({
         allowUserToCreateOrganization: false,
       }),
-      twoFactor({
-        issuer: "Masulino",
-      }),
+      // Kept so MASULINO_REQUIRE_MFA=1 can ask for a code again. While the
+      // flag is off, an enrolled authenticator must not intercept password sign-in.
+      ...(requireMfa() ? [twoFactor({ issuer: "Masulino" })] : []),
     ],
   });
 }

@@ -12,7 +12,10 @@ const schema = z.object({
   CRON_SECRET: z.string().min(16),
   MASULINO_API_PORT: z.coerce.number().int().positive().default(8787),
   MASULINO_DEV_SESSION: z.enum(["0", "1"]).optional(),
-  /** Default on. Set to "0" to skip privileged TOTP enrollment during testing. */
+  /**
+   * Second factor is off unless this is exactly "1".
+   * Unset and "0" keep password sign-in, including a production deploy.
+   */
   MASULINO_REQUIRE_MFA: z.enum(["0", "1"]).optional(),
 });
 
@@ -35,7 +38,7 @@ export function allowDevSession(): boolean {
   return env().MASULINO_DEV_SESSION === "1";
 }
 
-/** Privileged roles must enroll TOTP unless explicitly set to "0" for testing. */
+/** TOTP is required only when someone explicitly sets MASULINO_REQUIRE_MFA=1. */
 export function requireMfa(): boolean {
-  return env().MASULINO_REQUIRE_MFA !== "0";
+  return env().MASULINO_REQUIRE_MFA === "1";
 }

@@ -60,7 +60,7 @@ if (prior.rowCount) {
     `update identity.account set password = $1, updated_at = now() where user_id = $2 and provider_id = 'credential'`,
     [hashed, userId],
   );
-  // Testing accounts: drop TOTP so MASULINO_REQUIRE_MFA=0 stays password-only.
+  // Drop a stored authenticator so this login is not left on a code or backup code.
   if (process.env.STAFF_CLEAR_MFA === "1") {
     await client.query(`update identity."user" set two_factor_enabled = false where id = $1`, [userId]);
     await client.query(`delete from identity.two_factor where user_id = $1`, [userId]);
