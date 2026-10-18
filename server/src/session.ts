@@ -117,6 +117,7 @@ export async function loadRequestActor(
 const roleLabels: Record<string, string> = {
   tenant_owner: "Inhaber",
   tenant_administrator: "Verwaltung",
+  it: "IT",
   location_manager: "Standortleitung",
   shift_lead: "Schichtleitung",
   reception: "Empfang",
@@ -126,6 +127,7 @@ const roleLabels: Record<string, string> = {
 const roleOrder = [
   "tenant_owner",
   "tenant_administrator",
+  "it",
   "location_manager",
   "shift_lead",
   "reception",

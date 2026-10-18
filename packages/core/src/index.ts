@@ -7,6 +7,7 @@ export {
   permissionMatrix,
   privilegedRoles,
   redactChanges,
+  rolesActorMayAssign,
 } from "./authz/policy";
 export type { AuthzDecision, AuthzInput, Grant } from "./authz/policy";
 export {
@@ -18,8 +19,11 @@ export {
   insertAudit,
   inviteStaff,
   listMemberships,
+  listStaffDirectory,
   loadActor,
   requirePermission,
+  restoreMembership,
   revokeMembership,
+  suspendMembership,
 } from "./platform";
 export type { ActorContext, OutboxJob } from "./platform";

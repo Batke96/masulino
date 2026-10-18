@@ -1,5 +1,5 @@
 import type { Action, PermissionScope, RoleKey } from "@masulino/contracts";
-import { moduleForAction } from "@masulino/contracts";
+import { moduleForAction, roleKeys } from "@masulino/contracts";
 
 export type Grant = {
   roleKey: RoleKey;
@@ -61,6 +61,7 @@ const noAccess = {
   "loyalty.reward.issue": none,
   "loyalty.reward.redeem": none,
   "reporting.booked_value.read": none,
+  "core.records.manage": none,
 } satisfies Record<Action, PermissionScope>;
 
 export const permissionMatrix: Matrix = {
@@ -101,6 +102,7 @@ export const permissionMatrix: Matrix = {
     "loyalty.reward.issue": "tenant",
     "loyalty.reward.redeem": "tenant",
     "reporting.booked_value.read": "tenant",
+    "core.records.manage": "tenant",
   },
   tenant_administrator: {
     "reservations.booking.read": "tenant",
@@ -139,6 +141,7 @@ export const permissionMatrix: Matrix = {
     "loyalty.reward.issue": none,
     "loyalty.reward.redeem": none,
     "reporting.booked_value.read": none,
+    "core.records.manage": none,
   },
   location_manager: {
     "reservations.booking.read": "location",
@@ -177,6 +180,7 @@ export const permissionMatrix: Matrix = {
     "loyalty.reward.issue": none,
     "loyalty.reward.redeem": none,
     "reporting.booked_value.read": "location",
+    "core.records.manage": none,
   },
   shift_lead: {
     ...noAccess,
@@ -224,6 +228,20 @@ export const permissionMatrix: Matrix = {
     "loyalty.reward.issue": none,
     "loyalty.reward.redeem": none,
     "reporting.booked_value.read": none,
+    "core.records.manage": none,
+  },
+  it: {
+    ...noAccess,
+    "core.users.invite": "tenant",
+    "core.membership.read": "tenant",
+    "core.settings.read": "tenant",
+    "core.audit.read": "tenant",
+    "core.records.manage": "tenant",
+    "reservations.booking.read": "tenant",
+    "reservations.booking.update": "tenant",
+    "reservations.booking.cancel": "tenant",
+    "resources.manage": "tenant",
+    "reporting.booked_value.read": "tenant",
   },
   employee: {
     ...noAccess,
@@ -242,6 +260,7 @@ export const privilegedRoles = [
   "tenant_owner",
   "tenant_administrator",
   "location_manager",
+  "it",
 ] as const satisfies readonly RoleKey[];
 
 export const grantableRoles: Record<RoleKey, readonly RoleKey[]> = {
@@ -254,6 +273,7 @@ export const grantableRoles: Record<RoleKey, readonly RoleKey[]> = {
     "employee",
   ],
   tenant_administrator: ["shift_lead", "reception", "employee"],
+  it: ["it", "tenant_administrator", "location_manager", "shift_lead", "reception", "employee"],
   location_manager: [],
   shift_lead: [],
   reception: [],
@@ -348,6 +368,16 @@ export function canAssignRole(
   return actor.grants.some(
     (grant) =>
       grant.locationId === targetLocationId && grantableRoles[grant.roleKey].includes(targetRole),
+  );
+}
+
+const tenantWideAssignable = new Set<RoleKey>(["tenant_owner", "tenant_administrator", "it"]);
+
+/** Roles this actor may pass to inviteStaff. Location roles use a sample location because a tenant-wide grant covers every site. */
+export function rolesActorMayAssign(actor: AuthzInput): RoleKey[] {
+  const sampleLocation = "00000000-0000-4000-8000-000000000001";
+  return roleKeys.filter((role) =>
+    canAssignRole(actor, role, tenantWideAssignable.has(role) ? null : sampleLocation),
   );
 }
 

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { roleKeys } from "./permissions";
 
 export const sourceChannels = ["staff_phone", "staff_walk_in", "staff_other", "guest_web"] as const;
 export type SourceChannel = (typeof sourceChannels)[number];
@@ -206,14 +207,7 @@ export const noticeActionSchema = z.object({
 
 export const inviteStaffSchema = z.object({
   email: z.email(),
-  roleKey: z.enum([
-    "tenant_owner",
-    "tenant_administrator",
-    "location_manager",
-    "shift_lead",
-    "reception",
-    "employee",
-  ]),
+  roleKey: z.enum(roleKeys),
   locationId: z.uuid().nullable(),
 });
 

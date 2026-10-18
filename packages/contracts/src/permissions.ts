@@ -35,6 +35,7 @@ export const actions = [
   "loyalty.reward.issue",
   "loyalty.reward.redeem",
   "reporting.booked_value.read",
+  "core.records.manage",
 ] as const;
 
 export type Action = (typeof actions)[number];
@@ -46,6 +47,7 @@ export const roleKeys = [
   "shift_lead",
   "reception",
   "employee",
+  "it",
 ] as const;
 
 export type RoleKey = (typeof roleKeys)[number];

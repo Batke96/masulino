@@ -587,3 +587,66 @@ export async function readReservation(args: {
     };
   });
 }
+
+export async function listStaffReservations(args: {
+  actor: ActorContext;
+  locationId: string;
+  fromDate: string;
+  toDate: string;
+}): Promise<
+  Array<{
+    id: string;
+    reference: string;
+    status: string;
+    localDate: string;
+    localTime: string;
+    organizerName: string;
+    organizerPhone: string;
+    notes: string;
+    version: number;
+    packageName: string;
+  }>
+> {
+  requirePermission(args.actor, "reservations.booking.read", args.locationId);
+  if (args.toDate < args.fromDate) throw new AppError("validation", "date_range");
+  return withTenant(args.actor.tenantId, async (tx) => {
+    const reservations = await rows<{
+      id: string;
+      reference: string;
+      status: string;
+      starts_at: Date;
+      organizer_name: string;
+      organizer_phone: string;
+      notes: string;
+      version: number;
+      package_name_snapshot: string;
+      timezone: string;
+      local_date: string;
+    }>(
+      tx,
+      sql`
+        select r.id, r.reference, r.status, r.starts_at, r.organizer_name, r.organizer_phone, r.notes,
+               r.version, r.package_name_snapshot, l.timezone, r.local_date::text as local_date
+        from reservations r
+        join locations l on l.id = r.location_id
+        where r.location_id = ${args.locationId}
+          and r.local_date >= ${args.fromDate}::date
+          and r.local_date <= ${args.toDate}::date
+        order by r.starts_at
+        limit 80
+      `,
+    );
+    return reservations.map((row) => ({
+      id: row.id,
+      reference: row.reference,
+      status: row.status,
+      localDate: row.local_date,
+      localTime: DateTime.fromJSDate(new Date(row.starts_at)).setZone(row.timezone).toFormat("HH:mm"),
+      organizerName: row.organizer_name,
+      organizerPhone: row.organizer_phone,
+      notes: row.notes,
+      version: row.version,
+      packageName: row.package_name_snapshot,
+    }));
+  });
+}

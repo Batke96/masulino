@@ -3,9 +3,13 @@
 -- adult_flat_unit_minor is a snapshot of the 2,50 € adult flat rate (0 when declined).
 
 ALTER TABLE packages
-  ADD COLUMN public_code text CHECK (public_code IS NULL OR public_code IN ('comfort', 'deluxe'));
+  ADD COLUMN public_code text;
 
-CREATE UNIQUE INDEX packages_one_public_code_idx
+ALTER TABLE packages
+  ADD CONSTRAINT packages_public_code_format
+  CHECK (public_code IS NULL OR public_code ~ '^[a-z0-9]([a-z0-9-]{0,40})$');
+
+CREATE UNIQUE INDEX packages_public_code_uidx
   ON packages (tenant_id, location_id, public_code)
   WHERE public_code IS NOT NULL;
 

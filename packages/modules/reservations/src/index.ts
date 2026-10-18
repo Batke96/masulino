@@ -1,6 +1,6 @@
-export { createGuestBooking, createStaffBooking, cancelReservation, dailyView, readBirthdayReceipt, readReservation } from "./booking";
+export { createGuestBooking, createStaffBooking, cancelReservation, dailyView, listStaffReservations, readBirthdayReceipt, readReservation } from "./booking";
 export type { BirthdayReceipt, BookingResult, DailyRow, GuestCaller, ReservationDetail } from "./booking";
-export { applyGuestPatch, rescheduleReservation, routeGuestToStaff } from "./changes";
+export { applyGuestPatch, rescheduleReservation, routeGuestToStaff, updateReservationContact } from "./changes";
 export { exchangeBookingLink, previewBookingLink, readGuestReservation, requireGuestSession, revokeGuestLinks } from "./access";
 export type { GuestReservationView } from "./access";
 export { birthdayPackage, birthdayTimes, publicAvailability, publicPackages, resolvePublishedVenue } from "./availability";
@@ -13,5 +13,14 @@ export { assertCanUsePublishedRule } from "./rules";
 export type { PublishedRule } from "./rules";
 export { classifyGuestPatch, guestMayMoveReservation } from "./guest-policy";
 export { claimBooking, readClaimedReferences } from "./claim";
-export { bookedValueStatuses, readBookedValueReport } from "./report";
-export type { BookedValueReport, MoneyFact } from "./report";
+export { bookedValueStatuses, readBookedValueReport, readReservationActivity } from "./report";
+export type { BookedValueReport, DayCount, MoneyFact, UpcomingReservation } from "./report";
+export {
+  addClosure,
+  listCatalog,
+  updateCombinationRecord,
+  updatePackageRecord,
+  updatePublishedSlug,
+  updateResourceRecord,
+} from "./records";
+export type { VenueCatalog } from "./records";

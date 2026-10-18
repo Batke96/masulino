@@ -7,9 +7,11 @@ export type StaffCapabilities = {
   campaigns: boolean;
   portal: boolean;
   agents: boolean;
+  it: boolean;
 };
 
 export function appVisible(id: string, capabilities: StaffCapabilities | null): boolean {
+  if (id === "it") return Boolean(capabilities?.it);
   if (!capabilities) return true;
   if (id === "bookings" || id === "birthdays") return capabilities.bookings;
   if (id === "families") return capabilities.families;
