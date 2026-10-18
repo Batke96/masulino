@@ -64,12 +64,41 @@ describe("permission matrix", () => {
     ).toEqual({ allow: false, reason: "entitlement" });
   });
 
-  it("keeps privileged roles blocked until TOTP is enabled", () => {
+  it("lets privileged roles through on a password when the second factor is off", () => {
+    for (const roleKey of ["tenant_owner", "tenant_administrator", "location_manager", "it"] as const) {
+      expect(
+        mfaSatisfiedForSession({
+          grants: [{ roleKey, locationId: roleKey === "location_manager" ? "loc-a" : null }],
+          twoFactorEnabled: false,
+          devBypass: false,
+        }),
+      ).toBe(true);
+    }
+    expect(
+      authorize(
+        actor("location_manager", "loc-a", { mfaSatisfied: false, locationId: "loc-a" }),
+        "reservations.booking.read",
+      ),
+    ).toEqual({ allow: true });
+    expect(authorize(actor("it", null, { mfaSatisfied: false }), "core.records.manage")).toEqual({ allow: true });
+    expect(authorize(actor("tenant_owner", null, { mfaSatisfied: false }), "core.roles.manage").allow).toBe(true);
+  });
+
+  it("blocks privileged roles without an authenticator only when the second factor is required", () => {
     expect(
       mfaSatisfiedForSession({
         grants: [{ roleKey: "tenant_owner", locationId: null }],
         twoFactorEnabled: false,
         devBypass: false,
+        mfaRequired: true,
+      }),
+    ).toBe(false);
+    expect(
+      mfaSatisfiedForSession({
+        grants: [{ roleKey: "it", locationId: null }],
+        twoFactorEnabled: false,
+        devBypass: false,
+        mfaRequired: true,
       }),
     ).toBe(false);
     expect(
@@ -77,6 +106,7 @@ describe("permission matrix", () => {
         grants: [{ roleKey: "location_manager", locationId: "loc-a" }],
         twoFactorEnabled: false,
         devBypass: false,
+        mfaRequired: true,
       }),
     ).toBe(false);
     expect(
@@ -84,34 +114,34 @@ describe("permission matrix", () => {
         grants: [{ roleKey: "tenant_administrator", locationId: null }],
         twoFactorEnabled: true,
         devBypass: false,
+        mfaRequired: true,
       }),
     ).toBe(true);
-    expect(
-      mfaSatisfiedForSession({
-        grants: [{ roleKey: "it", locationId: null }],
-        twoFactorEnabled: false,
-        devBypass: false,
-      }),
-    ).toBe(false);
     expect(
       mfaSatisfiedForSession({
         grants: [{ roleKey: "reception", locationId: "loc-a" }],
         twoFactorEnabled: false,
         devBypass: false,
+        mfaRequired: true,
       }),
     ).toBe(true);
     expect(
-      mfaSatisfiedForSession({
-        grants: [{ roleKey: "tenant_owner", locationId: null }],
-        twoFactorEnabled: false,
-        devBypass: true,
-      }),
-    ).toBe(true);
+      authorize(
+        actor("location_manager", "loc-a", { mfaSatisfied: false, mfaRequired: true, locationId: "loc-a" }),
+        "reservations.booking.read",
+      ),
+    ).toEqual({ allow: false, reason: "mfa" });
+    expect(
+      authorize(actor("it", null, { mfaSatisfied: false, mfaRequired: true }), "core.records.manage"),
+    ).toEqual({ allow: false, reason: "mfa" });
   });
 
   it("requires MFA for privileged roles and keeps role management with the owner", () => {
     expect(
-      authorize(actor("location_manager", "loc-a", { mfaSatisfied: false, locationId: "loc-a" }), "reservations.booking.read"),
+      authorize(
+        actor("location_manager", "loc-a", { mfaSatisfied: false, mfaRequired: true, locationId: "loc-a" }),
+        "reservations.booking.read",
+      ),
     ).toEqual({ allow: false, reason: "mfa" });
     expect(authorize(actor("tenant_administrator", null), "core.roles.manage")).toEqual({
       allow: false,
@@ -241,8 +271,7 @@ describe("permission matrix", () => {
     expect(authorize(actor("it", null), "reservations.booking.update")).toEqual({ allow: true });
     expect(authorize(actor("it", null), "reporting.booked_value.read")).toEqual({ allow: true });
     expect(authorize(actor("it", null, { mfaSatisfied: false }), "core.records.manage")).toEqual({
-      allow: false,
-      reason: "mfa",
+      allow: true,
     });
     expect(authorize(actor("it", null), "core.roles.manage")).toEqual({ allow: false, reason: "permission" });
     expect(authorize(actor("it", null), "workforce.compensation.read")).toEqual({

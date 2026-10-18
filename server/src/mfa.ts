@@ -7,6 +7,40 @@ function rowsOf<T>(result: unknown): T[] {
   return wrapped.rows ?? [];
 }
 
+let syntheticClear: Promise<void> | undefined;
+
+/**
+ * Synthetic staff keep no authenticator and no backup codes.
+ * Uses the auth role, which is the only role allowed to write schema `identity`.
+ */
+export function clearSyntheticAuthenticators(): Promise<void> {
+  syntheticClear ??= clearSyntheticAuthenticatorsOnce().catch((error: unknown) => {
+    syntheticClear = undefined;
+    throw error;
+  });
+  return syntheticClear;
+}
+
+async function clearSyntheticAuthenticatorsOnce(): Promise<void> {
+  const authDb = getAuthDb();
+  const syntheticUsers = sql`(select id from identity."user" where email like '%@example.test')`;
+  await authDb.execute(sql`
+    delete from identity.verification
+    where value in ${syntheticUsers}
+      and (identifier like '2fa-%' or identifier like 'trust-device-%')
+  `);
+  await authDb.execute(sql`
+    delete from identity.two_factor
+    where user_id in ${syntheticUsers}
+  `);
+  await authDb.execute(sql`
+    update identity."user"
+    set two_factor_enabled = false
+    where email like '%@example.test'
+      and two_factor_enabled is true
+  `);
+}
+
 export async function readTwoFactorEnabled(userId: string): Promise<boolean> {
   const result = await getAuthDb().execute(sql`
     select two_factor_enabled as enabled

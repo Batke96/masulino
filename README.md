@@ -27,10 +27,10 @@ Open the local URL printed by the development server, normally `http://localhost
 | `reception.masulino@example.test` | Buchungen and Geburtstage. |
 | `employee.masulino@example.test` | Team only. No booking list. |
 | `manager.masulino@example.test` | Location operations. |
-| `owner.masulino@example.test` | Reports, campaigns, families and team, after a second factor is enrolled. |
-| `it.masulino@example.test` | IT. Benutzer, Auswertungen and Stammdaten, after a second factor is enrolled. |
+| `owner.masulino@example.test` | Reports, campaigns, families and team. |
+| `it.masulino@example.test` | IT. Benutzer, Auswertungen and Stammdaten. |
 
-Inhaber, Verwaltung, IT and Standortleitung stop on the second-factor screen until they enroll an authenticator. Empfang and Team do not. The one-time recovery codes are shown only during enrollment. `user@example.test` is also an owner, so that account follows the same step.
+Every role signs in with email and password and opens its workplace. The second factor stays in the code and stays off, including a production deploy, until `MASULINO_REQUIRE_MFA=1`. An authenticator enrolled earlier does not ask for a code while it is off. Synthetic staff enrollment is cleared, so IT and Inhaber are not left on a code or a backup code. `user@example.test` is also an owner and uses the same password sign-in.
 
 `pnpm dev:workspace` starts Postgres, applies migrations, seeds synthetic tenants, and starts the API and the UI. If Postgres is already running, it is reused.
 

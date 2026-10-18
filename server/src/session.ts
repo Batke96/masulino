@@ -89,28 +89,30 @@ export async function loadRequestActor(
   staff: StaffSession,
   tenantId: string,
 ): Promise<ActorContext | null> {
-  const enrolled = staff.source === "session" ? await readTwoFactorEnabled(staff.user.id) : false;
+  const mfaRequired = requireMfa();
+  const enrolled = mfaRequired && staff.source === "session" ? await readTwoFactorEnabled(staff.user.id) : false;
   const preview = await loadActor({
     principalId: staff.principalId,
     tenantId,
     mfaSatisfied: false,
+    mfaRequired,
   });
   if (!preview || preview.membershipStatus !== "active") return preview;
-  const satisfied =
-    !requireMfa() ||
-    mfaSatisfiedForSession({
-      grants: preview.grants,
-      twoFactorEnabled: enrolled,
-      devBypass: staff.source === "dev" && allowDevSession(),
-    });
+  const satisfied = mfaSatisfiedForSession({
+    grants: preview.grants,
+    twoFactorEnabled: enrolled,
+    devBypass: staff.source === "dev" && allowDevSession(),
+    mfaRequired,
+  });
   if (!satisfied) return preview;
-  if (requireMfa() && enrolled && staff.sessionToken) {
+  if (mfaRequired && enrolled && staff.sessionToken) {
     await rotatePreMfaSessions(staff.user.id, staff.sessionToken);
   }
   return loadActor({
     principalId: staff.principalId,
     tenantId,
     mfaSatisfied: true,
+    mfaRequired,
   });
 }
 

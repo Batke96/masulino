@@ -93,7 +93,7 @@ A principal is `(issuer, subject)`. Email is an attribute on the principal and o
 
 Better Auth organization tables (`identity.organization`, `identity.member`, roles `owner` / `admin` / `member`) exist because the library creates them. Masulino never consults them. Roles live in `grants.role_key`.
 
-Privileged roles are `tenant_owner`, `tenant_administrator`, `location_manager`, and `it`. `authorize` returns `mfa` for any of their actions until the session has a completed second factor. A sign-in that still needs that factor stays on the second-factor step. Recovery codes and phishing-resistant methods are not built yet. Do not bypass the MFA check to make a manager screen reachable.
+Privileged roles are `tenant_owner`, `tenant_administrator`, `location_manager`, and `it`. Password sign-in is enough for them. `authorize` returns `mfa` only when `mfaRequired` is true and the session has not completed a second factor. That flag is set only when `MASULINO_REQUIRE_MFA=1`. While it is off, an enrolled authenticator does not keep the person on a code or backup-code step. Recovery codes and phishing-resistant methods are not built yet. There is no helpdesk reset.
 
 Sessions are server-managed HttpOnly cookies from Better Auth. Privileged bearer tokens do not go in `localStorage`. The new shell should keep that. A shared tablet is a kiosk device cookie, described below, and is a different cookie from the staff session.
 
@@ -117,7 +117,7 @@ Order of failure, which the interface can show as distinct states:
 
 1. `membership` — suspended or revoked.
 2. `entitlement` — module off for this tenant.
-3. `mfa` — privileged role without a second factor.
+3. `mfa` — privileged role without a second factor, and only when that factor is required.
 4. `permission` — no grant covers the action.
 5. `location` — the grant is for another location, or the caller omitted a location.
 
@@ -132,7 +132,7 @@ export function authorize(input: AuthzInput, action: Action): AuthzDecision {
     return { allow: false, reason: "entitlement" };
   }
 
-  if (holdsPrivilegedRole(input.grants) && !input.mfaSatisfied) {
+  if (input.mfaRequired === true && holdsPrivilegedRole(input.grants) && !input.mfaSatisfied) {
     return { allow: false, reason: "mfa" };
   }
 
@@ -180,7 +180,7 @@ The route slug, a client header, and a form field choose the tenant and location
 
 ### Role matrix
 
-Scope in the table: **T** tenant-wide, **L** the granted location, blank means denied. Privileged roles still need MFA before any allow. The full matrix and its tests are `packages/core/src/authz/policy.ts` and `policy.test.ts`. `docs/permissions.md` matches them.
+Scope in the table: **T** tenant-wide, **L** the granted location, blank means denied. Privileged roles need a second factor before any allow only when `mfaRequired` is true. The full matrix and its tests are `packages/core/src/authz/policy.ts` and `policy.test.ts`. `docs/permissions.md` matches them.
 
 | Action | Owner | Admin | Manager | Shift lead | Reception | Employee |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -421,7 +421,7 @@ Do not show a success state for a booking, a published plan, a sent campaign, a 
 Keep the prototype’s components and tokens. Replace demo state one workflow at a time. Leave the other tiles on fixtures until their service exists.
 
 1. Stand up Neon in EU. Create the three runtime roles and the migration role. Apply `0001` through `0005` with the direct URL. Run the existing integration tests against `masulino_app` so RLS and the last-slot race are proven on Neon, not only on local Postgres.
-2. Mount Better Auth on the Node adapter. Map the session to a principal. Load memberships. Require MFA before any privileged `allowedActions` entry is non-empty.
+2. Mount Better Auth on the Node adapter. Map the session to a principal. Load memberships. Password sign-in opens the workplace. Set `MASULINO_REQUIRE_MFA=1` before a privileged `allowedActions` entry depends on TOTP.
 3. Render the shell’s navigation from `allowedActions`. Wire tenant and location selection to `loadActor`. A revoked user and the other tenant’s URL must fail.
 4. Replace the demo booking list and create flow with `dailyView`, `readReservation`, and `createStaffBooking`. Pass `allocate` from indoor-play. Keep the idempotency key and the conflict alternatives.
 5. Add the public booking path and the exchange-token POST as separate routes from the staff shell, with separate cookies.
@@ -437,7 +437,7 @@ These are real gaps. The new interface should not paper over them with sample co
 
 - Neon is not provisioned. Vercel production deploy still needs the GitHub Actions secrets in `docs/deploy.md`.
 - Venue tables, hours, prices, deposits, cancellation wording, and guest edit deadlines are proposed. Fixtures demonstrate them. Production must keep rejecting them until a decision is confirmed.
-- MFA recovery beyond one-time backup codes is not designed. Privileged roles must enroll TOTP before `mfaSatisfied` is true. Phishing-resistant keys and a helpdesk reset do not exist.
+- The second factor is off unless `MASULINO_REQUIRE_MFA=1`. While it is off, a stored authenticator does not block password sign-in, and synthetic enrollment is cleared. Recovery beyond one-time backup codes is not designed. Phishing-resistant keys and a helpdesk reset do not exist.
 - Content-Security-Policy still allows inline scripts. Production should move to a nonce when the new shell’s framework supports it.
 - Combined-table overlap has unit coverage and the exclusion constraint, and still wants a dedicated integration test.
 - The IT workspace edits a fixed catalog (packages, resources, combinations, closures, and the published slug) through `core.records.manage`. It is not a generic table editor. Seed SQL still creates the fixture venue.
