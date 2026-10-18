@@ -284,6 +284,7 @@ export function roleNeedsLocation(role: RoleKey): boolean {
 export const grantableRoles: Record<RoleKey, readonly RoleKey[]> = {
   tenant_owner: [
     "tenant_owner",
+    "it",
     "tenant_administrator",
     "location_manager",
     "shift_lead",

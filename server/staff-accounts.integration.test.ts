@@ -290,6 +290,61 @@ describe.sequential("staff account create and remove", () => {
     expect(listed.people.some((item) => item.email === email)).toBe(false);
   });
 
+  it("lets the owner create the first IT login and remove it again", async () => {
+    const { ownerActor, adminActor } = await directoryFixture();
+    const email = `ira-${randomUUID()}@example.test`;
+    const ownerDirectory = await listAccountDirectory(ownerActor);
+    expect(ownerDirectory.roles.map((role) => role.roleKey)).toEqual([
+      "tenant_owner",
+      "it",
+      "tenant_administrator",
+      "location_manager",
+      "shift_lead",
+      "reception",
+      "employee",
+    ]);
+    await expect(
+      createStaffAccount(
+        ownerActor,
+        { name: "Ira mit Standort", email: `ort-${randomUUID()}@example.test`, roleKey: "it", locationId: "00000000-0000-4000-8000-000000000099", password },
+        randomUUID(),
+        staffCredentials,
+      ),
+    ).rejects.toMatchObject({ code: "validation", message: "location_not_allowed" });
+    await expect(
+      createStaffAccount(
+        adminActor,
+        { name: "Verwaltung IT", email: `admin-it-${randomUUID()}@example.test`, roleKey: "it", locationId: null, password },
+        randomUUID(),
+        staffCredentials,
+      ),
+    ).rejects.toMatchObject({ code: "forbidden" });
+
+    const created = await createStaffAccount(
+      ownerActor,
+      { name: "Ira IT", email, roleKey: "it", locationId: null, password },
+      randomUUID(),
+      staffCredentials,
+    );
+    const listed = await listAccountDirectory(ownerActor);
+    const person = listed.people.find((item) => item.email === email);
+    expect(person?.roleKey).toBe("it");
+    expect(person?.removable).toBe(true);
+    expect(person?.locationId).toBeNull();
+
+    const signedIn = await signIn(email, password);
+    const body = (await signedIn.json()) as { twoFactorRedirect?: boolean; user?: unknown };
+    expect(signedIn.status).toBe(200);
+    expect(body.twoFactorRedirect === true || Boolean(body.user)).toBe(true);
+
+    await removeStaffAccount(ownerActor, created.membershipId, randomUUID(), staffCredentials);
+    const afterSignIn = await signIn(email, password);
+    await afterSignIn.text();
+    expect(afterSignIn.ok).toBe(false);
+    const gone = await listAccountDirectory(ownerActor);
+    expect(gone.people.some((item) => item.email === email)).toBe(false);
+  });
+
   it("rejects removing an owner and the last owner", async () => {
     const { itActor, ownerActor, ownerMembershipId, fixture } = await directoryFixture();
     await expect(removeStaffAccount(itActor, ownerMembershipId, randomUUID(), staffCredentials)).rejects.toMatchObject({

@@ -17,7 +17,7 @@ Nothing in this repository publishes itself. The steps below are the ones that n
 | `CRON_SECRET` | At least 16 characters from a generator. Vercel cron sends it as `Authorization: Bearer`. |
 | `BETTER_AUTH_URL` | The public origin of the staff UI, for example `https://staff.example.tld`. Auth cookies are set for that origin. |
 | Vercel project | Connect the Git branch that contains `vercel.json`. Leave the framework preset unset so the file’s `"framework": null` is used. The build command stays `pnpm run build`. Do not set an output directory; Nitro writes `.vercel/output`. Set the function region to `fra1` if the dashboard overrides the file. Do not put `DATABASE_URL_MIGRATE` on the runtime. |
-| First owner invitation | Public sign-up is disabled. Bootstrap one owner against the EU database, then invite everyone else. Do not run `pnpm db:seed` against Neon. |
+| First owner | Public sign-up is disabled. Bootstrap one owner against the EU database. That Inhaber then creates IT and every later account under IT → Benutzer. Do not run `pnpm db:seed` against Neon. |
 
 Apply `packages/database/migrations/0001_platform.sql` through `0007_birthday_intake.sql` with the direct migration URL before the first request. Run the integration tests against the `masulino_app` role on that database so row-level security is proven there, not only on a laptop.
 
@@ -62,13 +62,15 @@ When the flag is on, backup codes are shown once at enrollment and stored hashed
 
 A tenant needs at least one active `locations` row. `pnpm bootstrap:owner` creates `hauptstandort`. If an older bootstrap omitted it, run `DATABASE_URL_MIGRATE='…' pnpm db:ensure-location` once.
 
-To add another staff login on the existing tenant (not seed), copy `.env.production.local.example` to `.env.production.local` once (gitignored), fill the Neon/Vercel values, then run a short command:
+The next person is created in the signed-in app, not from a laptop. The bootstrapped Inhaber opens IT → Benutzer, enters name, email, role, location when the role needs one, and a password. The account is written to the database this deployment already uses. The password is shown once and stored as a hash. IT can then create IT, Verwaltung, Standortleitung, Schichtleitung, Empfang, and Team. IT cannot create or remove an Inhaber. The last active Inhaber cannot be removed.
+
+`pnpm staff:add` remains only for the case where nobody can sign in. It needs the gitignored migration URL and is not the way to add each person:
 
 ```sh
 STAFF_ADD_CONFIRM=1 STAFF_EMAIL='user@example.test' STAFF_PASSWORD='password' STAFF_CLEAR_MFA=1 pnpm staff:add
 ```
 
-Default role is `tenant_owner`. Do not put Neon URLs or passwords in tracked files. The long-term path is an in-app invite (`core.users.invite` already exists in domain code); the HTTP/UI surface for that is not wired yet.
+Default role is `tenant_owner`. Do not put Neon URLs or passwords in tracked files. Local `pnpm dev:workspace` seeds synthetic logins into the embedded database only. Those rows are not copied to Neon.
 
 ## What this hosting still is not
 

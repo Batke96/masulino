@@ -176,13 +176,31 @@ describe("permission matrix", () => {
     expect(grantableRoles.tenant_administrator).toEqual(["shift_lead", "reception", "employee"]);
     expect(grantableRoles.tenant_owner).toEqual([
       "tenant_owner",
+      "it",
       "tenant_administrator",
       "location_manager",
       "shift_lead",
       "reception",
       "employee",
     ]);
-    expect(rolesActorMayAssign(actor("tenant_owner", null))).not.toContain("it");
+    expect(rolesActorMayAssign(actor("tenant_owner", null))).toEqual([
+      "tenant_owner",
+      "tenant_administrator",
+      "it",
+      "location_manager",
+      "shift_lead",
+      "reception",
+      "employee",
+    ]);
+    expect(rolesActorMayGrant(actor("tenant_owner", null))).toEqual([
+      "tenant_owner",
+      "it",
+      "tenant_administrator",
+      "location_manager",
+      "shift_lead",
+      "reception",
+      "employee",
+    ]);
     expect(rolesActorMayAssign(actor("tenant_administrator", null))).toEqual([
       "shift_lead",
       "reception",
@@ -204,7 +222,7 @@ describe("permission matrix", () => {
     expect(canAssignRole(itActor, "reception", "loc-a")).toBe(true);
     expect(canAssignRole(itActor, "employee", "loc-a")).toBe(true);
     expect(canAssignRole(itActor, "tenant_owner", null)).toBe(false);
-    expect(canAssignRole(actor("tenant_owner", null), "it", null)).toBe(false);
+    expect(canAssignRole(actor("tenant_owner", null), "it", null)).toBe(true);
     expect(canAssignRole(actor("tenant_owner", null), "reception", "loc-a")).toBe(true);
     expect(canAssignRole(actor("tenant_owner", null), "tenant_owner", null)).toBe(true);
     expect(authorize(itActor, "core.users.invite")).toEqual({ allow: true });
@@ -237,6 +255,8 @@ describe("permission matrix", () => {
       canRemoveGrants(actor("tenant_administrator", null), [{ roleKey: "location_manager", locationId: "loc-a" }]),
     ).toBe(false);
     expect(canRemoveGrants(actor("tenant_owner", null), [{ roleKey: "tenant_owner", locationId: null }])).toBe(true);
+    expect(canRemoveGrants(actor("tenant_owner", null), [{ roleKey: "it", locationId: null }])).toBe(true);
+    expect(canRemoveGrants(actor("tenant_administrator", null), [{ roleKey: "it", locationId: null }])).toBe(false);
   });
 
   it("lets a location manager publish notices and keeps reception on read", () => {

@@ -88,7 +88,10 @@ export function ItUsers({ embedded = false }: { embedded?: boolean }) {
             <div className="it-directory-grid">
               <section className="surface">
                 <div className="section-head"><h2>Konto anlegen</h2></div>
-                <p className="fine-print">Name, E-Mail, Rolle und Passwort. Es wird keine E-Mail gesendet.</p>
+                <p className="fine-print">Name, E-Mail, Rolle und Passwort. Das Konto wird in diesem Betrieb gespeichert. Die Person meldet sich danach mit diesen Angaben an. Es wird keine E-Mail gesendet.</p>
+                {directory.roles.some((role) => role.roleKey === "tenant_owner") && directory.roles.some((role) => role.roleKey === "it") ? (
+                  <p className="fine-print">Als Inhaber legst du hier auch den ersten IT-Zugang an. IT verwaltet danach die weiteren Konten und kann keinen Inhaber anlegen.</p>
+                ) : null}
                 {error ? <p className="staff-gate-error">{error}</p> : null}
                 {issued ? (
                   <div className="it-credential" role="status">

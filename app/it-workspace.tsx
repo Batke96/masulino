@@ -205,7 +205,7 @@ export function ItWorkspace() {
           <ItUsers embedded />
           <section className="surface">
             <div className="section-head"><h2>Einladen</h2></div>
-            <p className="fine-print">Die Einladung bleibt in diesem Betrieb. Es wird keine E-Mail gesendet. Der Annahmelink erscheint nur einmal.</p>
+            <p className="fine-print">Ein Konto mit Passwort legst du oben an. Eine Einladung setzt kein Passwort. Der Annahmelink erscheint nur einmal, und es wird keine E-Mail gesendet.</p>
             <form className="it-form" onSubmit={invite}>
               <label className="field-label">E-Mail
                 <input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="off" />

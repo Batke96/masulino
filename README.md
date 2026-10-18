@@ -30,6 +30,8 @@ Open the local URL printed by the development server, normally `http://localhost
 | `owner.masulino@example.test` | Reports, campaigns, families and team. |
 | `it.masulino@example.test` | IT. Benutzer, Auswertungen and Stammdaten. |
 
+Those addresses exist only in the local database created by `pnpm dev:workspace`. Production uses its own database. The bootstrapped Inhaber signs in there, opens IT → Benutzer, and creates IT and every later role. The password is shown once. IT cannot create or remove an Inhaber.
+
 Every role signs in with email and password and opens its workplace. The second factor stays in the code and stays off, including a production deploy, until `MASULINO_REQUIRE_MFA=1`. An authenticator enrolled earlier does not ask for a code while it is off. Synthetic staff enrollment is cleared, so IT and Inhaber are not left on a code or a backup code. `user@example.test` is also an owner and uses the same password sign-in.
 
 `pnpm dev:workspace` starts Postgres, applies migrations, seeds synthetic tenants, and starts the API and the UI. If Postgres is already running, it is reused.

@@ -87,7 +87,7 @@ Disabling a module rejects new work inside the tenant transaction and leaves exi
 
 ## 2. Identity is a login. Authorization is a grant.
 
-Better Auth stores users, sessions, password hashes, and TOTP in the Postgres schema `identity`. Public sign-up is disabled. Staff enter through an invitation. The issuer for mapped users is the constant `urn:masulino:better-auth`.
+Better Auth stores users, sessions, password hashes, and TOTP in the Postgres schema `identity`. Public sign-up is disabled. An Inhaber or IT creates the next account under IT → Benutzer. The password is hashed through the credential port and shown once. Invitations still exist and do not set a password. The issuer for mapped users is the constant `urn:masulino:better-auth`.
 
 A principal is `(issuer, subject)`. Email is an attribute on the principal and on the invitation. It is not the authorization key. The same human can hold memberships in more than one tenant. Switching tenants clears the previous tenant context. It does not reuse a cached actor.
 
@@ -104,7 +104,8 @@ Sessions are server-managed HttpOnly cookies from Better Auth. Privileged bearer
 - Acceptance checks that the signed-in email matches the invitation email, inserts one membership if needed, inserts the grant, and stamps `accepted_at` only when it is still null.
 - Location roles require a location. Owner, administrator, and IT grants are tenant-wide (`location_id` null).
 - An administrator may invite only `shift_lead`, `reception`, and `employee`. An administrator cannot grant owner, administrator, location manager, or IT.
-- IT may invite `it`, `tenant_administrator`, `location_manager`, `shift_lead`, `reception`, and `employee`. IT cannot grant `tenant_owner`. The owner grant list is unchanged and does not include `it`.
+- The owner may grant `tenant_owner`, `it`, `tenant_administrator`, `location_manager`, `shift_lead`, `reception`, and `employee`. After bootstrap, the Inhaber creates the first IT account on that screen. No migration connection is required for the next person.
+- IT may invite `it`, `tenant_administrator`, `location_manager`, `shift_lead`, `reception`, and `employee`. IT cannot grant or remove `tenant_owner`.
 - Suspending or revoking the last active owner is rejected (`last_owner`).
 
 `canAssignRole` is the grant boundary. It is separate from `authorize(..., "core.users.invite")`.
