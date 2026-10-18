@@ -212,3 +212,27 @@ export const inviteStaffSchema = z.object({
 });
 
 export type InviteStaffInput = z.infer<typeof inviteStaffSchema>;
+
+export const createStaffAccountSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  email: z.email(),
+  roleKey: z.enum([
+    "tenant_owner",
+    "tenant_administrator",
+    "it",
+    "location_manager",
+    "shift_lead",
+    "reception",
+    "employee",
+  ]),
+  locationId: z.uuid().nullable(),
+  password: z.string().min(12).max(200),
+});
+
+export type CreateStaffAccountInput = z.infer<typeof createStaffAccountSchema>;
+
+export const removeStaffAccountSchema = z.object({
+  membershipId: z.uuid(),
+});
+
+export type RemoveStaffAccountInput = z.infer<typeof removeStaffAccountSchema>;

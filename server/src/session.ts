@@ -4,6 +4,7 @@ import {
   listMemberships,
   loadActor,
   mfaSatisfiedForSession,
+  staffRoleOrder,
   type ActorContext,
 } from "@masulino/core";
 import { AppError, isAppError } from "@masulino/contracts";
@@ -126,18 +127,16 @@ const roleLabels: Record<string, string> = {
   employee: "Team",
 };
 
-const roleOrder = [
-  "tenant_owner",
-  "tenant_administrator",
-  "it",
-  "location_manager",
-  "shift_lead",
-  "reception",
-  "employee",
-];
+export function roleLabel(roleKey: string): string {
+  return roleLabels[roleKey] ?? roleKey;
+}
 
 function primaryRole(grants: ReadonlyArray<{ roleKey: string }>): string {
-  return roleOrder.find((role) => grants.some((grant) => grant.roleKey === role)) ?? grants[0]?.roleKey ?? "employee";
+  return (
+    staffRoleOrder.find((role) => grants.some((grant) => grant.roleKey === role)) ??
+    grants[0]?.roleKey ??
+    "employee"
+  );
 }
 
 export function describeRole(grants: ReadonlyArray<{ roleKey: string }>): {
@@ -145,7 +144,7 @@ export function describeRole(grants: ReadonlyArray<{ roleKey: string }>): {
   roleLabel: string;
 } {
   const roleKey = primaryRole(grants);
-  return { roleKey, roleLabel: roleLabels[roleKey] ?? roleKey };
+  return { roleKey, roleLabel: roleLabel(roleKey) };
 }
 
 function todayInTimezone(timezone: string): string {

@@ -4,6 +4,7 @@ import { clearSyntheticAuthenticators } from "./mfa";
 import { env } from "./env";
 import { handleStaffSession } from "./session";
 import { json } from "./errors";
+import { handleCreateStaff, handleListStaff, handleRemoveStaff } from "./handlers/staff-accounts";
 import {
   handleInviteStaff,
   handleItClosure,
@@ -61,6 +62,18 @@ export async function route(request: Request): Promise<Response> {
 
   if (pathname === "/api/session" && request.method === "GET") {
     return handleStaffSession(request);
+  }
+
+  if (pathname === "/api/staff/users" && request.method === "GET") {
+    return handleListStaff(request);
+  }
+
+  if (pathname === "/api/staff/users" && request.method === "POST") {
+    return handleCreateStaff(request);
+  }
+
+  if (pathname === "/api/staff/users/remove" && request.method === "POST") {
+    return handleRemoveStaff(request);
   }
 
   if (pathname === "/api/workspace" && request.method === "GET") {

@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { actions, type Action, type RoleKey } from "@masulino/contracts";
-import { authorize, canAssignRole, mfaSatisfiedForSession, permissionMatrix, redactChanges, rolesActorMayAssign } from "./policy";
+import {
+  authorize,
+  canAssignRole,
+  canRemoveGrants,
+  grantableRoles,
+  mfaSatisfiedForSession,
+  permissionMatrix,
+  redactChanges,
+  roleNeedsLocation,
+  rolesActorMayAssign,
+  rolesActorMayGrant,
+} from "./policy";
 import type { AuthzInput } from "./policy";
 
 function actor(role: RoleKey, locationId: string | null, extra: Partial<AuthzInput> = {}): AuthzInput {
@@ -27,10 +38,10 @@ describe("permission matrix", () => {
     expect(roles).toEqual([
       "tenant_owner",
       "tenant_administrator",
+      "it",
       "location_manager",
       "shift_lead",
       "reception",
-      "it",
       "employee",
     ]);
     for (const role of roles) {
@@ -162,23 +173,14 @@ describe("permission matrix", () => {
     expect(canAssignRole(admin, "tenant_owner", null)).toBe(false);
     expect(canAssignRole(admin, "location_manager", "loc-a")).toBe(false);
     expect(canAssignRole(actor("reception", "loc-a"), "employee", "loc-a")).toBe(false);
-    const itRole = actor("it", null);
-    expect(canAssignRole(itRole, "it", null)).toBe(true);
-    expect(canAssignRole(itRole, "tenant_administrator", null)).toBe(true);
-    expect(canAssignRole(itRole, "location_manager", "loc-a")).toBe(true);
-    expect(canAssignRole(itRole, "shift_lead", "loc-a")).toBe(true);
-    expect(canAssignRole(itRole, "reception", "loc-a")).toBe(true);
-    expect(canAssignRole(itRole, "employee", "loc-a")).toBe(true);
-    expect(canAssignRole(itRole, "tenant_owner", null)).toBe(false);
-    expect(canAssignRole(actor("tenant_owner", null), "it", null)).toBe(false);
-    expect(canAssignRole(actor("tenant_owner", null), "reception", "loc-a")).toBe(true);
-    expect(rolesActorMayAssign(itRole)).toEqual([
+    expect(grantableRoles.tenant_administrator).toEqual(["shift_lead", "reception", "employee"]);
+    expect(grantableRoles.tenant_owner).toEqual([
+      "tenant_owner",
       "tenant_administrator",
       "location_manager",
       "shift_lead",
       "reception",
       "employee",
-      "it",
     ]);
     expect(rolesActorMayAssign(actor("tenant_owner", null))).not.toContain("it");
     expect(rolesActorMayAssign(actor("tenant_administrator", null))).toEqual([
@@ -186,6 +188,55 @@ describe("permission matrix", () => {
       "reception",
       "employee",
     ]);
+    expect(rolesActorMayGrant(actor("tenant_administrator", null))).toEqual([
+      "shift_lead",
+      "reception",
+      "employee",
+    ]);
+  });
+
+  it("lets IT grant every role except the owner", () => {
+    const itActor = actor("it", null);
+    expect(canAssignRole(itActor, "it", null)).toBe(true);
+    expect(canAssignRole(itActor, "tenant_administrator", null)).toBe(true);
+    expect(canAssignRole(itActor, "location_manager", "loc-a")).toBe(true);
+    expect(canAssignRole(itActor, "shift_lead", "loc-a")).toBe(true);
+    expect(canAssignRole(itActor, "reception", "loc-a")).toBe(true);
+    expect(canAssignRole(itActor, "employee", "loc-a")).toBe(true);
+    expect(canAssignRole(itActor, "tenant_owner", null)).toBe(false);
+    expect(canAssignRole(actor("tenant_owner", null), "it", null)).toBe(false);
+    expect(canAssignRole(actor("tenant_owner", null), "reception", "loc-a")).toBe(true);
+    expect(canAssignRole(actor("tenant_owner", null), "tenant_owner", null)).toBe(true);
+    expect(authorize(itActor, "core.users.invite")).toEqual({ allow: true });
+    expect(authorize({ ...itActor, mfaSatisfied: false }, "core.users.invite")).toEqual({ allow: true });
+    expect(rolesActorMayAssign(itActor)).toEqual([
+      "tenant_administrator",
+      "it",
+      "location_manager",
+      "shift_lead",
+      "reception",
+      "employee",
+    ]);
+    expect(rolesActorMayGrant(itActor)).toEqual([
+      "it",
+      "tenant_administrator",
+      "location_manager",
+      "shift_lead",
+      "reception",
+      "employee",
+    ]);
+    expect(roleNeedsLocation("reception")).toBe(true);
+    expect(roleNeedsLocation("location_manager")).toBe(true);
+    expect(roleNeedsLocation("it")).toBe(false);
+    expect(roleNeedsLocation("tenant_administrator")).toBe(false);
+    expect(roleNeedsLocation("tenant_owner")).toBe(false);
+    expect(canRemoveGrants(itActor, [{ roleKey: "reception", locationId: "loc-a" }])).toBe(true);
+    expect(canRemoveGrants(itActor, [{ roleKey: "tenant_owner", locationId: null }])).toBe(false);
+    expect(canRemoveGrants(itActor, [{ roleKey: "tenant_administrator", locationId: null }])).toBe(true);
+    expect(
+      canRemoveGrants(actor("tenant_administrator", null), [{ roleKey: "location_manager", locationId: "loc-a" }]),
+    ).toBe(false);
+    expect(canRemoveGrants(actor("tenant_owner", null), [{ roleKey: "tenant_owner", locationId: null }])).toBe(true);
   });
 
   it("lets a location manager publish notices and keeps reception on read", () => {
@@ -374,12 +425,14 @@ describe("permission matrix", () => {
         organizerEmail: "a@example.test",
         organizerPhone: "123",
         notes: "secret",
+        password: "not-stored",
       }),
     ).toEqual({
       status: "confirmed",
       organizerEmail: "[redacted]",
       organizerPhone: "[redacted]",
       notes: "[redacted]",
+      password: "[redacted]",
     });
   });
 });
@@ -438,6 +491,7 @@ describe("documented denies", () => {
     ["it", "core.roles.manage"],
     ["it", "reservations.booking.create"],
     ["it", "workforce.compensation.read"],
+    ["it", "workforce.schedule.read"],
   ];
 
   it.each(denied)("denies %s for %s", (role, action) => {

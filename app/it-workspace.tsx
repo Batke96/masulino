@@ -27,6 +27,7 @@ import {
   type ItReservation,
   type ItResource,
 } from "@/lib/workspace/it-client";
+import { ItUsers } from "@/app/it-users";
 
 const roleLabel: Record<string, string> = {
   tenant_owner: "Inhaber",
@@ -201,6 +202,7 @@ export function ItWorkspace() {
 
       {tab === "users" ? (
         <>
+          <ItUsers embedded />
           <section className="surface">
             <div className="section-head"><h2>Einladen</h2></div>
             <p className="fine-print">Die Einladung bleibt in diesem Betrieb. Es wird keine E-Mail gesendet. Der Annahmelink erscheint nur einmal.</p>

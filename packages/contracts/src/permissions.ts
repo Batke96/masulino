@@ -43,11 +43,11 @@ export type Action = (typeof actions)[number];
 export const roleKeys = [
   "tenant_owner",
   "tenant_administrator",
+  "it",
   "location_manager",
   "shift_lead",
   "reception",
   "employee",
-  "it",
 ] as const;
 
 export type RoleKey = (typeof roleKeys)[number];

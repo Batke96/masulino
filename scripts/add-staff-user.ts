@@ -24,6 +24,7 @@ const allowedRoles = new Set([
   "tenant_administrator",
   "location_manager",
   "shift_lead",
+  "it",
   "reception",
   "employee",
 ]);

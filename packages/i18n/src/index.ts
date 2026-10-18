@@ -1,7 +1,7 @@
 const messages = {
   "app.name": "Masulino",
   "login.title": "Anmeldung",
-  "login.lead": "Zugang nur mit Einladung. Es gibt kein öffentliches Konto.",
+  "login.lead": "Zugang nur für eingerichtete Konten. Es gibt kein öffentliches Konto.",
   "login.email": "E-Mail",
   "login.password": "Passwort",
   "login.submit": "Anmelden",

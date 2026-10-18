@@ -8,7 +8,7 @@ import {
 } from "@masulino/contracts";
 import { rows, withIdentity, withTenant, withWorker, type Tx } from "@masulino/database";
 import { sql } from "drizzle-orm";
-import { authorize, canAssignRole, redactChanges, type AuthzInput, type Grant } from "./authz/policy";
+import { authorize, canAssignRole, redactChanges, roleNeedsLocation, type AuthzInput, type Grant } from "./authz/policy";
 
 export const IDENTITY_ISSUER = "urn:masulino:better-auth";
 
@@ -137,7 +137,7 @@ export async function loadActor(input: {
 }
 
 function locationRequired(role: RoleKey): boolean {
-  return role !== "tenant_owner" && role !== "tenant_administrator" && role !== "it";
+  return roleNeedsLocation(role);
 }
 
 export async function inviteStaff(

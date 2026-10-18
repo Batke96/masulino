@@ -146,7 +146,7 @@ export function StaffAccess({ children }: { children: ReactNode }) {
         {access === "login" ? (
           <>
             <h1>Anmeldung.</h1>
-            <p>Zugang nur mit Einladung. Es gibt kein öffentliches Konto.</p>
+            <p>Zugang nur für eingerichtete Konten. Es gibt kein öffentliches Konto.</p>
             {error === "invalid" ? <p className="staff-gate-error">Anmeldung fehlgeschlagen. Bitte Angaben prüfen.</p> : null}
             {error === "offline" ? <p className="staff-gate-error">Der Anmeldedienst ist nicht erreichbar. Postgres und die API müssen laufen.</p> : null}
             <form
