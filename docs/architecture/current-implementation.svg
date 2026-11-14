@@ -1,0 +1,192 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Masulino current implementation</title>
+  <desc id="desc">Staff UI and public birthday calls share one Vercel Node function in fra1. That function runs the Node router, domain packages, and Neon. Mail, payments, weather, the assistant, check-in persistence, and a Vercel cron entry are not connected. A deploy does not migrate the database.</desc>
+  <rect width="1600" height="1000" fill="#ffffff"/>
+  <g font-family="Inter, Segoe UI, Arial, sans-serif">
+    <text x="32" y="36" fill="#222a44" font-size="22" font-weight="600">Masulino — how it runs today</text>
+    <text x="32" y="58" fill="#5f6778" font-size="14">main 6c1386d · 18 October 2026 · a Vercel deploy does not migrate Neon</text>
+
+    <!-- Callers and host -->
+    <rect x="32" y="76" width="448" height="176" rx="14" fill="#ffffff" stroke="#222a44" stroke-width="1.5"/>
+    <rect x="32" y="92" width="4" height="28" rx="2" fill="#ef603b"/>
+    <text x="48" y="112" fill="#222a44" font-size="16" font-weight="600">Staff browser</text>
+    <text x="48" y="138" fill="#3c4254" font-size="13">Vinext / React. Mostly app/page.tsx, plus the IT workspace.</text>
+    <text x="48" y="158" fill="#3c4254" font-size="13">Signed-in screens call /api on this same origin.</text>
+    <text x="48" y="178" fill="#3c4254" font-size="13">Session cookie is httpOnly. Sign-up is closed.</text>
+    <text x="48" y="198" fill="#3c4254" font-size="13">Check-in is only a button in the browser.</text>
+    <text x="48" y="228" fill="#8a6174" font-size="12">The campaign dialog on the page is still a demo.</text>
+
+    <rect x="548" y="76" width="504" height="176" rx="14" fill="#222a44"/>
+    <text x="568" y="108" fill="#ffffff" font-size="16" font-weight="600">Vercel · region fra1</text>
+    <text x="568" y="134" fill="#f4f6fb" font-size="13">One Node function, via Nitro, only when VERCEL=1.</text>
+    <text x="568" y="154" fill="#f4f6fb" font-size="13">app/api/[[...slug]]/route.ts calls handleApiRequest.</text>
+    <text x="568" y="174" fill="#f4f6fb" font-size="13">vercel.json: framework null, regions fra1. No cron.</text>
+    <text x="568" y="204" fill="#f0b5a6" font-size="12">Local pnpm build still uses Cloudflare / Vinext.</text>
+    <text x="568" y="224" fill="#f0b5a6" font-size="12">That build is not the production path.</text>
+
+    <rect x="1120" y="76" width="448" height="176" rx="14" fill="#ffffff" stroke="#222a44" stroke-width="1.5"/>
+    <rect x="1120" y="92" width="4" height="28" rx="2" fill="#ef603b"/>
+    <text x="1136" y="112" fill="#222a44" font-size="16" font-weight="600">Public website</text>
+    <text x="1136" y="138" fill="#3c4254" font-size="13">Not in this repository.</text>
+    <text x="1136" y="158" fill="#3c4254" font-size="13">Its server calls the birthday routes.</text>
+    <text x="1136" y="178" fill="#3c4254" font-size="13">Authorization: Bearer site key.</text>
+    <text x="1136" y="198" fill="#3c4254" font-size="13">The key must not be placed in browser JS.</text>
+    <text x="1136" y="228" fill="#8a6174" font-size="12">No cross-origin header for a browser call.</text>
+
+    <line x1="480" y1="164" x2="536" y2="164" stroke="#ef603b" stroke-width="1.75" marker-end="url(#arrow-coral)"/>
+    <text x="508" y="154" fill="#ef603b" font-size="11" text-anchor="middle">/api</text>
+    <line x1="1120" y1="164" x2="1064" y2="164" stroke="#222a44" stroke-width="1.75" marker-end="url(#arrow-navy)"/>
+    <text x="1092" y="154" fill="#222a44" font-size="11" text-anchor="middle">HTTPS</text>
+
+    <line x1="800" y1="252" x2="800" y2="276" stroke="#222a44" stroke-width="1.75" marker-end="url(#arrow-navy)"/>
+    <text x="812" y="270" fill="#5f6778" font-size="12">handleApiRequest</text>
+
+    <!-- Router -->
+    <rect x="24" y="284" width="1552" height="232" rx="16" fill="#f6f7fa"/>
+    <text x="40" y="308" fill="#222a44" font-size="13" font-weight="600">Node router in server/</text>
+    <text x="196" y="308" fill="#5f6778" font-size="12">Staff session, sections, bookings, IT, public birthdays, outbox. Only this code opens Postgres.</text>
+
+    <rect x="40" y="322" width="294" height="186" rx="12" fill="#ffffff" stroke="#e0e3ea"/>
+    <text x="56" y="346" fill="#222a44" font-size="14" font-weight="600">Sign-in</text>
+    <text x="56" y="368" fill="#3c4254" font-size="12.5">Better Auth on /api/auth</text>
+    <text x="56" y="386" fill="#3c4254" font-size="12.5">GET /api/session</text>
+    <text x="56" y="404" fill="#3c4254" font-size="12.5">Email and password</text>
+    <text x="56" y="422" fill="#3c4254" font-size="12.5">MFA only if the flag is on</text>
+    <text x="56" y="448" fill="#5f6778" font-size="12">Auth role, then app role</text>
+    <text x="56" y="466" fill="#5f6778" font-size="12">for grants and membership</text>
+
+    <rect x="346" y="322" width="294" height="186" rx="12" fill="#ffffff" stroke="#e0e3ea"/>
+    <text x="362" y="346" fill="#222a44" font-size="14" font-weight="600">Staff workplace</text>
+    <text x="362" y="368" fill="#3c4254" font-size="12.5">Live: bookings, birthdays,</text>
+    <text x="362" y="386" fill="#3c4254" font-size="12.5">families, team, reports,</text>
+    <text x="362" y="404" fill="#3c4254" font-size="12.5">campaigns, portal</text>
+    <text x="362" y="422" fill="#3c4254" font-size="12.5">Create, cancel, reschedule</text>
+    <text x="362" y="448" fill="#5f6778" font-size="12">API send stores a preview</text>
+    <text x="362" y="466" fill="#5f6778" font-size="12">Kasse, Bistro, assistant,</text>
+    <text x="362" y="482" fill="#5f6778" font-size="12">weather: fixture response</text>
+
+    <rect x="652" y="322" width="294" height="186" rx="12" fill="#ffffff" stroke="#e0e3ea"/>
+    <text x="668" y="346" fill="#222a44" font-size="14" font-weight="600">IT workspace</text>
+    <text x="668" y="368" fill="#3c4254" font-size="12.5">List, create, remove users</text>
+    <text x="668" y="386" fill="#3c4254" font-size="12.5">Invitations</text>
+    <text x="668" y="404" fill="#3c4254" font-size="12.5">Directory, report, records</text>
+    <text x="668" y="422" fill="#3c4254" font-size="12.5">Packages, tables, closures</text>
+    <text x="668" y="448" fill="#5f6778" font-size="12">Venue slug for the website</text>
+    <text x="668" y="466" fill="#5f6778" font-size="12">Password is shown once</text>
+
+    <rect x="958" y="322" width="294" height="186" rx="12" fill="#ffffff" stroke="#ef603b"/>
+    <text x="974" y="346" fill="#222a44" font-size="14" font-weight="600">Public birthdays</text>
+    <text x="974" y="368" fill="#3c4254" font-size="12.5">GET /api/public/birthdays/times</text>
+    <text x="974" y="386" fill="#3c4254" font-size="12.5">POST /api/public/birthdays</text>
+    <text x="974" y="404" fill="#3c4254" font-size="12.5">Bearer site key, or 503</text>
+    <text x="974" y="422" fill="#3c4254" font-size="12.5">Writes a reservation</text>
+    <text x="974" y="448" fill="#5f6778" font-size="12">Pay at the venue. No card.</text>
+    <text x="974" y="466" fill="#5f6778" font-size="12">Retry returns the same booking</text>
+
+    <rect x="1264" y="322" width="294" height="186" rx="12" fill="#ffffff" stroke="#e0e3ea"/>
+    <text x="1280" y="346" fill="#222a44" font-size="14" font-weight="600">Outbox</text>
+    <text x="1280" y="368" fill="#3c4254" font-size="12.5">GET or POST /api/cron/outbox</text>
+    <text x="1280" y="386" fill="#3c4254" font-size="12.5">Bearer CRON_SECRET</text>
+    <text x="1280" y="404" fill="#3c4254" font-size="12.5">Worker role claims jobs</text>
+    <text x="1280" y="422" fill="#3c4254" font-size="12.5">App role writes preview text</text>
+    <text x="1280" y="448" fill="#5f6778" font-size="12">No mail, SMS, or push</text>
+    <text x="1280" y="466" fill="#5f6778" font-size="12">No schedule in vercel.json</text>
+
+    <!-- Domain -->
+    <rect x="32" y="528" width="1536" height="132" rx="14" fill="#ffffff" stroke="#222a44" stroke-width="1.5"/>
+    <text x="48" y="552" fill="#222a44" font-size="14" font-weight="600">Domain packages</text>
+    <text x="188" y="552" fill="#5f6778" font-size="12">No React. The router calls them. They do not talk to a mailbox or a card service.</text>
+    <line x1="48" y1="566" x2="1552" y2="566" stroke="#e6e8ee"/>
+
+    <text x="48" y="590" fill="#ef603b" font-size="13" font-weight="600">contracts</text>
+    <text x="48" y="610" fill="#3c4254" font-size="12.5">Shapes, permissions, money in cents</text>
+    <text x="48" y="632" fill="#5f6778" font-size="12">Shared by the router and modules</text>
+
+    <text x="400" y="590" fill="#ef603b" font-size="13" font-weight="600">core</text>
+    <text x="400" y="610" fill="#3c4254" font-size="12.5">authorize · audit · outbox drain</text>
+    <text x="400" y="632" fill="#5f6778" font-size="12">Does not import the modules</text>
+
+    <text x="760" y="590" fill="#ef603b" font-size="13" font-weight="600">modules</text>
+    <text x="760" y="610" fill="#3c4254" font-size="12.5">reservations, contacts, marketing,</text>
+    <text x="760" y="628" fill="#3c4254" font-size="12.5">loyalty, workforce, notices</text>
+    <text x="760" y="646" fill="#5f6778" font-size="12">operations is in the repo, no route</text>
+
+    <text x="1188" y="590" fill="#ef603b" font-size="13" font-weight="600">indoor-play</text>
+    <text x="1188" y="610" fill="#3c4254" font-size="12.5">Allocates tables for a party</text>
+    <text x="1188" y="628" fill="#3c4254" font-size="12.5">Builds preparation tasks</text>
+    <text x="1188" y="646" fill="#5f6778" font-size="12">Used by staff and birthday saves</text>
+
+    <!-- Neon -->
+    <text x="32" y="686" fill="#222a44" font-size="14" font-weight="600">Neon Postgres · EU</text>
+    <text x="196" y="686" fill="#5f6778" font-size="12">Row-level security. App, auth, and worker are NOBYPASSRLS and do not own the tables. On Vercel each Node pool allows one connection.</text>
+
+    <rect x="32" y="700" width="368" height="118" rx="12" fill="#ffffff" stroke="#222a44" stroke-width="1.5"/>
+    <rect x="48" y="716" width="8" height="8" rx="2" fill="#ef603b"/>
+    <text x="64" y="726" fill="#222a44" font-size="14" font-weight="600">masulino_app</text>
+    <text x="48" y="748" fill="#3c4254" font-size="12.5">Pooled · DATABASE_URL</text>
+    <text x="48" y="768" fill="#3c4254" font-size="12.5">Request path, including birthdays</text>
+    <text x="48" y="788" fill="#5f6778" font-size="12">Also writes outbox preview rows</text>
+
+    <rect x="416" y="700" width="368" height="118" rx="12" fill="#ffffff" stroke="#222a44" stroke-width="1.5"/>
+    <rect x="432" y="716" width="8" height="8" rx="2" fill="#222a44"/>
+    <text x="448" y="726" fill="#222a44" font-size="14" font-weight="600">masulino_auth</text>
+    <text x="432" y="748" fill="#3c4254" font-size="12.5">Pooled · DATABASE_URL_AUTH</text>
+    <text x="432" y="768" fill="#3c4254" font-size="12.5">identity schema only</text>
+    <text x="432" y="788" fill="#5f6778" font-size="12">Better Auth users and sessions</text>
+
+    <rect x="800" y="700" width="368" height="118" rx="12" fill="#ffffff" stroke="#222a44" stroke-width="1.5"/>
+    <rect x="816" y="716" width="8" height="8" rx="2" fill="#8b93a7"/>
+    <text x="832" y="726" fill="#222a44" font-size="14" font-weight="600">masulino_worker</text>
+    <text x="816" y="748" fill="#3c4254" font-size="12.5">Pooled · DATABASE_URL_WORKER</text>
+    <text x="816" y="768" fill="#3c4254" font-size="12.5">Claims and finishes outbox jobs</text>
+    <text x="816" y="788" fill="#5f6778" font-size="12">Does not write the preview text</text>
+
+    <rect x="1184" y="700" width="384" height="118" rx="12" fill="#fafbfc" stroke="#8b93a7" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <text x="1200" y="726" fill="#222a44" font-size="14" font-weight="600">DATABASE_URL_MIGRATE</text>
+    <text x="1200" y="748" fill="#3c4254" font-size="12.5">Direct endpoint · not on the runtime</text>
+    <text x="1200" y="768" fill="#3c4254" font-size="12.5">0001-0008 applied by hand</text>
+    <text x="1200" y="788" fill="#5f6778" font-size="12">A Vercel deploy does not run them</text>
+
+    <!-- Off and legend -->
+    <rect x="32" y="838" width="1048" height="142" rx="14" fill="#fafbfc" stroke="#c5cad6" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <text x="48" y="864" fill="#5f6778" font-size="13" font-weight="600">Intentionally off — not connected</text>
+    <text x="48" y="884" fill="#7a8190" font-size="12">Shown as notes only. No arrow runs to these.</text>
+
+    <rect x="48" y="900" width="168" height="28" rx="14" fill="#ffffff" stroke="#c5cad6" stroke-dasharray="4 3"/>
+    <text x="132" y="918" fill="#5f6778" font-size="12" text-anchor="middle">Email, SMS, push</text>
+    <rect x="226" y="900" width="140" height="28" rx="14" fill="#ffffff" stroke="#c5cad6" stroke-dasharray="4 3"/>
+    <text x="296" y="918" fill="#5f6778" font-size="12" text-anchor="middle">Card payments</text>
+    <rect x="376" y="900" width="130" height="28" rx="14" fill="#ffffff" stroke="#c5cad6" stroke-dasharray="4 3"/>
+    <text x="441" y="918" fill="#5f6778" font-size="12" text-anchor="middle">Ready2Order</text>
+    <rect x="516" y="900" width="150" height="28" rx="14" fill="#ffffff" stroke="#c5cad6" stroke-dasharray="4 3"/>
+    <text x="591" y="918" fill="#5f6778" font-size="12" text-anchor="middle">Weather provider</text>
+
+    <rect x="48" y="938" width="110" height="28" rx="14" fill="#ffffff" stroke="#c5cad6" stroke-dasharray="4 3"/>
+    <text x="103" y="956" fill="#5f6778" font-size="12" text-anchor="middle">Assistant</text>
+    <rect x="168" y="938" width="196" height="28" rx="14" fill="#ffffff" stroke="#c5cad6" stroke-dasharray="4 3"/>
+    <text x="266" y="956" fill="#5f6778" font-size="12" text-anchor="middle">Check-in persistence</text>
+    <rect x="374" y="938" width="250" height="28" rx="14" fill="#ffffff" stroke="#c5cad6" stroke-dasharray="4 3"/>
+    <text x="499" y="956" fill="#5f6778" font-size="12" text-anchor="middle">Vercel cron not declared</text>
+
+    <rect x="1100" y="838" width="468" height="142" rx="14" fill="#ffffff" stroke="#e0e3ea"/>
+    <text x="1116" y="864" fill="#222a44" font-size="13" font-weight="600">Legend</text>
+    <line x1="1116" y1="892" x2="1156" y2="892" stroke="#ef603b" stroke-width="1.75" marker-end="url(#arrow-coral)"/>
+    <text x="1168" y="896" fill="#3c4254" font-size="12">Solid arrow — a call that exists</text>
+    <line x1="1116" y1="916" x2="1156" y2="916" stroke="#8b93a7" stroke-width="1.75" stroke-dasharray="5 3"/>
+    <text x="1168" y="920" fill="#3c4254" font-size="12">Dashed — not on the runtime, or not connected</text>
+    <rect x="1116" y="934" width="14" height="14" rx="2" fill="#222a44"/>
+    <text x="1140" y="946" fill="#3c4254" font-size="12">Navy — the production host</text>
+    <rect x="1304" y="934" width="14" height="14" rx="2" fill="#ffffff" stroke="#222a44"/>
+    <rect x="1304" y="934" width="3" height="14" fill="#ef603b"/>
+    <text x="1326" y="946" fill="#3c4254" font-size="12">Coral mark — this repository</text>
+    <text x="1116" y="968" fill="#5f6778" font-size="12">Local pnpm dev proxies /api to Node on port 8787.</text>
+  </g>
+  <defs>
+    <marker id="arrow-coral" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#ef603b"/>
+    </marker>
+    <marker id="arrow-navy" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#222a44"/>
+    </marker>
+  </defs>
+</svg>
