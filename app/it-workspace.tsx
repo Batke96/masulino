@@ -322,7 +322,7 @@ export function ItWorkspace() {
                   <div className="stat-value">{report.bookedValue ? euro(report.bookedValue.bookedValueMinor, report.bookedValue.currency) : "—"}</div>
                   <div className="stat-note">
                     {report.bookedValue
-                      ? "Nur bestätigte Buchungen in diesem Zeitraum. Keine Zahlung und kein Lohn."
+                      ? "Zugesagter Betrag: Kinderzahl mal Paketpreis plus Erwachsenenpauschale. Keine Zahlung."
                       : "Für diese Rolle nicht freigegeben."}
                   </div>
                 </div>

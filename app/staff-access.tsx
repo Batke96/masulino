@@ -135,20 +135,20 @@ export function StaffAccess({ children }: { children: ReactNode }) {
     <main className="staff-gate">
       <section className="surface staff-gate-card">
         <p className="eyebrow">MASULINO</p>
-        {access === "checking" ? <h1>Anmeldung wird geprüft.</h1> : null}
+        {access === "checking" ? <h1 aria-live="polite">Anmeldung wird geprüft.</h1> : null}
         {access === "denied" ? (
           <>
-            <h1>Kein Zugriff.</h1>
+            <h1>Kein Zugriff</h1>
             <p>Für dieses Konto ist kein aktiver Betrieb freigeschaltet.</p>
             <button className="button soft" type="button" onClick={signOut}>Abmelden</button>
           </>
         ) : null}
         {access === "login" ? (
           <>
-            <h1>Anmeldung.</h1>
+            <h1>Anmeldung</h1>
             <p>Zugang nur für eingerichtete Konten. Es gibt kein öffentliches Konto.</p>
-            {error === "invalid" ? <p className="staff-gate-error">Anmeldung fehlgeschlagen. Bitte Angaben prüfen.</p> : null}
-            {error === "offline" ? <p className="staff-gate-error">Der Anmeldedienst ist nicht erreichbar. Postgres und die API müssen laufen.</p> : null}
+            {error === "invalid" ? <p className="staff-gate-error" role="alert">Anmeldung fehlgeschlagen. Bitte Angaben prüfen.</p> : null}
+            {error === "offline" ? <p className="staff-gate-error" role="alert">Der Anmeldedienst ist nicht erreichbar. Postgres und die API müssen laufen.</p> : null}
             <form
               className="staff-gate-form"
               onSubmit={async (event) => {
@@ -192,7 +192,7 @@ export function StaffAccess({ children }: { children: ReactNode }) {
         ) : null}
         {access === "mfa_challenge" ? (
           <MfaCodeForm
-            title="Zweiter Faktor."
+            title="Zweiter Faktor"
             lead="Gib den Code aus deiner Authenticator-App ein. Ein Wiederherstellungscode gilt einmal."
             pending={pending}
             error={error === "code"}
@@ -282,7 +282,7 @@ function MfaCodeForm({
     <>
       <h1>{title}</h1>
       <p>{lead}</p>
-      {error ? <p className="staff-gate-error">Der Code ist ungültig oder abgelaufen.</p> : null}
+      {error ? <p className="staff-gate-error" role="alert">Der Code ist ungültig oder abgelaufen.</p> : null}
       <form
         className="staff-gate-form"
         onSubmit={async (event) => {
@@ -330,10 +330,10 @@ function MfaEnroll({
   const secret = totpSecret(totpUri);
   return (
     <>
-      <h1>Zwei-Faktor einrichten.</h1>
+      <h1>Zwei-Faktor einrichten</h1>
       <p>Für Inhaber, Verwaltung, IT und Standortleitung ist ein zweiter Faktor erforderlich, bevor der Betrieb zugänglich ist.</p>
-      {error === "invalid" ? <p className="staff-gate-error">Das Passwort stimmt nicht.</p> : null}
-      {error === "code" ? <p className="staff-gate-error">Der Code ist ungültig. Prüfe die Uhrzeit des Geräts.</p> : null}
+      {error === "invalid" ? <p className="staff-gate-error" role="alert">Das Passwort stimmt nicht.</p> : null}
+      {error === "code" ? <p className="staff-gate-error" role="alert">Der Code ist ungültig. Prüfe die Uhrzeit des Geräts.</p> : null}
       {secret ? (
         <>
           <p>Trag dieses Geheimnis in eine Authenticator-App ein. Es wird nur hier angezeigt.</p>

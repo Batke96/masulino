@@ -101,6 +101,35 @@ describe("allocate", () => {
     expect(allocate(input({ startMinute: 9 * 60 })).ok).toBe(false);
   });
 
+  it("keeps 8 children off a 6-seat table while a fitting table is free", () => {
+    const floor = input({
+      children: 8,
+      resources: [
+        { id: "t1", name: "Tisch 1", capacityChildren: 6, capacityAdults: 0, active: true },
+        { id: "t2", name: "Tisch 2", capacityChildren: 12, capacityAdults: 0, active: true },
+      ],
+      combinations: [
+        { id: "c1", name: "Tisch 1", minChildren: 1, maxChildren: 6, minAdults: 0, maxAdults: 40, resourceIds: ["t1"] },
+        { id: "c2", name: "Tisch 2", minChildren: 1, maxChildren: 12, minAdults: 0, maxAdults: 40, resourceIds: ["t2"] },
+      ],
+    });
+    const open = allocate(floor);
+    expect(open.ok).toBe(true);
+    if (open.ok) expect(open.choice.resourceIds).toEqual(["t2"]);
+    const takenSmall = allocate({
+      ...floor,
+      occupancy: [{ resourceId: "t1", start, end }],
+    });
+    expect(takenSmall.ok).toBe(true);
+    if (takenSmall.ok) expect(takenSmall.choice.resourceIds).toEqual(["t2"]);
+    const onlySmall = allocate(input({
+      children: 8,
+      resources: [{ id: "t1", name: "Tisch 1", capacityChildren: 6, capacityAdults: 0, active: true }],
+      combinations: [{ id: "c1", name: "Tisch 1", minChildren: 1, maxChildren: 6, minAdults: 0, maxAdults: 40, resourceIds: ["t1"] }],
+    }));
+    expect(onlySmall.ok).toBe(false);
+  });
+
   it("requires adult capacity only when adult seating is required", () => {
     const without = allocate(input({ adultSeating: "not_required", adults: 10, children: 8 }));
     expect(without.ok).toBe(true);

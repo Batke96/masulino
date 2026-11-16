@@ -1,26 +1,14 @@
 import { randomUUID } from "node:crypto";
-import { eligibleAdults, listLocationAdults } from "@masulino/contacts";
 import {
   allowedActions,
-  drainOutbox,
   type ActorContext,
 } from "@masulino/core";
 import {
   cancelBookingSchema,
   createBookingSchema,
-  campaignDraftSchema,
   isAppError,
 } from "@masulino/contracts";
 import { allocate, defaultPreparationTasks } from "@masulino/indoor-play";
-import { listLedger, redeemReward } from "@masulino/loyalty";
-import {
-  approveCampaign,
-  draftCampaign,
-  listAudience,
-  listCampaigns,
-  sendCampaign,
-} from "@masulino/marketing";
-import { listStaffNotices } from "@masulino/notices";
 import {
   cancelReservation,
   createStaffBooking,
@@ -34,7 +22,6 @@ import {
   readAvailability,
   readWeek,
 } from "@masulino/workforce";
-import { handleComposedOutbox } from "../outbox";
 import { packagesFor } from "../queries";
 import { describeRole, getStaffSession, resolveDefaultScope } from "../session";
 import { errorResponse, json } from "../errors";
@@ -162,7 +149,7 @@ export async function handleSection(
       case "bookings":
       case "birthdays": {
         const rows = await dailyView({ actor, locationId, localDate });
-        const bookings = rows.map(toBookingView);
+        const bookings = rows.filter((row) => row.status !== "cancelled").map(toBookingView);
         const filtered =
           section === "birthdays"
             ? bookings.filter((item) => item.type === "Geburtstag")
@@ -172,30 +159,6 @@ export async function handleSection(
           section,
           localDate,
           bookings: filtered,
-        });
-      }
-      case "families": {
-        const adults = await listLocationAdults({ actor, locationId });
-        const ledger = await listLedger(actor, locationId).catch((error: unknown) => {
-          if (isAppError(error) && error.code === "forbidden") return [];
-          throw error;
-        });
-        const balanceBySubject = new Map(
-          ledger
-            .filter((account) => account.subjectKind === "contact")
-            .map((account) => [account.subjectId, account.balanceUnits] as const),
-        );
-        return json({
-          source: "live",
-          section,
-          families: adults.map((adult) => ({
-            id: adult.contactId,
-            name: adult.displayName,
-            lastVisit: "Nicht erfasst",
-            points: balanceBySubject.get(adult.contactId) ?? 0,
-            consent: adult.marketingDecision === "granted",
-            longAbsent: false,
-          })),
         });
       }
       case "team": {
@@ -255,28 +218,6 @@ export async function handleSection(
           section,
           report,
           chart: "fixture",
-        });
-      }
-      case "campaigns": {
-        const [audience, campaigns] = await Promise.all([
-          listAudience({ actor, locationId, readEligible: eligibleAdults }),
-          listCampaigns({ actor, locationId }),
-        ]);
-        return json({
-          source: "live",
-          section,
-          audience,
-          campaigns,
-          agentSuggestions: "fixture",
-        });
-      }
-      case "portal": {
-        const notices = await listStaffNotices(actor, locationId);
-        return json({
-          source: "live",
-          section,
-          notices,
-          roadmap: "fixture",
         });
       }
       default:
@@ -366,76 +307,6 @@ export async function handleCancelBooking(request: Request): Promise<Response> {
       actor: resolved.actor,
       reservationId: parsed.data.reservationId,
       expectedVersion: parsed.data.expectedVersion,
-      correlationId: randomUUID(),
-    });
-    return json({ source: "live", ok: true });
-  } catch (error) {
-    return errorResponse(error);
-  }
-}
-
-export async function handleDraftCampaign(request: Request): Promise<Response> {
-  try {
-    const body = (await request.json()) as Record<string, unknown>;
-    const resolved = await scope(request);
-    const parsed = campaignDraftSchema.safeParse({
-      locationId: body.locationId ?? resolved.locationId,
-      body: body.body,
-      startsOn: body.startsOn,
-    });
-    if (!parsed.success) return json({ error: "validation" }, 400);
-    const created = await draftCampaign({
-      actor: resolved.actor,
-      input: parsed.data,
-      correlationId: randomUUID(),
-    });
-    return json({ source: "live", campaign: created });
-  } catch (error) {
-    return errorResponse(error);
-  }
-}
-
-export async function handleApproveCampaign(request: Request): Promise<Response> {
-  try {
-    const body = (await request.json()) as Record<string, unknown>;
-    const resolved = await scope(request);
-    await approveCampaign({
-      actor: resolved.actor,
-      campaignId: String(body.campaignId ?? ""),
-      correlationId: randomUUID(),
-    });
-    return json({ source: "live", ok: true });
-  } catch (error) {
-    return errorResponse(error);
-  }
-}
-
-export async function handleSendCampaign(request: Request): Promise<Response> {
-  try {
-    const body = (await request.json()) as Record<string, unknown>;
-    const resolved = await scope(request);
-    await sendCampaign({
-      actor: resolved.actor,
-      campaignId: String(body.campaignId ?? ""),
-      correlationId: randomUUID(),
-      readEligible: eligibleAdults,
-    });
-    await drainOutbox("staff-send", handleComposedOutbox);
-    return json({ source: "live", ok: true, delivery: "preview" });
-  } catch (error) {
-    return errorResponse(error);
-  }
-}
-
-export async function handleRedeemReward(request: Request): Promise<Response> {
-  try {
-    const body = (await request.json()) as Record<string, unknown>;
-    const resolved = await scope(request);
-    await redeemReward({
-      actor: resolved.actor,
-      locationId: String(body.locationId ?? resolved.locationId),
-      accountId: String(body.accountId ?? ""),
-      units: Number(body.units),
       correlationId: randomUUID(),
     });
     return json({ source: "live", ok: true });

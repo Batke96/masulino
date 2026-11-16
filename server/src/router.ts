@@ -21,18 +21,15 @@ import {
   handleSuspendMembership,
 } from "./handlers/it";
 import {
-  handleApproveCampaign,
   handleCancelBooking,
   handleCreateBooking,
-  handleDraftCampaign,
   handlePackages,
-  handleRedeemReward,
   handleSection,
-  handleSendCampaign,
   handleWorkspaceBootstrap,
 } from "./handlers/sections";
+import { handlePosReport } from "./handlers/pos";
+import { handleReservationSpan } from "./handlers/reservation-span";
 import { handleComposedOutbox } from "./outbox";
-import { handleBirthdaySubmit, handleBirthdayTimes } from "./handlers/birthdays";
 import { bearerMatches } from "./security";
 
 export async function route(request: Request): Promise<Response> {
@@ -80,6 +77,14 @@ export async function route(request: Request): Promise<Response> {
     return handleWorkspaceBootstrap(request);
   }
 
+  if (pathname === "/api/pos/report" && request.method === "GET") {
+    return handlePosReport(request);
+  }
+
+  if (pathname === "/api/reservations/span" && request.method === "GET") {
+    return handleReservationSpan(request);
+  }
+
   if (pathname.startsWith("/api/sections/") && request.method === "GET") {
     const section = pathname.slice("/api/sections/".length);
     return handleSection(request, section);
@@ -87,14 +92,6 @@ export async function route(request: Request): Promise<Response> {
 
   if (pathname === "/api/packages" && request.method === "GET") {
     return handlePackages(request);
-  }
-
-  if (pathname === "/api/public/birthdays/times" && request.method === "GET") {
-    return handleBirthdayTimes(request);
-  }
-
-  if (pathname === "/api/public/birthdays" && request.method === "POST") {
-    return handleBirthdaySubmit(request);
   }
 
   if (pathname === "/api/bookings" && request.method === "POST") {
@@ -155,22 +152,6 @@ export async function route(request: Request): Promise<Response> {
 
   if (pathname === "/api/it/venue" && request.method === "POST") {
     return handleItVenue(request);
-  }
-
-  if (pathname === "/api/campaigns/draft" && request.method === "POST") {
-    return handleDraftCampaign(request);
-  }
-
-  if (pathname === "/api/campaigns/approve" && request.method === "POST") {
-    return handleApproveCampaign(request);
-  }
-
-  if (pathname === "/api/campaigns/send" && request.method === "POST") {
-    return handleSendCampaign(request);
-  }
-
-  if (pathname === "/api/loyalty/redeem" && request.method === "POST") {
-    return handleRedeemReward(request);
   }
 
   return json({ error: "not_found" }, 404);

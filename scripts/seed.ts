@@ -1,6 +1,7 @@
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import pg from "pg";
 import { birthdayPackages } from "@masulino/contracts";
+import { tableSeats } from "../lib/booking/tables.ts";
 import { loadRootEnv } from "./load-env";
 
 loadRootEnv();
@@ -27,7 +28,6 @@ const users: Array<{ email: string; name: string; password?: string }> = [
   { email: "employee.masulino@example.test", name: "Eva Employee" },
   { email: "manager.masulino@example.test", name: "Mara Manager" },
   { email: "revoked.masulino@example.test", name: "Ria Revoked" },
-  { email: "owner.beispiel@example.test", name: "Otto Beispiel" },
   { email: "user@example.test", name: "User", password: "password" },
   { email: "it.masulino@example.test", name: "Ira IT" },
 ];
@@ -52,10 +52,7 @@ for (const user of users) {
 }
 
 const tenantA = randomUUID();
-const tenantB = randomUUID();
 const locationA = randomUUID();
-const locationPotsdam = randomUUID();
-const locationB = randomUUID();
 const hours = {
   mon: { startMinute: 600, endMinute: 1080 },
   tue: { startMinute: 600, endMinute: 1080 },
@@ -67,31 +64,50 @@ const hours = {
 };
 
 await client.query("begin");
+const posReady = await client.query<{ ready: string | null }>("select to_regclass('pos.lines')::text as ready");
+if (posReady.rows[0]?.ready) {
+  await client.query(`
+    create temp table pos_lines_keep on commit drop as
+    select
+      t.slug as tenant_slug,
+      l.name as location_name,
+      p.source, p.external_invoice_id, p.external_item_id, p.import_key,
+      p.z_bon, p.booked_on, p.booked_at, p.invoice_number, p.payment_method,
+      p.product_name, p.product_group, p.quantity, p.unit_gross, p.unit_net,
+      p.discount_gross, p.discount_net, p.line_gross, p.line_net,
+      p.vat_rate, p.vat_amount, p.business_date, p.site_name, p.category
+    from pos.lines p
+    join locations l on l.tenant_id = p.tenant_id and l.id = p.location_id
+    join tenants t on t.id = p.tenant_id
+    where l.name = 'Äppelallee (Biebrich)'
+  `);
+  await client.query(`
+    create temp table pos_categories_keep on commit drop as
+    select
+      t.slug as tenant_slug,
+      c.product_name, c.category, c.group_key, c.role, c.count_in_quantity, c.count_in_revenue
+    from pos.product_categories c
+    join tenants t on t.id = c.tenant_id
+  `);
+}
 await client.query(`
     truncate table
-      booking_claims, loyalty_entries, visit_verifications, loyalty_accounts, survey_responses,
-      campaign_messages, campaign_sends, campaigns, marketing_settings, consent_records, adult_contacts,
-      financial_facts,
-      checklist_issues, checklist_completions, checklists, punch_capabilities, kiosk_devices,
     time_effective_entries, time_correction_requests, time_punches, schedule_shifts, schedule_plans,
     leave_entries, availability_windows, availability_revisions, workforce_settings,
-    allocations, reservation_tasks, reservations, booking_access_tokens, notification_deliveries,
-    preparation_sheets, holiday_notices, published_venues, idempotency_keys, notification_previews,
+    allocations, reservation_tasks, reservations, idempotency_keys, notification_previews,
     rate_buckets, outbox_jobs, combination_resources, combinations, packages, venue_rules,
     closures, resources, staff_invitations, grants, memberships, module_entitlements,
     locations, audit_events, security_events, principals, tenants
   restart identity cascade
 `);
 await client.query(
-  `insert into tenants (id, slug, name) values ($1, 'masulino-spielwelt', 'Masulino Spielwelt'), ($2, 'beispielhalle', 'Beispielhalle Nord')`,
-  [tenantA, tenantB],
+  `insert into tenants (id, slug, name) values ($1, 'masulino-spielwelt', 'Masulino Spielwelt')`,
+  [tenantA],
 );
 await client.query(
   `insert into locations (id, tenant_id, slug, name, timezone) values
-    ($1, $2, 'berlin', 'Berlin', 'Europe/Berlin'),
-    ($3, $2, 'potsdam', 'Potsdam', 'Europe/Berlin'),
-    ($4, $5, 'nord', 'Halle Nord', 'Europe/Berlin')`,
-  [locationA, tenantA, locationPotsdam, locationB, tenantB],
+    ($1, $2, 'aeppelallee-biebrich', 'Äppelallee (Biebrich)', 'Europe/Berlin')`,
+  [locationA, tenantA],
 );
 
 const issuer = "urn:masulino:better-auth";
@@ -109,7 +125,6 @@ const reception = await principal(created["reception.masulino@example.test"]!, "
 const employee = await principal(created["employee.masulino@example.test"]!, "employee.masulino@example.test", "Eva Employee");
 const manager = await principal(created["manager.masulino@example.test"]!, "manager.masulino@example.test", "Mara Manager");
 const revoked = await principal(created["revoked.masulino@example.test"]!, "revoked.masulino@example.test", "Ria Revoked");
-const ownerB = await principal(created["owner.beispiel@example.test"]!, "owner.beispiel@example.test", "Otto Beispiel");
 const simpleAdmin = await principal(created["user@example.test"]!, "user@example.test", "User");
 const itUser = await principal(created["it.masulino@example.test"]!, "it.masulino@example.test", "Ira IT");
 
@@ -127,7 +142,6 @@ const receptionMembership = await membership(tenantA, reception, "active");
 const employeeMembership = await membership(tenantA, employee, "active");
 const managerMembership = await membership(tenantA, manager, "active");
 await membership(tenantA, revoked, "revoked");
-const ownerBMembership = await membership(tenantB, ownerB, "active");
 const simpleAdminMembership = await membership(tenantA, simpleAdmin, "active");
 const itMembership = await membership(tenantA, itUser, "active");
 
@@ -136,77 +150,57 @@ await client.query(
     ($1, $2, 'tenant_owner', null),
     ($1, $3, 'reception', $4),
     ($1, $5, 'employee', $4),
-    ($1, $8, 'location_manager', $4),
-    ($6, $7, 'tenant_owner', null),
-    ($1, $9, 'tenant_owner', null),
-    ($1, $10, 'it', null)`,
-  [tenantA, ownerMembership, receptionMembership, locationA, employeeMembership, tenantB, ownerBMembership, managerMembership, simpleAdminMembership, itMembership],
+    ($1, $6, 'location_manager', $4),
+    ($1, $7, 'tenant_owner', null),
+    ($1, $8, 'it', null)`,
+  [tenantA, ownerMembership, receptionMembership, locationA, employeeMembership, managerMembership, simpleAdminMembership, itMembership],
 );
 
 const moduleIds = [
   "core",
   "reservations",
-  "contacts",
   "notifications",
   "workforce",
-  "marketing",
-  "loyalty",
-  "operations",
   "purchasing",
   "content",
 ] as const;
-for (const tenantId of [tenantA, tenantB]) {
-  for (const moduleId of moduleIds) {
-    const enabled =
-      moduleId === "core" ||
-      moduleId === "reservations" ||
-      moduleId === "content" ||
-      (tenantId === tenantA &&
-        (moduleId === "workforce" ||
-          moduleId === "operations" ||
-          moduleId === "contacts" ||
-          moduleId === "marketing" ||
-          moduleId === "loyalty"));
-    await client.query(
-      `insert into module_entitlements (tenant_id, module_id, enabled) values ($1, $2, $3)`,
-      [tenantId, moduleId, enabled],
-    );
-  }
+for (const moduleId of moduleIds) {
+  const enabled = moduleId === "core" || moduleId === "reservations" || moduleId === "content" || moduleId === "workforce";
+  await client.query(
+    `insert into module_entitlements (tenant_id, module_id, enabled) values ($1, $2, $3)`,
+    [tenantA, moduleId, enabled],
+  );
 }
 await client.query(
   `insert into workforce_settings (tenant_id, publication_weekday) values ($1, 0)`,
   [tenantA],
 );
 
-const tables = [
-  ["Tisch 1", 8],
-  ["Tisch 2", 8],
-  ["Tisch 3", 10],
-] as const;
-const resourceIds: string[] = [];
-for (const [name, capacity] of tables) {
-  const id = randomUUID();
-  resourceIds.push(id);
+const resourceIds = new Map<number, string>();
+const comboIds = new Map<number, string>();
+for (const seat of tableSeats) {
+  const resourceId = randomUUID();
+  const comboId = randomUUID();
+  resourceIds.set(seat.id, resourceId);
+  comboIds.set(seat.id, comboId);
   await client.query(
     `insert into resources (id, tenant_id, location_id, name, capacity_children) values ($1, $2, $3, $4, $5)`,
-    [id, tenantA, locationA, name, capacity],
+    [resourceId, tenantA, locationA, `Tisch ${seat.id}`, seat.seats],
+  );
+  await client.query(
+    `insert into combinations (id, tenant_id, location_id, name, min_children, max_children, max_adults) values ($1, $2, $3, $4, 1, $5, 40)`,
+    [comboId, tenantA, locationA, `Tisch ${seat.id}`, seat.seats],
+  );
+  await client.query(
+    `insert into combination_resources (tenant_id, combination_id, resource_id) values ($1, $2, $3)`,
+    [tenantA, comboId, resourceId],
   );
 }
-const combo1 = randomUUID();
-const combo3 = randomUUID();
-const combo12 = randomUUID();
-await client.query(
-  `insert into combinations (id, tenant_id, location_id, name, min_children, max_children, max_adults) values
-    ($1, $4, $5, 'Tisch 1', 1, 8, 20),
-    ($2, $4, $5, 'Tisch 3', 1, 10, 20),
-    ($3, $4, $5, 'Tisch 1+2', 9, 16, 30)`,
-  [combo1, combo3, combo12, tenantA, locationA],
-);
-await client.query(
-  `insert into combination_resources (tenant_id, combination_id, resource_id) values
-    ($1, $2, $3), ($1, $4, $5), ($1, $6, $3), ($1, $6, $7)`,
-  [tenantA, combo1, resourceIds[0], combo3, resourceIds[2], combo12, resourceIds[1]],
-);
+const homeSeat = tableSeats.filter((seat) => seat.seats >= 8).sort((left, right) => left.seats - right.seats || left.id - right.id)[0];
+if (!homeSeat) throw new Error("No floor table fits 8 children");
+const homeCombo = comboIds.get(homeSeat.id);
+const homeResource = resourceIds.get(homeSeat.id);
+if (!homeCombo || !homeResource) throw new Error("Floor table was not inserted");
 const packageId = randomUUID();
 await client.query(
   `insert into packages (
@@ -247,7 +241,7 @@ await client.query(
     (timezone('Europe/Berlin', now()))::date,
     8, 4, $4, 'Geburtstagsfeier Fixture', 25000, 'EUR', $5, 1, $6, 'staff_phone', '', $7
   )`,
-  [reservationId, tenantA, locationA, packageId, ruleId, combo1, reception],
+  [reservationId, tenantA, locationA, packageId, ruleId, homeCombo, reception],
 );
 await client.query(
   `insert into allocations (tenant_id, location_id, reservation_id, resource_id, occupancy)
@@ -256,32 +250,12 @@ await client.query(
      (current_date::timestamp + time '16:30') at time zone 'Europe/Berlin',
      '[)'
    )`,
-  [tenantA, locationA, reservationId, resourceIds[0]],
+  [tenantA, locationA, reservationId, homeResource],
 );
 await client.query(
   `insert into reservation_tasks (tenant_id, location_id, reservation_id, title, status)
    values ($1, $2, $3, 'Tische vorbereiten', 'open')`,
   [tenantA, locationA, reservationId],
-);
-await client.query(
-  `insert into published_venues (tenant_id, location_id, public_slug, status)
-   values ($1, $2, 'masulino-berlin', 'published')`,
-  [tenantA, locationA],
-);
-await client.query(
-  `insert into notification_deliveries (
-     tenant_id, location_id, reservation_id, kind, status, reservation_version, scheduled_for,
-     last_error, job_idempotency_key
-   ) values ($1, $2, $3, 'confirmation', 'failed', 1, now(), 'synthetic_failure', 'seed:failed:confirmation')`,
-  [tenantA, locationA, reservationId],
-);
-await client.query(
-  `insert into holiday_notices (
-     tenant_id, location_id, title, body, starts_on, ends_on, status, published_at
-   ) values
-     ($1, $2, 'Fixture-Hinweis', 'Die Spielwelt hat am Fixture-Tag geöffnet.', '2020-01-01', '2030-01-01', 'published', now()),
-     ($1, $2, 'Geheimer Entwurf', 'Nicht öffentlich.', '2020-01-01', '2030-01-01', 'draft', null)`,
-  [tenantA, locationA],
 );
 await client.query(
   `insert into reservations (
@@ -303,54 +277,6 @@ await client.query(
   ) values ($1, $2, 'seed.synthetic', 'tenant', $4, 'success', $3, '{}'::jsonb)`,
   [tenantA, ownerA, randomUUID(), tenantA],
 );
-await client.query(
-  `insert into checklists (
-     id, tenant_id, location_id, kind, local_date, title, assignee_principal_id, created_by_principal_id
-   ) values (
-     $1, $2, $3, 'closing', (timezone('Europe/Berlin', now()))::date, 'Fixture Abschluss', $4, $5
-   )`,
-  [randomUUID(), tenantA, locationA, employee, ownerA],
-);
-await client.query(
-  `insert into checklist_issues (
-     tenant_id, location_id, description, status, created_by_principal_id
-   ) values ($1, $2, 'Fixture: Seife fehlt', 'open', $3)`,
-  [tenantA, locationA, employee],
-);
-await client.query(
-  `insert into marketing_settings (tenant_id, birthday_outreach_enabled) values ($1, false)`,
-  [tenantA],
-);
-const eligibleContact = randomUUID();
-const suppressedContact = randomUUID();
-await client.query(
-  `insert into adult_contacts (id, tenant_id, location_id, display_name, email) values
-    ($1, $3, $4, 'Fixture Einwilligung', 'eligible.fixture@example.test'),
-    ($2, $3, $4, 'Fixture Unterdrückt', 'suppressed.fixture@example.test')`,
-  [eligibleContact, suppressedContact, tenantA, locationA],
-);
-await client.query(
-  `insert into consent_records (
-     tenant_id, location_id, contact_id, purpose, channel, wording_version, source, decision,
-     recorded_at, recorded_by_principal_id
-   ) values
-     ($1, $2, $3, 'marketing', 'email', 'fixture-2026-09', 'synthetic_fixture', 'granted', now(), $5),
-     ($1, $2, $4, 'marketing', 'email', 'fixture-2026-09', 'synthetic_fixture', 'granted', now() - interval '2 days', $5),
-     ($1, $2, $4, 'marketing', 'email', 'fixture-2026-09', 'synthetic_fixture', 'withdrawn', now(), $5)`,
-  [tenantA, locationA, eligibleContact, suppressedContact, ownerA],
-);
-const loyaltyAccount = randomUUID();
-await client.query(
-  `insert into loyalty_accounts (id, tenant_id, location_id, subject_kind, subject_id)
-   values ($1, $2, $3, 'contact', $4)`,
-  [loyaltyAccount, tenantA, locationA, eligibleContact],
-);
-await client.query(
-  `insert into loyalty_entries (
-     tenant_id, account_id, location_id, kind, units, idempotency_key, source, expires_on, created_by_principal_id
-   ) values ($1, $2, $3, 'issue', 1, 'seed:loyalty:opening', 'staff_verification', '2027-12-31', $4)`,
-  [tenantA, loyaltyAccount, locationA, ownerA],
-);
 const claimA = randomUUID();
 const claimB = randomUUID();
 await client.query(
@@ -367,19 +293,58 @@ await client.query(
       25000, 'EUR', $6, 1, 'staff_phone', $7)`,
   [claimA, claimB, tenantA, locationA, packageId, ruleId, reception],
 );
-const claimToken = "synthetic-claim-link-a";
-await client.query(
-  `insert into booking_access_tokens (
-     tenant_id, location_id, reservation_id, purpose, token_hash, expires_at
-   ) values ($1, $2, $3, 'exchange', $4, now() + interval '7 days')`,
-  [tenantA, locationA, claimA, createHash("sha256").update(claimToken).digest("hex")],
-);
+if (posReady.rows[0]?.ready) {
+  await client.query(`
+    insert into locations (id, tenant_id, slug, name, timezone)
+    select
+      gen_random_uuid(),
+      t.id,
+      left(trim(both '-' from regexp_replace(
+        replace(replace(replace(replace(lower(k.location_name), 'ä', 'ae'), 'ö', 'oe'), 'ü', 'ue'), 'ß', 'ss'),
+        '[^a-z0-9]+', '-', 'g'
+      )), 48),
+      k.location_name,
+      'Europe/Berlin'
+    from (select distinct tenant_slug, location_name from pos_lines_keep) k
+    join tenants t on t.slug = k.tenant_slug
+    where not exists (
+      select 1 from locations l where l.tenant_id = t.id and l.name = k.location_name
+    )
+  `);
+  await client.query(`
+    insert into pos.lines (
+      tenant_id, location_id, source, external_invoice_id, external_item_id, import_key,
+      z_bon, booked_on, booked_at, invoice_number, payment_method, product_name, product_group,
+      quantity, unit_gross, unit_net, discount_gross, discount_net, line_gross, line_net,
+      vat_rate, vat_amount, business_date, site_name, category
+    )
+    select
+      t.id, l.id, k.source, k.external_invoice_id, k.external_item_id, k.import_key,
+      k.z_bon, k.booked_on, k.booked_at, k.invoice_number, k.payment_method, k.product_name, k.product_group,
+      k.quantity, k.unit_gross, k.unit_net, k.discount_gross, k.discount_net, k.line_gross, k.line_net,
+      k.vat_rate, k.vat_amount, k.business_date, k.site_name, k.category
+    from pos_lines_keep k
+    join tenants t on t.slug = k.tenant_slug
+    join locations l on l.tenant_id = t.id and l.name = k.location_name
+  `);
+  await client.query(`
+    insert into pos.product_categories (
+      tenant_id, product_name, category, group_key, role, count_in_quantity, count_in_revenue
+    )
+    select t.id, k.product_name, k.category, k.group_key, k.role, k.count_in_quantity, k.count_in_revenue
+    from pos_categories_keep k
+    join tenants t on t.slug = k.tenant_slug
+  `);
+  const kept = await client.query<{ n: string }>("select count(*)::text as n from pos_lines_keep");
+  if (Number(kept.rows[0]?.n ?? 0) > 0) {
+    console.log(`Kassenpositionen übernommen: ${kept.rows[0]!.n}`);
+  }
+}
 await client.query("commit");
 await client.end();
 
 console.log("Synthetic seed complete.");
 console.log("Password for the role fixtures: Synthetic-Staff-1");
 console.log("Local admin: user@example.test / password");
-console.log("Masulino Spielwelt / Berlin: owner.masulino@example.test, it.masulino@example.test, manager.masulino@example.test, reception.masulino@example.test, employee.masulino@example.test");
+console.log("Masulino Spielwelt / Äppelallee: owner.masulino@example.test, it.masulino@example.test, manager.masulino@example.test, reception.masulino@example.test, employee.masulino@example.test");
 console.log("Revoked login: revoked.masulino@example.test");
-console.log("Public booking: /book/masulino-berlin");

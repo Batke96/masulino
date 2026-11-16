@@ -9,7 +9,7 @@ loadRootEnv();
  * Insert Comfort and Deluxe on the published venue when they are missing.
  * Safe to re-run. Does not change a package that already has that public_code.
  *
- *   MASULINO_PUBLIC_VENUE_SLUG=masulino-berlin pnpm db:birthday-packages
+ *   MASULINO_PUBLIC_VENUE_SLUG=masulino-wiesbaden pnpm db:birthday-packages
  */
 const slug = process.env.MASULINO_PUBLIC_VENUE_SLUG?.trim();
 const migrateUrl = process.env.DATABASE_URL_MIGRATE;
@@ -21,7 +21,7 @@ if (!migrateUrl) throw new Error("Missing DATABASE_URL_MIGRATE");
 const client = new pg.Client({ connectionString: migrateUrl });
 await client.connect();
 const venue = await client.query<{ tenant_id: string; location_id: string }>(
-  `select tenant_id, location_id from published_venues where public_slug = $1 and status = 'published'`,
+  `select tenant_id, id as location_id from locations where slug = $1 and status = 'active'`,
   [slug],
 );
 const row = venue.rows[0];

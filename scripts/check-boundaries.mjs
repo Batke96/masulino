@@ -3,16 +3,12 @@ import { resolve } from "node:path";
 
 const root = resolve(process.cwd());
 const rules = [
-  { packageDir: "packages/core", forbidden: ["@masulino/reservations", "@masulino/indoor-play", "@masulino/notices", "@masulino/workforce", "@masulino/operations", "@masulino/contacts", "@masulino/marketing", "@masulino/loyalty", "react", "next", "better-auth"] },
-  { packageDir: "packages/contracts", forbidden: ["@masulino/database", "@masulino/core", "react", "drizzle-orm"] },
-  { packageDir: "packages/verticals/indoor-play", forbidden: ["@masulino/database", "@masulino/core", "react", "drizzle-orm"] },
-  { packageDir: "packages/modules/reservations", forbidden: ["@masulino/indoor-play", "@masulino/notices", "@masulino/workforce", "@masulino/operations", "@masulino/contacts", "@masulino/marketing", "@masulino/loyalty", "react", "next/", "better-auth"] },
-  { packageDir: "packages/modules/notices", forbidden: ["@masulino/indoor-play", "@masulino/reservations", "@masulino/workforce", "@masulino/operations", "@masulino/contacts", "@masulino/marketing", "@masulino/loyalty", "react", "next/", "better-auth"] },
-  { packageDir: "packages/modules/workforce", forbidden: ["@masulino/indoor-play", "@masulino/reservations", "@masulino/operations", "@masulino/contacts", "@masulino/marketing", "@masulino/loyalty", "react", "next/", "better-auth"] },
-  { packageDir: "packages/modules/operations", forbidden: ["@masulino/indoor-play", "@masulino/reservations", "@masulino/workforce", "@masulino/contacts", "@masulino/marketing", "@masulino/loyalty", "react", "next/", "better-auth"] },
-  { packageDir: "packages/modules/contacts", forbidden: ["@masulino/indoor-play", "@masulino/reservations", "@masulino/workforce", "@masulino/operations", "@masulino/notices", "@masulino/marketing", "@masulino/loyalty", "react", "next/", "better-auth"] },
-  { packageDir: "packages/modules/marketing", forbidden: ["@masulino/indoor-play", "@masulino/reservations", "@masulino/workforce", "@masulino/operations", "@masulino/notices", "@masulino/contacts", "@masulino/loyalty", "react", "next/", "better-auth"] },
-  { packageDir: "packages/modules/loyalty", forbidden: ["@masulino/indoor-play", "@masulino/reservations", "@masulino/workforce", "@masulino/operations", "@masulino/notices", "@masulino/contacts", "@masulino/marketing", "react", "next/", "better-auth"] },
+  { packageDir: "packages/core", forbidden: ["@masulino/reservations", "@masulino/indoor-play", "@masulino/notices", "@masulino/workforce", "@masulino/operations", "@masulino/contacts", "@masulino/marketing", "@masulino/loyalty", "@masulino/pos", "react", "next", "better-auth"] },
+  { packageDir: "packages/contracts", forbidden: ["@masulino/database", "@masulino/core", "@masulino/pos", "react", "drizzle-orm"] },
+  { packageDir: "packages/verticals/indoor-play", forbidden: ["@masulino/database", "@masulino/core", "@masulino/pos", "react", "drizzle-orm"] },
+  { packageDir: "packages/modules/reservations", forbidden: ["@masulino/indoor-play", "@masulino/notices", "@masulino/workforce", "@masulino/operations", "@masulino/contacts", "@masulino/marketing", "@masulino/loyalty", "@masulino/pos", "react", "next/", "better-auth"] },
+  { packageDir: "packages/modules/workforce", forbidden: ["@masulino/indoor-play", "@masulino/reservations", "@masulino/operations", "@masulino/contacts", "@masulino/marketing", "@masulino/loyalty", "@masulino/pos", "react", "next/", "better-auth"] },
+  { packageDir: "packages/modules/pos", forbidden: ["@masulino/indoor-play", "@masulino/reservations", "@masulino/notices", "@masulino/workforce", "@masulino/operations", "@masulino/contacts", "@masulino/marketing", "@masulino/loyalty", "react", "next/", "better-auth"] },
 ];
 
 const importPattern = /from\s+["']([^"']+)["']/g;

@@ -52,14 +52,9 @@ export async function reset(): Promise<void> {
   const client = await admin();
   await client.query(`
     truncate table
-      booking_claims, loyalty_entries, visit_verifications, loyalty_accounts, survey_responses,
-      campaign_messages, campaign_sends, campaigns, marketing_settings, consent_records, adult_contacts,
-      financial_facts,
-      checklist_issues, checklist_completions, checklists, punch_capabilities, kiosk_devices,
       time_effective_entries, time_correction_requests, time_punches, schedule_shifts, schedule_plans,
       leave_entries, availability_windows, availability_revisions, workforce_settings,
-      booking_access_tokens, notification_deliveries, preparation_sheets, holiday_notices,
-      published_venues, allocations, reservation_tasks, reservations, idempotency_keys,
+      allocations, reservation_tasks, reservations, idempotency_keys,
       notification_previews, rate_buckets, outbox_jobs, combination_resources, combinations,
       packages, venue_rules, closures, resources, staff_invitations, grants, memberships,
       module_entitlements, locations, audit_events, security_events, principals, tenants
@@ -84,7 +79,7 @@ export async function seed(): Promise<Fixture> {
     tenantB,
   ]);
   await client.query(
-    `insert into locations (id, tenant_id, slug, name, timezone) values ($1, $2, 'berlin', 'Berlin', 'Europe/Berlin')`,
+    `insert into locations (id, tenant_id, slug, name, timezone) values ($1, $2, 'wiesbaden', 'Wiesbaden', 'Europe/Berlin')`,
     [locationA, tenantA],
   );
   await client.query(
@@ -121,10 +116,6 @@ export async function seed(): Promise<Fixture> {
     `insert into module_entitlements (tenant_id, module_id, enabled) values
       ($1, 'core', true), ($1, 'reservations', true), ($1, 'content', true)`,
     [tenantA],
-  );
-  await client.query(
-    `insert into published_venues (tenant_id, location_id, public_slug, status) values ($1, $2, 'a-berlin', 'published')`,
-    [tenantA, locationA],
   );
   await client.end();
   return { tenantA, tenantB, locationA, principalA, packageId };

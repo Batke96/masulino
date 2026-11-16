@@ -4,6 +4,8 @@
  * `VITE_MASULINO_FIXTURES=1` keeps the original fixture walkthrough.
  */
 
+import type { SpanBooking } from "@/lib/reports/booking-window"
+
 export type BookingViewModel = {
   id: string;
   time: string;
@@ -123,7 +125,7 @@ export async function fetchBootstrap(): Promise<WorkspaceBootstrap | null> {
 }
 
 export async function fetchSectionBookings(
-  section: "bookings" | "birthdays",
+  section: "bookings",
   date?: string,
 ): Promise<BookingViewModel[] | null> {
   if (!isWorkspaceMode()) return null;
@@ -147,6 +149,20 @@ export async function fetchPackages(): Promise<PackageOption[] | null> {
   const data = await getJson<{ source: string; packages: PackageOption[] }>("/api/packages");
   if (!data || data.source !== "live") return null;
   return data.packages;
+}
+
+export async function cancelBooking(input: {
+  reservationId: string;
+  expectedVersion: number;
+}): Promise<{ ok: true } | { ok: false; reason: string }> {
+  if (!isWorkspaceMode()) return { ok: false, reason: "Die Buchung kann in der Demo nur ausgeblendet werden." };
+  const result = await postJson<{ ok: true }>("/api/bookings/cancel", input);
+  if (!result.ok) {
+    if (result.error === "forbidden") return { ok: false, reason: "Dafür fehlt die Berechtigung." };
+    if (result.error === "stale") return { ok: false, reason: "Die Buchung wurde inzwischen geändert." };
+    return { ok: false, reason: "Die Buchung konnte nicht entfernt werden." };
+  }
+  return { ok: true };
 }
 
 export async function createBooking(input: {
@@ -195,6 +211,68 @@ export async function fetchReports(): Promise<{
   }>("/api/sections/reports");
   if (!data || data.source !== "live") return null;
   return data.report;
+}
+
+export type PosReport = {
+  empty: boolean;
+  locationId: string;
+  siteName: string;
+  sites: Array<{ locationId: string; name: string }>;
+  view: "month" | "year";
+  month: string | null;
+  year: number | null;
+  months: string[];
+  years: number[];
+  incomplete: boolean;
+  throughDate: string | null;
+  comparisonLabel: string;
+  targetLabel: string | null;
+  cards: {
+    gross: PosMetric;
+    payingChildren: PosMetric;
+    grossPerChild: PosMetric;
+    receipts: PosMetric;
+  };
+  gastroPerChild: number | null;
+  chipsPerChild: number | null;
+  parties: number;
+  mix: Array<{ key: string; label: string; gross: number; quantity: number }>;
+  categories: Array<{ category: string; groupKey: string; gross: number; quantity: number; parties: number }>;
+  products: Array<{ name: string; category: string; gross: number; quantity: number }>;
+  trend: Array<{ month: string; gross: number; quantity: number; previousGross: number | null; previousQuantity: number | null }>;
+  days: Array<{
+    date: string;
+    gross: number | null;
+    quantity: number | null;
+    targetGross: number | null;
+    targetQuantity: number | null;
+    partial: boolean;
+    future: boolean;
+  }>;
+};
+
+type PosMetric = { value: number; delta: number | null; trend: number[] };
+
+export async function fetchPosReport(input: {
+  locationId?: string;
+  month?: string;
+  view: "month" | "year";
+}): Promise<PosReport | null> {
+  if (!isWorkspaceMode()) return null;
+  const params = new URLSearchParams({ view: input.view });
+  if (input.locationId) params.set("locationId", input.locationId);
+  if (input.month) params.set("month", input.month);
+  const data = await getJson<{ source: string; report: PosReport }>(`/api/pos/report?${params.toString()}`);
+  if (!data || data.source !== "live") return null;
+  return data.report;
+}
+
+export async function fetchReservationSpan(from: string, to: string): Promise<SpanBooking[] | null> {
+  if (!isWorkspaceMode()) return null
+  const params = new URLSearchParams({ from, to })
+  const data = await getJson<{ source: string; reservations: SpanBooking[] }>(`/api/reservations/span?${params.toString()}`)
+  if (!data || data.source !== "live" || !Array.isArray(data.reservations)) return null
+  return data.reservations
 }
 
 export async function fetchCampaignsLive(): Promise<{
@@ -264,6 +342,116 @@ export async function fetchTeamLive(): Promise<TeamLive | null> {
   const data = await getJson<TeamLive & { source: string }>("/api/sections/team");
   if (!data || data.source !== "live") return null;
   return data;
+}
+
+export type WebsiteRequestStatus = "angefragt" | "bearbeitet" | "angenommen" | "abgelehnt";
+
+export type WebsiteBirthdayPayload = {
+  buchung: "geburtstag";
+  datum: string;
+  zeitfenster: string;
+  paket: "comfort" | "deluxe";
+  kind_name: string;
+  kind_alter: string;
+  kinder: number;
+  kleinkinder: number;
+  erwachsene: number;
+  erwachsenenZusatz: boolean;
+  summeVorschau: number;
+  vorname: string;
+  nachname: string;
+  email: string;
+  telefon: string;
+  nachricht: string;
+  quelle: string;
+  datenschutz: string;
+  website: string;
+};
+
+export type WebsiteKitaPayload = {
+  buchung: "kita";
+  wunschtermin: string;
+  zeitfenster: string;
+  kinder: number;
+  paedagogen: number;
+  begleitpersonen: number;
+  summeVorschau: number;
+  einrichtung: string;
+  art: string;
+  ansprechpartner: string;
+  email: string;
+  telefon: string;
+  nachricht: string;
+  quelle: string;
+  datenschutz: string;
+  website: string;
+};
+
+export type WebsiteRequestRow = {
+  id: string;
+  kind: "geburtstag" | "kita";
+  status: WebsiteRequestStatus;
+  receivedAt: string;
+  reservationId: string | null;
+  reference: string | null;
+  rejectionReason: string;
+  payload: WebsiteBirthdayPayload | WebsiteKitaPayload | null;
+};
+
+export async function fetchWebsiteRequests(scope: "open" | "all"): Promise<WebsiteRequestRow[] | null> {
+  if (!isWorkspaceMode()) return null;
+  const data = await getJson<{ source: string; requests: WebsiteRequestRow[] }>(
+    `/api/buchungen?scope=${scope}`,
+  );
+  if (!data || data.source !== "live" || !Array.isArray(data.requests)) return null;
+  return data.requests;
+}
+
+export async function decideWebsiteRequest(
+  action: "bearbeitet" | "ablehnen" | "annehmen",
+  id: string,
+  reason?: string,
+): Promise<
+  | {
+      ok: true;
+      reference?: string;
+      localDate?: string;
+      localTime?: string;
+      durationMinutes?: number;
+    }
+  | { ok: false; reason: string }
+> {
+  try {
+    const response = await fetch(`/api/buchungen/${action}`, {
+      method: "POST",
+      credentials: "include",
+      headers: { accept: "application/json", "content-type": "application/json" },
+      body: JSON.stringify({ id, reason }),
+    });
+    const data = (await response.json()) as {
+      ok?: boolean;
+      reason?: string;
+      error?: string;
+      reference?: string;
+      localDate?: string;
+      localTime?: string;
+      durationMinutes?: number;
+    };
+    if (!response.ok || data.ok === false) {
+      if (data.error === "forbidden") return { ok: false, reason: "Dafür fehlt die Berechtigung." };
+      if (data.error === "unauthenticated") return { ok: false, reason: "Die Anmeldung ist abgelaufen." };
+      return { ok: false, reason: data.reason ?? "Das hat nicht geklappt." };
+    }
+    return {
+      ok: true,
+      reference: data.reference,
+      localDate: data.localDate,
+      localTime: data.localTime,
+      durationMinutes: data.durationMinutes,
+    };
+  } catch {
+    return { ok: false, reason: "Die Anfrage ist gerade nicht erreichbar." };
+  }
 }
 
 export function newIdempotencyKey(): string {

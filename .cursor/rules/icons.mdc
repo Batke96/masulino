@@ -1,0 +1,11 @@
+---
+description: UI-Icons kommen aus Lucide. Sortierpfeile sind ArrowUp und ArrowDown.
+alwaysApply: true
+---
+
+# Icons
+
+- UI-Icons nur aus `lucide-react`. Kein zweites Icon-Pack und keine Unicode-Pfeile als Icon.
+- Sortierung zeigt `ArrowUp` für aufsteigend und `ArrowDown` für absteigend. Das Icon ist `aria-hidden`, die Spalte meldet die Richtung über `aria-sort`.
+- Strichstärke `1.8`, Größe wie die benachbarten Lucide-Icons der Fläche.
+- Diagramme, das Favicon und die Farbflächen im Saalplan sind keine Icons und werden nicht durch Lucide ersetzt.

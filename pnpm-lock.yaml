@@ -229,83 +229,7 @@ importers:
         specifier: ^5.9.2
         version: 5.9.3
 
-  packages/modules/contacts:
-    dependencies:
-      '@masulino/contracts':
-        specifier: workspace:*
-        version: link:../../contracts
-      '@masulino/core':
-        specifier: workspace:*
-        version: link:../../core
-      '@masulino/database':
-        specifier: workspace:*
-        version: link:../../database
-      drizzle-orm:
-        specifier: ^0.45.1
-        version: 0.45.2(@cloudflare/workers-types@4.20260515.1)(@types/pg@8.23.1)(kysely@0.29.6)(pg@8.23.0)
-    devDependencies:
-      typescript:
-        specifier: ^5.9.2
-        version: 5.9.3
-
-  packages/modules/loyalty:
-    dependencies:
-      '@masulino/contracts':
-        specifier: workspace:*
-        version: link:../../contracts
-      '@masulino/core':
-        specifier: workspace:*
-        version: link:../../core
-      '@masulino/database':
-        specifier: workspace:*
-        version: link:../../database
-      drizzle-orm:
-        specifier: ^0.45.1
-        version: 0.45.2(@cloudflare/workers-types@4.20260515.1)(@types/pg@8.23.1)(kysely@0.29.6)(pg@8.23.0)
-    devDependencies:
-      typescript:
-        specifier: ^5.9.2
-        version: 5.9.3
-
-  packages/modules/marketing:
-    dependencies:
-      '@masulino/contracts':
-        specifier: workspace:*
-        version: link:../../contracts
-      '@masulino/core':
-        specifier: workspace:*
-        version: link:../../core
-      '@masulino/database':
-        specifier: workspace:*
-        version: link:../../database
-      drizzle-orm:
-        specifier: ^0.45.1
-        version: 0.45.2(@cloudflare/workers-types@4.20260515.1)(@types/pg@8.23.1)(kysely@0.29.6)(pg@8.23.0)
-    devDependencies:
-      typescript:
-        specifier: ^5.9.2
-        version: 5.9.3
-
-  packages/modules/notices:
-    dependencies:
-      '@masulino/contracts':
-        specifier: workspace:*
-        version: link:../../contracts
-      '@masulino/core':
-        specifier: workspace:*
-        version: link:../../core
-      '@masulino/database':
-        specifier: workspace:*
-        version: link:../../database
-      drizzle-orm:
-        specifier: ^0.45.1
-        version: 0.45.2(@cloudflare/workers-types@4.20260515.1)(@types/pg@8.23.1)(kysely@0.29.6)(pg@8.23.0)
-    devDependencies:
-      typescript:
-        specifier: ^5.9.2
-        version: 5.9.3
-
-  packages/modules/operations:
+  packages/modules/pos:
     dependencies:
       '@masulino/contracts':
         specifier: workspace:*
@@ -386,9 +310,6 @@ importers:
 
   server:
     dependencies:
-      '@masulino/contacts':
-        specifier: workspace:*
-        version: link:../packages/modules/contacts
       '@masulino/contracts':
         specifier: workspace:*
         version: link:../packages/contracts
@@ -401,18 +322,9 @@ importers:
       '@masulino/indoor-play':
         specifier: workspace:*
         version: link:../packages/verticals/indoor-play
-      '@masulino/loyalty':
+      '@masulino/pos':
         specifier: workspace:*
-        version: link:../packages/modules/loyalty
-      '@masulino/marketing':
-        specifier: workspace:*
-        version: link:../packages/modules/marketing
-      '@masulino/notices':
-        specifier: workspace:*
-        version: link:../packages/modules/notices
-      '@masulino/operations':
-        specifier: workspace:*
-        version: link:../packages/modules/operations
+        version: link:../packages/modules/pos
       '@masulino/reservations':
         specifier: workspace:*
         version: link:../packages/modules/reservations
@@ -4344,6 +4256,7 @@ packages:
   image-size@2.0.2:
     resolution: {integrity: sha512-IRqXKlaXwgSMAMtpNzZa1ZAe8m+Sa1770Dhk8VkSsP9LS+iHD62Zd8FQKs8fbPiagBE7BzoFX23cxFnwshpV6w==}
     engines: {node: '>=16.x'}
+    deprecated: Use latest 2.x please
     hasBin: true
 
   immer@10.2.0:

@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { ShieldCheck } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DataTable, type DataColumn } from "@/components/data-table";
 import {
   createStaffAccount,
   fetchStaffDirectory,
@@ -14,6 +14,13 @@ import {
   type StaffDirectory,
   type StaffPerson,
 } from "@/lib/workspace/staff-directory";
+
+const userColumns: DataColumn<StaffPerson>[] = [
+  { id: "name", label: "Name", kind: "text", raw: (row) => row.name, text: (row) => row.name, render: (row) => <strong>{row.name}</strong> },
+  { id: "email", label: "E-Mail", kind: "text", raw: (row) => row.email, text: (row) => row.email },
+  { id: "role", label: "Rolle", kind: "text", raw: (row) => row.roleLabel, text: (row) => row.roleLabel },
+  { id: "location", label: "Standort", kind: "text", raw: (row) => row.locationName ?? "Gesamter Betrieb", text: (row) => row.locationName ?? "Gesamter Betrieb" },
+];
 
 export function ItUsers({ embedded = false }: { embedded?: boolean }) {
   const [directory, setDirectory] = useState<StaffDirectory | null | undefined>(undefined);
@@ -92,7 +99,7 @@ export function ItUsers({ embedded = false }: { embedded?: boolean }) {
                 {directory.roles.some((role) => role.roleKey === "tenant_owner") && directory.roles.some((role) => role.roleKey === "it") ? (
                   <p className="fine-print">Als Inhaber legst du hier auch den ersten IT-Zugang an. IT verwaltet danach die weiteren Konten und kann keinen Inhaber anlegen.</p>
                 ) : null}
-                {error ? <p className="staff-gate-error">{error}</p> : null}
+                {error ? <p className="staff-gate-error" role="alert">{error}</p> : null}
                 {issued ? (
                   <div className="it-credential" role="status">
                     <strong>Zugang angelegt</strong>
@@ -132,39 +139,26 @@ export function ItUsers({ embedded = false }: { embedded?: boolean }) {
                   </button>
                 </form>
               </section>
-              <section className="surface table-surface">
-                <div className="section-head"><h2>Aktive Benutzer</h2></div>
-                {directory.people.length === 0 ? <div className="empty-state"><h3>Noch niemand mit einem aktiven Zugang.</h3></div> : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>E-Mail</TableHead>
-                        <TableHead>Rolle</TableHead>
-                        <TableHead>Standort</TableHead>
-                        <TableHead>Aktion</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {directory.people.map((person) => (
-                        <TableRow key={person.membershipId}>
-                          <TableCell><strong>{person.name}</strong></TableCell>
-                          <TableCell>{person.email}</TableCell>
-                          <TableCell>{person.roleLabel}</TableCell>
-                          <TableCell>{person.locationName ?? "Gesamter Betrieb"}</TableCell>
-                          <TableCell>
-                            {person.removable ? (
-                              <button className="button soft" type="button" onClick={() => setRemoveTarget(person)}>Entfernen</button>
-                            ) : (
-                              <span className="fine-print">Geschützt</span>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </section>
+              <div className="list-block">
+                <div className="section-head">
+                  <h2>Aktive Benutzer</h2>
+                  <span className="pill">{directory.people.length.toLocaleString("de-DE")}</span>
+                </div>
+                <section className="surface table-surface">
+                  <DataTable
+                    rows={directory.people}
+                    columns={userColumns}
+                    rowKey={(person) => person.membershipId}
+                    initialSort={{ id: "name", direction: "asc" }}
+                    empty={<div className="empty-state"><h3>Noch niemand mit einem aktiven Zugang.</h3></div>}
+                    actions={(person) => person.removable ? (
+                      <button className="button soft" type="button" onClick={() => setRemoveTarget(person)}>Entfernen</button>
+                    ) : (
+                      <span className="fine-print">Geschützt</span>
+                    )}
+                  />
+                </section>
+              </div>
             </div>
           ) : null}
         </div>

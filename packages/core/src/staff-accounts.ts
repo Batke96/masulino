@@ -126,7 +126,7 @@ export async function listStaffDirectory(actor: ActorContext): Promise<StaffDire
       sql`
         select id, name from locations
         where status = 'active'
-        order by case when slug = 'berlin' then 0 else 1 end, name
+        order by case when slug = 'wiesbaden' then 0 else 1 end, name
       `,
     );
     return {

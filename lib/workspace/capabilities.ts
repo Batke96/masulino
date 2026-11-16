@@ -13,7 +13,7 @@ export type StaffCapabilities = {
 export function appVisible(id: string, capabilities: StaffCapabilities | null): boolean {
   if (id === "it") return Boolean(capabilities?.it);
   if (!capabilities) return true;
-  if (id === "bookings" || id === "birthdays") return capabilities.bookings;
+  if (id === "bookings") return capabilities.bookings;
   if (id === "families") return capabilities.families;
   if (id === "team") return capabilities.team;
   if (id === "reports") return capabilities.reports;
@@ -24,7 +24,7 @@ export function appVisible(id: string, capabilities: StaffCapabilities | null): 
 
 export function viewVisible(view: string, capabilities: StaffCapabilities | null): boolean {
   if (!capabilities) return true;
-  if (view === "today" || view === "apps" || view === "knowledge") return true;
+  if (view === "today" || view === "knowledge") return true;
   if (view === "agents") return capabilities.agents;
   if (view === "concept") return false;
   return appVisible(view, capabilities);
