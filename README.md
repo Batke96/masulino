@@ -78,7 +78,8 @@ You can then create a private repository on your chosen Git host and push it the
 | `server/` | Node composition root: Better Auth, section handlers, outbox drain |
 | `packages/` | Framework-free domain packages from the ERP handover (`contracts`, `core`, `database`, modules, indoor-play) |
 | `docs/domain-handover.md` | Portable contract for identity, authorization, tenancy and booking invariants |
-| `docs/birthday-form.md` | Same birthday API contract as the section below, for sharing |
+| `docs/birthday-form.md` | Previous birthday API contract, for sharing. The routes are not wired in this stand. |
+| `docs/aenderungen.md` | Changes since the source snapshot and since commit `6c1386d` |
 | `app/globals.css` | Visual tokens, layouts, responsive behavior, component styling and reduced-motion support |
 | `app/layout.tsx` | German document language, page metadata and global styles |
 | `components/ui/` | Existing shadcn/Radix UI primitives; dialogs, sheets, tabs, command palette, sidebar and other controls |
@@ -91,6 +92,8 @@ You can then create a private repository on your chosen Git host and push it the
 | `docs/STARTER_README.md` | Original starter reference; this README takes precedence for local setup |
 
 ## Birthday form API
+
+These routes are not wired in this stand. `server/src/handlers/birthdays.ts` is gone, and migration `0011_slim.sql` drops `published_venues`. The text below is the previous contract. The current delta is in `docs/aenderungen.md`.
 
 The public website asks which times are free, then sends the birthday form. Masulino stores a confirmed reservation. The family pays at the venue on the day. No card data is taken.
 

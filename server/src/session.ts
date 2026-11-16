@@ -248,7 +248,7 @@ export async function resolveDefaultScope(request: Request): Promise<{
         from locations l
         join tenants t on t.id = l.tenant_id
         where l.status = 'active'
-        order by case when l.slug = 'berlin' then 0 else 1 end, l.name
+        order by case when l.slug = 'wiesbaden' then 0 else 1 end, l.name
         limit 1
       `,
     ),

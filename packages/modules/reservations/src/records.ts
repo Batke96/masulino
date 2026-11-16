@@ -128,15 +128,6 @@ export async function listCatalog(actor: ActorContext, locationId: string): Prom
         order by starts_on, reason
       `,
     );
-    const venues = await rows<{ public_slug: string; status: string }>(
-      tx,
-      sql`
-        select public_slug, status
-        from published_venues
-        where location_id = ${locationId}
-      `,
-    );
-    const venue = venues[0];
     return {
       packages: packages.map((row) => ({
         id: row.id,
@@ -168,7 +159,7 @@ export async function listCatalog(actor: ActorContext, locationId: string): Prom
         endsOn: row.ends_on,
         reason: row.reason,
       })),
-      venue: venue ? { publicSlug: venue.public_slug, status: venue.status } : null,
+      venue: null,
     };
   });
 }
@@ -379,33 +370,5 @@ export async function updatePublishedSlug(args: {
   correlationId: string;
 }): Promise<void> {
   requirePermission(args.actor, "core.records.manage", args.input.locationId);
-  try {
-    await withTenant(args.actor.tenantId, async (tx) => {
-      await assertLocation(tx, args.input.locationId);
-      const updated = await rows<{ id: string }>(
-        tx,
-        sql`
-          update published_venues
-          set public_slug = ${args.input.publicSlug}
-          where location_id = ${args.input.locationId}
-          returning id
-        `,
-      );
-      if (!updated[0]) throw new AppError("not_found", "published_venue");
-      await insertAudit(tx, {
-        tenantId: args.actor.tenantId,
-        locationId: args.input.locationId,
-        actorPrincipalId: args.actor.principalId,
-        action: "core.records.manage",
-        targetType: "published_venue",
-        targetId: updated[0].id,
-        outcome: "success",
-        correlationId: args.correlationId,
-        changes: { publicSlug: args.input.publicSlug },
-      });
-    });
-  } catch (error) {
-    if (pgCode(error) === "23505") throw new AppError("conflict", "public_slug");
-    throw error;
-  }
+  throw new AppError("not_found", "published_venue");
 }

@@ -1,4 +1,16 @@
 export { createGuestBooking, createStaffBooking, cancelReservation, dailyView, listStaffReservations, readBirthdayReceipt, readReservation } from "./booking";
+export {
+  acceptWebsiteRequest,
+  listWebsiteRequests,
+  rejectWebsiteRequest,
+  reviewWebsiteRequest,
+  storeWebsiteRequest,
+} from "./website-requests";
+export type {
+  AcceptWebsiteRequestResult,
+  WebsiteRequestDecisionResult,
+  WebsiteRequestView,
+} from "./website-requests";
 export type { BirthdayReceipt, BookingResult, DailyRow, GuestCaller, ReservationDetail } from "./booking";
 export { applyGuestPatch, rescheduleReservation, routeGuestToStaff, updateReservationContact } from "./changes";
 export { exchangeBookingLink, previewBookingLink, readGuestReservation, requireGuestSession, revokeGuestLinks } from "./access";
@@ -13,8 +25,8 @@ export { assertCanUsePublishedRule } from "./rules";
 export type { PublishedRule } from "./rules";
 export { classifyGuestPatch, guestMayMoveReservation } from "./guest-policy";
 export { claimBooking, readClaimedReferences } from "./claim";
-export { bookedValueStatuses, readBookedValueReport, readReservationActivity } from "./report";
-export type { BookedValueReport, DayCount, MoneyFact, UpcomingReservation } from "./report";
+export { bookedValueStatuses, isBirthdayPackage, promisedBookingMinor, readBookedValueReport, readReservationActivity, readReservationSpan } from "./report";
+export type { BookedValueReport, DayCount, MoneyFact, ReservationSpanRow, UpcomingReservation } from "./report";
 export {
   addClosure,
   listCatalog,

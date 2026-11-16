@@ -5,7 +5,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { PanelLeftIcon } from "lucide-react"
 import { Slot } from "radix-ui"
 
-import { useIsMobile } from "@/hooks/use-mobile"
+import { useIsCompactSidebar, useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -32,10 +32,15 @@ const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "3rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
+type SidebarMode = "expanded" | "icon" | "hidden"
+
 type SidebarContextProps = {
   state: "expanded" | "collapsed"
   open: boolean
   setOpen: (open: boolean) => void
+  mode: SidebarMode
+  hideSidebar: () => void
+  showSidebar: () => void
   openMobile: boolean
   setOpenMobile: (open: boolean) => void
   isMobile: boolean
@@ -67,33 +72,44 @@ function SidebarProvider({
   onOpenChange?: (open: boolean) => void
 }) {
   const isMobile = useIsMobile()
+  const isCompact = useIsCompactSidebar()
   const [openMobile, setOpenMobile] = React.useState(false)
+  const [hiddenState, setHiddenState] = React.useState(!defaultOpen)
+  const hidden = openProp === undefined ? hiddenState : !openProp
+  const hiddenRef = React.useRef(hidden)
+  hiddenRef.current = hidden
+  const focusAfter = React.useRef<"sidebar-show" | "sidebar-hide" | null>(null)
 
-  // This is the internal state of the sidebar.
-  // We use openProp and setOpenProp for control from outside the component.
-  const [_open, _setOpen] = React.useState(defaultOpen)
-  const open = openProp ?? _open
-  const setOpen = React.useCallback(
-    (value: boolean | ((value: boolean) => boolean)) => {
-      const openState = typeof value === "function" ? value(open) : value
-      if (setOpenProp) {
-        setOpenProp(openState)
-      } else {
-        _setOpen(openState)
-      }
-
-      // This sets the cookie to keep the sidebar state.
-      document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+  const applyHidden = React.useCallback(
+    (nextHidden: boolean, focus: "sidebar-show" | "sidebar-hide" | null) => {
+      if (focus) focusAfter.current = focus
+      if (setOpenProp) setOpenProp(!nextHidden)
+      if (openProp === undefined) setHiddenState(nextHidden)
+      document.cookie = `${SIDEBAR_COOKIE_NAME}=${!nextHidden}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
     },
-    [setOpenProp, open]
+    [openProp, setOpenProp]
   )
 
-  // Helper to toggle the sidebar.
-  const toggleSidebar = React.useCallback(() => {
-    return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open)
-  }, [isMobile, setOpen, setOpenMobile])
+  const setOpen = React.useCallback(
+    (value: boolean | ((value: boolean) => boolean)) => {
+      const openState = typeof value === "function" ? value(!hiddenRef.current) : value
+      applyHidden(!openState, null)
+    },
+    [applyHidden]
+  )
 
-  // Adds a keyboard shortcut to toggle the sidebar.
+  const hideSidebar = React.useCallback(() => applyHidden(true, "sidebar-show"), [applyHidden])
+  const showSidebar = React.useCallback(() => applyHidden(false, "sidebar-hide"), [applyHidden])
+
+  const toggleSidebar = React.useCallback(() => {
+    if (isMobile) {
+      setOpenMobile((current) => !current)
+      return
+    }
+    if (hiddenRef.current) showSidebar()
+    else hideSidebar()
+  }, [hideSidebar, isMobile, showSidebar])
+
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (
@@ -109,21 +125,36 @@ function SidebarProvider({
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [toggleSidebar])
 
-  // We add a state so that we can do data-state="expanded" or "collapsed".
-  // This makes it easier to style the sidebar with Tailwind classes.
-  const state = open ? "expanded" : "collapsed"
+  React.useEffect(() => {
+    const target = focusAfter.current
+    if (!target) return
+    const timer = window.setTimeout(() => {
+      document.getElementById(target)?.focus()
+      if (focusAfter.current === target) focusAfter.current = null
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [hidden])
+
+  // Icon and hidden are both collapsed for the existing width styles.
+  // Compact widths choose the icon rail unless the user hid the sidebar.
+  const mode: SidebarMode = hidden ? "hidden" : isCompact ? "icon" : "expanded"
+  const state = mode === "expanded" ? "expanded" : "collapsed"
+  const open = !hidden
 
   const contextValue = React.useMemo<SidebarContextProps>(
     () => ({
       state,
       open,
       setOpen,
+      mode,
+      hideSidebar,
+      showSidebar,
       isMobile,
       openMobile,
       setOpenMobile,
       toggleSidebar,
     }),
-    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
+    [state, open, setOpen, mode, hideSidebar, showSidebar, isMobile, openMobile, setOpenMobile, toggleSidebar]
   )
 
   return (
@@ -163,7 +194,7 @@ function Sidebar({
   variant?: "sidebar" | "floating" | "inset"
   collapsible?: "offcanvas" | "icon" | "none"
 }) {
-  const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+  const { isMobile, state, mode, openMobile, setOpenMobile } = useSidebar()
 
   if (collapsible === "none") {
     return (
@@ -209,7 +240,7 @@ function Sidebar({
     <div
       className="group peer hidden text-sidebar-foreground md:block"
       data-state={state}
-      data-collapsible={state === "collapsed" ? collapsible : ""}
+      data-collapsible={mode === "hidden" ? "offcanvas" : mode === "icon" ? "icon" : ""}
       data-variant={variant}
       data-side={side}
       data-slot="sidebar"
@@ -240,11 +271,13 @@ function Sidebar({
           className
         )}
         {...props}
+        inert={mode === "hidden"}
+        aria-hidden={mode === "hidden" || undefined}
       >
         <div
           data-sidebar="sidebar"
           data-slot="sidebar-inner"
-          className="flex h-full w-full flex-col bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow-sm"
+          className="flex h-full w-full flex-col overflow-hidden bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow-sm"
         >
           {children}
         </div>
@@ -374,7 +407,7 @@ function SidebarContent({ className, ...props }: React.ComponentProps<"div">) {
       data-slot="sidebar-content"
       data-sidebar="content"
       className={cn(
-        "flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden",
+        "flex min-h-0 flex-1 flex-col gap-2 overflow-auto",
         className
       )}
       {...props}

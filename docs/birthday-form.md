@@ -1,5 +1,7 @@
 # Birthday form API
 
+These routes are not wired in this stand. The text below is the previous contract. See `docs/aenderungen.md`.
+
 The contract is the **Birthday form API** section in `README.md`. This page is the same reference, so it can be sent on its own.
 
 The public website asks which times are free, then sends the birthday form. Masulino stores a confirmed reservation. The family pays at the venue on the day. No card data is taken.

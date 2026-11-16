@@ -17,5 +17,7 @@
     "lib": "@/lib",
     "hooks": "@/hooks"
   },
-  "registries": {}
+  "registries": {
+    "@dashboardcn": "https://dashboardcn.com/r/{name}.json"
+  }
 }
