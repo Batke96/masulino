@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import pg from "pg";
 import { birthdayPackages } from "../packages/contracts/src/reservations.ts";
 import { tableSeats } from "../lib/booking/tables.ts";
+import { ensureExampleParties } from "./example-parties.ts";
 import { loadProductionOperatorEnv, loadRootEnv } from "./load-env";
 
 /**
@@ -18,6 +19,10 @@ import { loadProductionOperatorEnv, loadRootEnv } from "./load-env";
  *
  * Do not run this against a database that already has real guests or an owner.
  * Kasse stays empty unless a CSV path is passed. This repo has no till CSV.
+ *
+ * When Masulino Spielwelt already exists, the command does not rebuild it.
+ * It only ensures the three Tagesmappe example parties for the Berlin day
+ * of this run. Other reservations stay as they are.
  */
 
 const demoConfirm = process.env.MASULINO_DEMO_SEED_CONFIRM;
@@ -52,8 +57,19 @@ const spielwelt = await client.query<{ id: string }>(
   `select id from tenants where slug = 'masulino-spielwelt' limit 1`,
 );
 if (spielwelt.rowCount) {
+  try {
+    await client.query("begin");
+    const parties = await ensureExampleParties(client);
+    await client.query("commit");
+    console.log(
+      `Masulino Spielwelt is already present. Example parties on ${parties.day}: ${parties.inserted.length} added, ${parties.updated.length} updated, ${parties.skipped.length} left alone.`,
+    );
+  } catch (error) {
+    await client.query("rollback");
+    await client.end();
+    throw error;
+  }
   await client.end();
-  console.log("Masulino Spielwelt (masulino-spielwelt) is already present. No rows changed.");
   process.exit(0);
 }
 
@@ -332,6 +348,10 @@ try {
         '2027-06-01 11:00:00+02', '2027-06-01 13:00:00+02', '2027-06-01', 4, 2, $5, 'Geburtstagsfeier Fixture',
         25000, 'EUR', $6, 1, 'staff_phone', $7)`,
     [claimA, claimB, tenantA, locationA, packageId, ruleId, reception],
+  );
+  const parties = await ensureExampleParties(client);
+  console.log(
+    `Example parties on ${parties.day}: ${parties.inserted.join(", ") || "none"}.`,
   );
   await client.query("commit");
 } catch (error) {
