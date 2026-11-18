@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import pg from "pg";
 import { birthdayPackages } from "@masulino/contracts";
 import { tableSeats } from "../lib/booking/tables.ts";
+import { ensureExampleParties } from "./example-parties.ts";
 import { loadRootEnv } from "./load-env";
 
 loadRootEnv();
@@ -303,6 +304,8 @@ await client.query(
       25000, 'EUR', $6, 1, 'staff_phone', $7)`,
   [claimA, claimB, tenantA, locationA, packageId, ruleId, reception],
 );
+const parties = await ensureExampleParties(client);
+console.log(`Example parties on ${parties.day}: ${parties.inserted.join(", ") || "none"}.`);
 if (posReady.rows[0]?.ready) {
   await client.query(`
     insert into locations (id, tenant_id, slug, name, timezone)

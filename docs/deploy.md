@@ -76,7 +76,7 @@ Default role is `tenant_owner`. Do not put Neon URLs or passwords in tracked fil
 
 `pnpm db:seed` stays local. It throws when `NODE_ENV=production` or when `DATABASE_URL_MIGRATE` is not `127.0.0.1` or `localhost`. `pnpm build`, the Vercel build, and `pnpm dev:workspace` do not call the demo command.
 
-The signed-in workplace at `https://masulino-rho.vercel.app` can show the same synthetic Masulino Spielwelt as a laptop: location Äppelallee (Biebrich), the drawn floor tables, the birthday packages, and the sample reservations (Familie Beispiel, Familie Anfrage, and the two claim rows). Those staff logins are a public demo on that Vercel database:
+The signed-in workplace at `https://masulino-rho.vercel.app` reads Postgres. It does not show the browser fixtures. After this command, Heute, the floor plan and the Tagesmappe include the co-founder's three parties from the 29.10.2026 mock: Familie Müller (B-1024, Deluxe, Tisch 7), Familie Schmidt (B-1025, Comfort, Tisch 3) and Familie Weber (B-1026, Deluxe, Tisch 10), on the Berlin day of the run, at 14:30. The older sample rows stay too: Familie Beispiel, Familie Anfrage, and the two claim rows. Those staff logins are a public demo on that Vercel database:
 
 | Email | Password |
 | --- | --- |
@@ -85,7 +85,7 @@ The signed-in workplace at `https://masulino-rho.vercel.app` can show the same s
 
 `revoked.masulino@example.test` is the revoked login. Kasse stays empty. This repository has no till CSV, and the command does not invent POS lines.
 
-Do not run the command against a database that already has real guests or an owner. It does not truncate. If a tenant with slug `masulino-spielwelt` already exists, it exits without changing rows. If any `tenant_owner` grant exists for a different tenant, it exits without writing.
+Do not run the command against a database that already has real guests or an owner. It does not truncate. If a tenant with slug `masulino-spielwelt` already exists, it leaves that tenant in place and only ensures the three example parties above. A reference that already belongs to an address outside `@example.test` is left alone. If any `tenant_owner` grant exists for a different tenant and Spielwelt is not there yet, it exits without writing.
 
 One operator command. It reads the direct Neon URL from gitignored `.env.production.local` (`DATABASE_URL_MIGRATE`, pooling off, host without `-pooler`). Do not commit that file, and do not put `DATABASE_URL_MIGRATE` on the Vercel runtime.
 
