@@ -13,7 +13,7 @@ export type StaffCapabilities = {
 export function appVisible(id: string, capabilities: StaffCapabilities | null): boolean {
   if (id === "it") return Boolean(capabilities?.it);
   if (!capabilities) return true;
-  if (id === "bookings") return capabilities.bookings;
+  if (id === "bookings" || id === "mappe") return capabilities.bookings;
   if (id === "families") return capabilities.families;
   if (id === "team") return capabilities.team;
   if (id === "reports") return capabilities.reports;
