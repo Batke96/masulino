@@ -97,3 +97,12 @@ export function formatWeekRange(start: string, end: string): string {
   const startName = new Intl.DateTimeFormat("de-DE", { month: "long", timeZone: "UTC" }).format(utcDate(start));
   return `${startDay}. ${startName}–${endDay}. ${monthName}`;
 }
+
+export function compactRange(start: number, end: number): string {
+  const part = (minute: number) => (minute % 60 === 0 ? String(minute / 60) : formatTime(minute));
+  return `${part(start)}–${part(end)}`;
+}
+
+export function formatExceptionRange(start: string, end: string): string {
+  return start === end ? `${formatWeekdayShort(start)}, ${formatFullDate(start)}` : `${formatFullDate(start)} bis ${formatFullDate(end)}`;
+}

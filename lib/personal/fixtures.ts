@@ -172,6 +172,8 @@ function templateShifts(): Shift[] {
 
 function demoPunches(): Punch[] {
   return [
+    { id: "p-me", employeeId: "me", date: DEMO_DATE, start: h(9, 55), end: null },
+    { id: "p-mf", employeeId: "mf", date: DEMO_DATE, start: h(10), end: h(16) },
     { id: "p-ma", employeeId: "ma", date: DEMO_DATE, start: h(14), end: null },
     { id: "p-mb", employeeId: "mb", date: DEMO_DATE, start: h(13, 45), end: null },
     { id: "p-mc", employeeId: "mc", date: DEMO_DATE, start: h(10), end: h(14) },
