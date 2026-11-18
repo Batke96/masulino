@@ -74,7 +74,7 @@ export function VerfuegbarkeitTab() {
           <PersonAvatar name={employee.name} index={state.employees.indexOf(employee)} />
           <div className="personal-field">
             <span className="personal-field-label">Mitarbeiter</span>
-            <GlideSelect className="personal-select" options={employeeOptions} value={employee.id} onChange={setAvailabilityEmployee} showTags={false} size="sm" ariaLabel="Mitarbeiter wählen" />
+            <GlideSelect className="personal-select" options={employeeOptions} value={employee.id} onChange={setAvailabilityEmployee} showTags={false} size="md" ariaLabel="Mitarbeiter wählen" />
           </div>
         </div>
         <Pill>Angaben für die Demo</Pill>
@@ -154,7 +154,7 @@ export function VerfuegbarkeitTab() {
         <div className="personal-exception-form">
           <DateField label={kind === "urlaub" ? "Von" : "Datum"} value={startDate} min={DEMO_DATE} onChange={(next) => { setStartDate(next); if (endDate < next) setEndDate(next) }} />
           <Field label="Art">
-            <GlideSelect className="personal-select" options={kindOptions} value={kind} onChange={(next) => setKind(next as ExceptionKind)} showTags={false} size="sm" ariaLabel="Art der Ausnahme" />
+            <GlideSelect className="personal-select" options={kindOptions} value={kind} onChange={(next) => setKind(next as ExceptionKind)} showTags={false} size="md" ariaLabel="Art der Ausnahme" />
           </Field>
           {kind === "urlaub" ? <DateField label="Bis" value={effectiveEnd} min={startDate} onChange={setEndDate} /> : null}
           <JellyButton disabled={overlap} onClick={addException} aria-describedby={overlap ? "exception-overlap" : undefined}>
@@ -181,7 +181,7 @@ export function VerfuegbarkeitTab() {
                 </span>
                 <Pill tone={item.kind === "urlaub" ? "blue" : "amber"}>{exceptionLabels[item.kind]}</Pill>
                 <JellyButton
-                  variant="icon"
+                  variant="icon" className="personal-icon-button"
                   aria-label={`Ausnahme ${formatExceptionRange(item.startDate, item.endDate)} entfernen`}
                   onClick={() => commit({ type: "removeException", id: item.id }, "Ausnahme entfernt", { description: `${employee.name} · ${formatExceptionRange(item.startDate, item.endDate)}` })}
                 >

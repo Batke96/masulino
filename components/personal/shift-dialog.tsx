@@ -18,7 +18,7 @@ import {
   type Shift,
   type ShiftKind,
 } from "@/lib/personal"
-import { Field, TimeField } from "./personal-ui"
+import { Field, TimeField, useFocusReturn } from "./personal-ui"
 import { SegmentNav } from "./segment-nav"
 
 export type ShiftDraft = {
@@ -50,9 +50,10 @@ export function ShiftDialog({
   onSave: (shift: ShiftDraft & { employeeId: string }) => void
   onRemove: (shift: Shift) => void
 }) {
+  const focusReturn = useFocusReturn()
   return (
     <Dialog open={draft !== null} onOpenChange={(open) => { if (!open) onClose() }}>
-      <DialogContent showCloseButton={false} className="article-dialog personal-dialog">
+      <DialogContent showCloseButton={false} className="article-dialog personal-dialog" {...focusReturn}>
         {draft ? (
           <ShiftForm key={draft.id ?? `${draft.date}-${draft.start}-${draft.end}-${draft.kind}`} draft={draft} week={week} state={state} shifts={shifts} onClose={onClose} onSave={onSave} onRemove={onRemove} />
         ) : null}
@@ -81,11 +82,18 @@ function ShiftForm({
   const existing = draft.id ? shifts.find((item) => item.id === draft.id) : undefined
   const initialEmployee = useMemo(() => {
     if (draft.employeeId) return draft.employeeId
-    const fit = state.employees.find((employee) => {
-      if (draft.kind === "service" && employee.role === "reinigungskraft") return false
-      return checkAvailability(state.availability[employee.id], state.exceptions, employee.id, draft.date, draft.start, draft.end).ok
-    })
-    return (fit ?? state.employees[0]!).id
+    const early = draft.start < 10 * 60
+    const rank = (employee: PersonalState["employees"][number]): number => {
+      if (draft.kind === "service" && employee.role === "reinigungskraft") return 9
+      if (draft.kind === "cleaning" && !employee.skills.reinigung) return 8
+      const fit = checkAvailability(state.availability[employee.id], state.exceptions, employee.id, draft.date, draft.start, draft.end)
+      if (fit.ok) return 0
+      const blockedByException = state.exceptions.some((item) => item.employeeId === employee.id && item.startDate <= draft.date && draft.date <= item.endDate)
+      if (blockedByException) return 7
+      const openingFit = early ? (employee.skills.oeffnung ? 0 : 1) : 0
+      return 2 + openingFit
+    }
+    return [...state.employees].sort((a, b) => rank(a) - rank(b))[0]!.id
   }, [draft, state])
 
   const [employeeId, setEmployeeId] = useState(initialEmployee)
@@ -121,10 +129,10 @@ function ShiftForm({
       </DialogDescription>
       <div className="personal-form">
         <Field label="Mitarbeiter">
-          <GlideSelect className="personal-select" options={employeeOptions} value={employeeId} onChange={setEmployeeId} showTags={false} size="sm" ariaLabel="Mitarbeiter" />
+          <GlideSelect className="personal-select" options={employeeOptions} value={employeeId} onChange={setEmployeeId} showTags={false} size="md" ariaLabel="Mitarbeiter" />
         </Field>
         <Field label="Tag">
-          <GlideSelect className="personal-select" options={dateOptions} value={date} onChange={setDate} showTags={false} size="sm" ariaLabel="Tag" />
+          <GlideSelect className="personal-select" options={dateOptions} value={date} onChange={setDate} showTags={false} size="md" ariaLabel="Tag" />
         </Field>
         <div className="personal-form-row">
           <TimeField label="Beginn" value={start} onChange={setStart} />
@@ -142,6 +150,7 @@ function ShiftForm({
           />
         </Field>
       </div>
+      {!error && start !== null && end !== null ? <p className="personal-field-hint">Dauer: {durationLabel(end - start)}</p> : null}
       {error ? (
         <p className="personal-field-error" role="alert">
           {error}
@@ -189,7 +198,6 @@ function ShiftForm({
           {existing ? "Änderung speichern" : "Schicht speichern"}
         </JellyButton>
       </div>
-      {!error && start !== null && end !== null ? <p className="fine-print personal-duration">Dauer: {durationLabel(end - start)}</p> : null}
     </>
   )
 }

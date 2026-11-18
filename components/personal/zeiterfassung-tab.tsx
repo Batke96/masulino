@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Check, Clock3, Play, Square, X } from "lucide-react"
+import { Check, Clock3, LogIn, LogOut, X } from "lucide-react"
 
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { JellyButton } from "@/components/ui/jelly-button"
@@ -30,7 +30,7 @@ import {
   type Punch,
 } from "@/lib/personal"
 import { usePersonal } from "./personal-context"
-import { PersonAvatar, Pill, TimeField } from "./personal-ui"
+import { PersonAvatar, Pill, TimeField, useFocusReturn } from "./personal-ui"
 import { SegmentNav } from "./segment-nav"
 
 type Sub = "heute" | "korrekturen"
@@ -70,7 +70,7 @@ export function ZeiterfassungTab() {
   return (
     <div className="personal-tab">
       <section className="kpi-row personal-kpis personal-kpis-three" aria-label="Kennzahlen heute">
-        <KpiCard label="Eingestempelt" value={running.length} deltaLabel={`von ${planned.size} geplanten Mitarbeitenden`} icon={<Play aria-hidden="true" strokeWidth={1.8} />} />
+        <KpiCard label="Eingestempelt" value={running.length} deltaLabel={`von ${planned.size} geplanten Mitarbeitenden`} icon={<LogIn aria-hidden="true" strokeWidth={1.8} />} />
         <KpiCard label="Erfasste Zeit heute" value={hoursLabel(worked)} deltaLabel={`Stand ${formatTime(clock)} Uhr`} icon={<Clock3 aria-hidden="true" strokeWidth={1.8} />} />
         <KpiCard label="Offene Korrekturen" value={open.length} deltaLabel={open.length === 0 ? "Alles entschieden" : "Warten auf Entscheidung"} icon={<Check aria-hidden="true" strokeWidth={1.8} />} />
       </section>
@@ -137,21 +137,21 @@ export function ZeiterfassungTab() {
                           : "Noch nicht gestempelt"}
                       </strong>
                       {deviation ? <small>{deviation}</small> : late ? <small>Schicht hat um {formatTime(shift.start)} Uhr begonnen</small> : null}
-                    </span>
-                    <span className="personal-punch-status">
-                      {isOpen ? <Pill tone="green">Eingestempelt</Pill> : punch ? <Pill>Beendet</Pill> : late ? <Pill tone="amber">Nicht gestempelt</Pill> : <Pill>Geplant</Pill>}
-                      {correction ? <Pill tone="blue">Korrektur offen</Pill> : null}
+                      <span className="personal-punch-status">
+                        {isOpen ? <Pill tone="green">Eingestempelt</Pill> : punch ? <Pill>Beendet</Pill> : late ? <Pill tone="amber">Nicht gestempelt</Pill> : <Pill>Geplant</Pill>}
+                        {correction ? <Pill tone="blue">Korrektur offen</Pill> : null}
+                      </span>
                     </span>
                     <span className="personal-punch-actions">
                       {!punch ? (
                         <JellyButton onClick={() => clockIn(employee)}>
-                          <Play size={14} strokeWidth={1.8} aria-hidden="true" />
+                          <LogIn size={16} strokeWidth={1.8} aria-hidden="true" />
                           Einstempeln
                         </JellyButton>
                       ) : null}
                       {punch && isOpen ? (
                         <JellyButton variant="soft" disabled={clock <= punch.start} onClick={() => clockOut(employee, punch)}>
-                          <Square size={14} strokeWidth={1.8} aria-hidden="true" />
+                          <LogOut size={16} strokeWidth={1.8} aria-hidden="true" />
                           Ausstempeln
                         </JellyButton>
                       ) : null}
@@ -219,11 +219,11 @@ function CorrectionRow({ correction }: { correction: Correction }) {
       {correction.status === "offen" ? (
         <span className="personal-punch-actions">
           <JellyButton onClick={() => commit({ type: "decideCorrection", id: correction.id, decision: "genehmigt" }, "Korrektur genehmigt", { description: `${name} · ${correctionSummary(correction)}` })}>
-            <Check size={14} strokeWidth={1.8} aria-hidden="true" />
+            <Check size={16} strokeWidth={1.8} aria-hidden="true" />
             Genehmigen
           </JellyButton>
           <JellyButton variant="soft" onClick={() => commit({ type: "decideCorrection", id: correction.id, decision: "abgelehnt" }, "Korrektur abgelehnt", { description: `${name} · Die Stempelzeit bleibt unverändert.` })}>
-            <X size={14} strokeWidth={1.8} aria-hidden="true" />
+            <X size={16} strokeWidth={1.8} aria-hidden="true" />
             Ablehnen
           </JellyButton>
         </span>
@@ -235,9 +235,10 @@ function CorrectionRow({ correction }: { correction: Correction }) {
 }
 
 function CorrectionDialog({ punch, onClose }: { punch: Punch | null; onClose: () => void }) {
+  const focusReturn = useFocusReturn()
   return (
     <Dialog open={punch !== null} onOpenChange={(open) => { if (!open) onClose() }}>
-      <DialogContent showCloseButton={false} className="article-dialog personal-dialog">
+      <DialogContent showCloseButton={false} className="article-dialog personal-dialog" {...focusReturn}>
         {punch ? <CorrectionForm key={punch.id} punch={punch} onClose={onClose} /> : null}
       </DialogContent>
     </Dialog>

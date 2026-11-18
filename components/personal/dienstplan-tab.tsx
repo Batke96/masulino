@@ -403,31 +403,6 @@ function DayDetail({
               ))}
             </Accordion>
           )}
-          <div className="personal-forecast">
-            <h3 className="personal-subhead">Wetter und Erwartung</h3>
-            <dl>
-              <div>
-                <dt>Wetter</dt>
-                <dd>
-                  <Weather size={16} strokeWidth={1.8} aria-hidden="true" />
-                  {day.weather.temperature}° · {weatherLabels[day.weather.symbol]}
-                </dd>
-              </div>
-              <div>
-                <dt>Regenwahrscheinlichkeit</dt>
-                <dd>{day.weather.rainPercent} %</dd>
-              </div>
-              <div>
-                <dt>Gebuchte Personen</dt>
-                <dd>{dayPersons(day)}</dd>
-              </div>
-              <div>
-                <dt>Spitze erwarteter Gäste</dt>
-                <dd>{peakGuests(day, key)}</dd>
-              </div>
-            </dl>
-            <p className="fine-print">Spontanbesuche sind mit {walkIns} Personen angenommen (Demo-Annahme nach Wochentag und Regen, keine Prognose).</p>
-          </div>
         </div>
 
         <div className="personal-detail-side">
@@ -475,10 +450,10 @@ function DayDetail({
                         {!fit.ok ? <Pill tone="amber">Verfügbarkeit</Pill> : null}
                       </span>
                       <span className="personal-shift-actions">
-                        <JellyButton variant="icon" aria-label={`Schicht von ${name} bearbeiten`} onClick={() => onEdit(shift)}>
+                        <JellyButton variant="icon" className="personal-icon-button" aria-label={`Schicht von ${name} bearbeiten`} onClick={() => onEdit(shift)}>
                           <Pencil size={16} strokeWidth={1.8} aria-hidden="true" />
                         </JellyButton>
-                        <JellyButton variant="icon" aria-label={`Schicht von ${name} entfernen`} onClick={() => onRemove(shift)}>
+                        <JellyButton variant="icon" className="personal-icon-button" aria-label={`Schicht von ${name} entfernen`} onClick={() => onRemove(shift)}>
                           <Trash2 size={16} strokeWidth={1.8} aria-hidden="true" />
                         </JellyButton>
                       </span>
@@ -491,6 +466,31 @@ function DayDetail({
               </p>
             </>
           )}
+        </div>
+        <div className="personal-forecast">
+          <h3 className="personal-subhead">Wetter und Erwartung</h3>
+          <dl>
+            <div>
+              <dt>Wetter</dt>
+              <dd>
+                <Weather size={16} strokeWidth={1.8} aria-hidden="true" />
+                {day.weather.temperature}° · {weatherLabels[day.weather.symbol]}
+              </dd>
+            </div>
+            <div>
+              <dt>Regenwahrscheinlichkeit</dt>
+              <dd>{day.weather.rainPercent} %</dd>
+            </div>
+            <div>
+              <dt>Gebuchte Personen</dt>
+              <dd>{dayPersons(day)}</dd>
+            </div>
+            <div>
+              <dt>Spitze erwarteter Gäste</dt>
+              <dd>{peakGuests(day, key)}</dd>
+            </div>
+          </dl>
+          <p className="fine-print">Spontanbesuche sind mit {walkIns} Personen angenommen (Demo-Annahme nach Wochentag und Regen, keine Prognose).</p>
         </div>
       </div>
     </section>

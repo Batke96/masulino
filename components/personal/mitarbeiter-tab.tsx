@@ -164,7 +164,7 @@ function EmployeeEditor({ employee, changed, onReset, onDone }: { employee: Empl
             value={employee.role}
             onChange={(value) => dispatch({ type: "updateEmployee", id: employee.id, patch: { role: value as Role } })}
             showTags={false}
-            size="sm"
+            size="md"
             ariaLabel={`Rolle von ${employee.name}`}
           />
         </div>

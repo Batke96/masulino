@@ -19,7 +19,7 @@ import {
   type PlanWeek,
   type Shift,
 } from "@/lib/personal"
-import { Pill } from "./personal-ui"
+import { Pill, useFocusReturn } from "./personal-ui"
 import { SegmentNav } from "./segment-nav"
 
 type Mode = "fill" | "rebuild"
@@ -39,9 +39,10 @@ export function ProposalDialog({
   onClose: () => void
   onApply: (next: Shift[], summary: string) => void
 }) {
+  const focusReturn = useFocusReturn()
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next) onClose() }}>
-      <DialogContent showCloseButton={false} className="article-dialog personal-dialog personal-dialog-wide">
+      <DialogContent showCloseButton={false} className="article-dialog personal-dialog personal-dialog-wide" {...focusReturn}>
         {open ? <ProposalBody week={week} state={state} shifts={shifts} onClose={onClose} onApply={onApply} /> : null}
       </DialogContent>
     </Dialog>
@@ -174,9 +175,10 @@ export function PublishDialog({
   onClose: () => void
   onConfirm: () => void
 }) {
+  const focusReturn = useFocusReturn()
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next) onClose() }}>
-      <DialogContent showCloseButton={false} className="article-dialog personal-dialog">
+      <DialogContent showCloseButton={false} className="article-dialog personal-dialog" {...focusReturn}>
         {open ? <PublishBody week={week} hints={hints} onClose={onClose} onConfirm={onConfirm} /> : null}
       </DialogContent>
     </Dialog>

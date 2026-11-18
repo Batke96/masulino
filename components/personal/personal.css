@@ -309,12 +309,26 @@ span.personal-issue-text {
 .personal-detail-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  grid-template-areas:
+    "main side"
+    "forecast side";
+  grid-template-rows: auto 1fr;
   gap: var(--space-6);
   padding-inline: var(--inset-line);
 }
 .personal-detail-main,
-.personal-detail-side {
+.personal-detail-side,
+.personal-forecast {
   min-width: 0;
+}
+.personal-detail-main {
+  grid-area: main;
+}
+.personal-detail-side {
+  grid-area: side;
+}
+.personal-forecast {
+  grid-area: forecast;
 }
 .personal-side-head {
   display: flex;
@@ -387,9 +401,6 @@ span.personal-issue-text {
   font-size: var(--text-label);
 }
 
-.personal-forecast {
-  margin-top: var(--space-6);
-}
 .personal-forecast dl {
   margin: 0;
   display: grid;
@@ -501,6 +512,10 @@ span.personal-issue-text {
   margin-top: var(--space-1);
   flex-shrink: 0;
 }
+.article-dialog.personal-dialog .personal-note p,
+.article-dialog.personal-dialog .personal-note li {
+  font-size: var(--text-label);
+}
 .personal-note ul {
   margin-top: var(--space-1);
 }
@@ -607,6 +622,17 @@ span.personal-issue-text {
 }
 .personal-toolbar-person [data-slot="glide-select"] {
   min-width: 220px;
+}
+.personal-icon-button[data-variant="icon"] {
+  border-color: var(--border);
+  background: var(--background);
+  color: var(--text);
+  box-shadow: none;
+}
+.personal-icon-button[data-variant="icon"]:hover:not(:disabled) {
+  border-color: var(--input);
+  background: var(--muted);
+  color: var(--text);
 }
 .personal-date-button {
   justify-content: flex-start;
@@ -838,12 +864,12 @@ span.personal-issue-text {
 .personal-punch-list li,
 .personal-correction-list li {
   display: grid;
-  grid-template-columns: minmax(160px, 1.1fr) minmax(0, 1fr) minmax(0, 1.4fr) auto auto;
+  grid-template-columns: 200px 128px minmax(0, 1fr) auto;
   gap: var(--space-3) var(--space-4);
   align-items: center;
 }
 .personal-correction-list li {
-  grid-template-columns: minmax(160px, 1fr) minmax(0, 2fr) auto auto;
+  grid-template-columns: 200px minmax(0, 1fr) 96px auto;
 }
 .personal-punch-list,
 .personal-correction-list {
@@ -873,6 +899,10 @@ span.personal-issue-text {
   display: flex;
   gap: var(--space-2);
   flex-wrap: wrap;
+  margin-top: var(--space-1);
+}
+.personal-correction-list li .pill {
+  justify-self: start;
 }
 .personal-punch-actions {
   display: flex;
@@ -984,9 +1014,17 @@ span.personal-issue-text {
 @media (max-width: 1199px) {
   .personal-detail-grid {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "main"
+      "side"
+      "forecast";
+    grid-template-rows: auto;
   }
   .personal-punch-list li {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .personal-punch-list li .personal-punch-cell:nth-of-type(3) {
+    grid-column: 1 / -1;
   }
   .personal-punch-actions {
     grid-column: 1 / -1;
@@ -1043,11 +1081,17 @@ span.personal-issue-text {
   }
   .personal-day,
   .personal-weekday {
-    flex: 0 0 112px;
+    flex: 0 0 124px;
     scroll-snap-align: start;
   }
   .personal-weekday {
-    flex-basis: 72px;
+    flex-basis: 84px;
+  }
+  .personal-weekday-time {
+    white-space: nowrap;
+  }
+  .personal-header .pill {
+    margin-left: calc(var(--space-10) + var(--space-4));
   }
   .personal-form-row,
   .personal-tester-fields,
@@ -1101,7 +1145,7 @@ span.personal-issue-text {
     flex: 1 1 100%;
   }
   .personal-forecast dl {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 }
 

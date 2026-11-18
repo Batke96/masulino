@@ -1,6 +1,6 @@
 "use client"
 
-import { useId, useState, type ReactNode } from "react"
+import { useId, useRef, useState, type ReactNode } from "react"
 import { CalendarDays, Minus, Plus } from "lucide-react"
 import { de } from "react-day-picker/locale"
 
@@ -157,7 +157,7 @@ export function HourSelect({
         if (minute !== null) onChange(minute)
       }}
       showTags={false}
-      size="sm"
+      size="md"
       ariaLabel={label}
     />
   )
@@ -178,11 +178,11 @@ export function Stepper({
 }) {
   return (
     <div className="personal-stepper" role="group" aria-label={label}>
-      <JellyButton variant="icon" aria-label={`${label} verringern`} disabled={value <= min} onClick={() => onChange(Math.max(min, value - 1))}>
+      <JellyButton variant="icon" className="personal-icon-button" aria-label={`${label} verringern`} disabled={value <= min} onClick={() => onChange(Math.max(min, value - 1))}>
         <Minus size={16} strokeWidth={1.8} aria-hidden="true" />
       </JellyButton>
       <output aria-live="polite">{value}</output>
-      <JellyButton variant="icon" aria-label={`${label} erhöhen`} disabled={value >= max} onClick={() => onChange(Math.min(max, value + 1))}>
+      <JellyButton variant="icon" className="personal-icon-button" aria-label={`${label} erhöhen`} disabled={value >= max} onClick={() => onChange(Math.min(max, value + 1))}>
         <Plus size={16} strokeWidth={1.8} aria-hidden="true" />
       </JellyButton>
     </div>
@@ -238,4 +238,20 @@ export function DateField({
       </Popover>
     </div>
   )
+}
+
+export function useFocusReturn() {
+  const origin = useRef<HTMLElement | null>(null)
+  return {
+    onOpenAutoFocus: () => {
+      origin.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    },
+    onCloseAutoFocus: (event: Event) => {
+      const target = origin.current
+      if (target?.isConnected) {
+        event.preventDefault()
+        target.focus()
+      }
+    },
+  }
 }

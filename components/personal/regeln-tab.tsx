@@ -23,7 +23,7 @@ import {
   type WeekdayKey,
 } from "@/lib/personal"
 import { usePersonal } from "./personal-context"
-import { Field, HourSelect, NumberField, Stepper } from "./personal-ui"
+import { Field, HourSelect, NumberField, Stepper, useFocusReturn } from "./personal-ui"
 import { SegmentNav } from "./segment-nav"
 
 const dayOptions = dayKeys.map((value) => ({ value, label: dayNames[value] }))
@@ -124,10 +124,10 @@ function LoadConditions() {
             <li key={condition.id}>
               <span>{conditionText(condition)}</span>
               <span className="personal-shift-actions">
-                <JellyButton variant="icon" aria-label={`Bedingung bearbeiten: ${conditionText(condition)}`} onClick={() => setDraft(condition)}>
+                <JellyButton variant="icon" className="personal-icon-button" aria-label={`Bedingung bearbeiten: ${conditionText(condition)}`} onClick={() => setDraft(condition)}>
                   <Pencil size={16} strokeWidth={1.8} aria-hidden="true" />
                 </JellyButton>
-                <JellyButton variant="icon" aria-label={`Bedingung entfernen: ${conditionText(condition)}`} onClick={() => commit({ type: "removeCondition", id: condition.id }, "Bedingung entfernt", { description: conditionText(condition) })}>
+                <JellyButton variant="icon" className="personal-icon-button" aria-label={`Bedingung entfernen: ${conditionText(condition)}`} onClick={() => commit({ type: "removeCondition", id: condition.id }, "Bedingung entfernt", { description: conditionText(condition) })}>
                   <Trash2 size={16} strokeWidth={1.8} aria-hidden="true" />
                 </JellyButton>
               </span>
@@ -154,7 +154,7 @@ function RuleTester() {
       <h3 className="personal-subhead">Regel testen</h3>
       <div className="personal-form-row personal-tester-fields">
         <Field label="Wochentag">
-          <GlideSelect className="personal-select" options={dayOptions} value={day} onChange={(next) => setDay(next as DayKey)} showTags={false} size="sm" ariaLabel="Wochentag testen" />
+          <GlideSelect className="personal-select" options={dayOptions} value={day} onChange={(next) => setDay(next as DayKey)} showTags={false} size="md" ariaLabel="Wochentag testen" />
         </Field>
         <NumberField label="Erwartete Gäste" value={guests} onChange={setGuests} min={0} max={999} invalid={count === null} />
         <Field label="Uhrzeit">
@@ -189,9 +189,10 @@ function RuleTester() {
 }
 
 function ConditionDialog({ draft, onClose }: { draft: (Omit<LoadCondition, "id"> & { id?: string }) | null; onClose: () => void }) {
+  const focusReturn = useFocusReturn()
   return (
     <Dialog open={draft !== null} onOpenChange={(open) => { if (!open) onClose() }}>
-      <DialogContent showCloseButton={false} className="article-dialog personal-dialog">
+      <DialogContent showCloseButton={false} className="article-dialog personal-dialog" {...focusReturn}>
         {draft ? <ConditionForm key={draft.id ?? "neu"} draft={draft} onClose={onClose} /> : null}
       </DialogContent>
     </Dialog>
@@ -224,7 +225,7 @@ function ConditionForm({ draft, onClose }: { draft: Omit<LoadCondition, "id"> & 
       <DialogDescription>Ab dieser Gästezahl kommt Personal zur Grundbesetzung hinzu.</DialogDescription>
       <div className="personal-form">
         <Field label="Wochentag">
-          <GlideSelect className="personal-select" options={dayOptions} value={day} onChange={(next) => setDay(next as DayKey)} showTags={false} size="sm" ariaLabel="Wochentag der Bedingung" />
+          <GlideSelect className="personal-select" options={dayOptions} value={day} onChange={(next) => setDay(next as DayKey)} showTags={false} size="md" ariaLabel="Wochentag der Bedingung" />
         </Field>
         <NumberField label="Ab erwarteten Gästen" value={guests} onChange={setGuests} min={1} max={999} invalid={count === null || count < 1} />
         <Field label="Zusätzliche Personen">
@@ -333,10 +334,10 @@ function CleaningServices() {
               </span>
               <span className="personal-shift-actions">
                 <Switch aria-label={`${service.label} aktiv`} checked={service.enabled} onCheckedChange={(value) => dispatch({ type: "saveCleaning", service: { ...service, enabled: value } })} />
-                <JellyButton variant="icon" aria-label={`${service.label} bearbeiten`} onClick={() => setDraft(service)}>
+                <JellyButton variant="icon" className="personal-icon-button" aria-label={`${service.label} bearbeiten`} onClick={() => setDraft(service)}>
                   <Pencil size={16} strokeWidth={1.8} aria-hidden="true" />
                 </JellyButton>
-                <JellyButton variant="icon" aria-label={`${service.label} entfernen`} onClick={() => commit({ type: "removeCleaning", id: service.id }, "Reinigungsdienst entfernt", { description: service.label })}>
+                <JellyButton variant="icon" className="personal-icon-button" aria-label={`${service.label} entfernen`} onClick={() => commit({ type: "removeCleaning", id: service.id }, "Reinigungsdienst entfernt", { description: service.label })}>
                   <Trash2 size={16} strokeWidth={1.8} aria-hidden="true" />
                 </JellyButton>
               </span>
@@ -351,9 +352,10 @@ function CleaningServices() {
 }
 
 function CleaningDialog({ draft, onClose }: { draft: (Omit<CleaningService, "id"> & { id?: string }) | null; onClose: () => void }) {
+  const focusReturn = useFocusReturn()
   return (
     <Dialog open={draft !== null} onOpenChange={(open) => { if (!open) onClose() }}>
-      <DialogContent showCloseButton={false} className="article-dialog personal-dialog">
+      <DialogContent showCloseButton={false} className="article-dialog personal-dialog" {...focusReturn}>
         {draft ? <CleaningForm key={draft.id ?? "neu"} draft={draft} onClose={onClose} /> : null}
       </DialogContent>
     </Dialog>
