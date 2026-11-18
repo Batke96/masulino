@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, type CSSProperties, type ReactElement } from "react";
-import { LayoutDashboard, Sparkles, BookOpen, CalendarDays, Users, Ticket, Cake, ChartNoAxesCombined, Megaphone, Coffee, Globe, CloudRain, Sun, CloudSun, Cloud, Bell, Search, ChevronDown, Plus, Settings2, Clock3, Check, CheckCheck, CircleHelp, X, Send, ShieldCheck, CircleCheck, History, Pause, Play, RotateCcw, MapPin, ExternalLink, ScanLine, CreditCard, Heart, Menu, SlidersHorizontal, CalendarCheck, Info, Mail, Smartphone, Target, TrendingUp, Pencil, GripVertical, Command as CommandIcon, PanelLeftClose, PanelLeftOpen, LogOut, type LucideIcon } from "lucide-react";
+import { LayoutDashboard, Sparkles, BookOpen, CalendarDays, Users, Ticket, Cake, ChartNoAxesCombined, Megaphone, Coffee, Globe, CloudRain, Sun, CloudSun, Cloud, Bell, Search, ChevronDown, Plus, Settings2, Clock3, Check, CheckCheck, CircleHelp, X, Send, ShieldCheck, CircleCheck, History, Pause, Play, RotateCcw, MapPin, ExternalLink, ScanLine, CreditCard, Heart, Menu, SlidersHorizontal, CalendarCheck, Info, Mail, Smartphone, Target, TrendingUp, Pencil, GripVertical, Command as CommandIcon, PanelLeftClose, PanelLeftOpen, LogOut, FolderOpen, type LucideIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { JellyButton } from "@/components/ui/jelly-button";
 import { Sheet, SheetContent, SheetTitle, SheetDescription, SheetClose } from "@/components/ui/sheet";
@@ -39,6 +39,7 @@ import { appVisible, viewVisible } from "@/lib/workspace/capabilities";
 import { TableFloor } from "@/app/table-floor";
 import { OccupancyPanel } from "@/components/booking/occupancy-panel";
 import { PersonalWorkspace } from "@/components/personal/personal-workspace";
+import { TagesmappeApp } from "@/components/tagesmappe/tagesmappe-app";
 import type { SpanBooking } from "@/lib/reports/booking-window";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { BookingSchedule, type ScheduleRow } from "@/app/booking-lists";
@@ -50,16 +51,17 @@ import { deltaAgainstPrevious, historyCaption, historyDates, seriesForDates } fr
 type Scenario = "rain" | "sun" | "full";
 type Suggestion = "weather" | "return" | "team";
 type AgentState = "pending" | "planned" | "snoozed";
-type AppId = "bookings" | "tickets" | "families" | "team" | "reports" | "campaigns" | "bistro" | "portal" | "it";
+type AppId = "bookings" | "mappe" | "tickets" | "families" | "team" | "reports" | "campaigns" | "bistro" | "portal" | "it";
 type View = "today" | "agents" | "knowledge" | "concept" | AppId;
 type ChatMessage = { role: "user" | "assistant"; text: string; kind?: string };
 type AppTile = { id: AppId; name: string; description: string; icon: LucideIcon; color: string; meta: string };
 const apps: AppTile[] = [
   { id:"bookings", name:"Buchungen", description:"Besuche & Reservierungen", icon:CalendarDays, color:"violet", meta:"24 heute" },
+  { id:"mappe", name:"Tagesmappe", description:"Seiten für den Ausdruck", icon:FolderOpen, color:"blue", meta:"Für den Tag" },
   { id:"team", name:"Team & Schichten", description:"Gemeinsam gut geplant", icon:Users, color:"green", meta:"6 im Einsatz" },
   { id:"reports", name:"Auswertungen", description:"Zahlen mit Überblick", icon:ChartNoAxesCombined, color:"amber", meta:"September 2026" },
 ];
-const liveTileIds = new Set<AppId>(["bookings", "team", "reports"]);
+const liveTileIds = new Set<AppId>(["bookings", "mappe", "team", "reports"]);
 
 function isAppId(value: unknown): value is AppId {
   return apps.some((app) => app.id === value);
@@ -483,6 +485,12 @@ function Workspace(){
     if(!liveBookings) return "…";
     return `${liveBookings.length.toLocaleString("de-DE")} heute`;
   }
+  if(app.id==="mappe"){
+    if(!staff.capabilities.bookings||bookingsFailed||workspaceFailed) return "—";
+    if(!liveBookings) return "…";
+    const count=liveBookings.length;
+    return count===1?"1 Buchung heute":`${count.toLocaleString("de-DE")} Buchungen heute`;
+  }
   if(app.id==="families"){
     if(!staff.capabilities.families||familiesFailed) return "—";
     if(!liveFamilies) return "…";
@@ -528,6 +536,7 @@ function Workspace(){
  function BookingTable({short=false}:{short?:boolean}){const items=allBookings.slice(0,short?3:50);return <BookingRows items={items}/>}
  function appContent(){
   if(staff&&!viewVisible(view, staff.capabilities))return <div className="empty-state surface"><ShieldCheck size={28}/><h3>Kein Zugriff.</h3><p>{staff.roleLabel} darf diesen Bereich nicht öffnen.</p></div>;
+  if(view==="mappe") return <TagesmappeApp live={workspaceReady} anchorDate={anchorDate}/>;
   if(view==="bookings"){
     const dates=anchorDate?periodDatesUnion(anchorDate, [birthdayPeriod, visitPeriod]):[];
     const birthdayDates=new Set(anchorDate?periodDates(anchorDate, birthdayPeriod):[]);
