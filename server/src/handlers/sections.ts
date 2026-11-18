@@ -22,6 +22,7 @@ import {
   readAvailability,
   readWeek,
 } from "@masulino/workforce";
+import { ensureHostedDemoParties } from "../demo-parties";
 import { packagesFor } from "../queries";
 import { describeRole, getStaffSession, resolveDefaultScope } from "../session";
 import { errorResponse, json } from "../errors";
@@ -148,6 +149,14 @@ export async function handleSection(
     switch (section) {
       case "bookings":
       case "birthdays": {
+        await ensureHostedDemoParties({
+          tenantId: resolved.tenantId,
+          tenantSlug: resolved.tenantSlug,
+          locationId: resolved.locationId,
+          locationSlug: resolved.locationSlug,
+          timezone: resolved.timezone,
+          principalId: actor.principalId,
+        });
         const rows = await dailyView({ actor, locationId, localDate });
         const bookings = rows.filter((row) => row.status !== "cancelled").map(toBookingView);
         const filtered =
