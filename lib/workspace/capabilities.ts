@@ -10,15 +10,20 @@ export type StaffCapabilities = {
   it: boolean;
 };
 
+const signedOutApps = new Set(["bookings", "mappe", "team", "reports"]);
+
 export function appVisible(id: string, capabilities: StaffCapabilities | null): boolean {
-  if (id === "it") return Boolean(capabilities?.it);
-  if (!capabilities) return true;
+  if (!capabilities) return signedOutApps.has(id);
+  if (id === "it") return capabilities.it;
   if (id === "bookings" || id === "mappe") return capabilities.bookings;
   if (id === "families") return capabilities.families;
   if (id === "team") return capabilities.team;
   if (id === "reports") return capabilities.reports;
   if (id === "campaigns") return capabilities.campaigns;
   if (id === "portal") return capabilities.portal;
+  if (id === "tickets" || id === "bistro") {
+    return capabilities.bookings && capabilities.team && capabilities.families && capabilities.it;
+  }
   return false;
 }
 

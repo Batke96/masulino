@@ -195,6 +195,16 @@ try {
       ($1, $8, 'it', null)`,
     [tenantA, ownerMembership, receptionMembership, locationA, employeeMembership, managerMembership, simpleAdminMembership, itMembership],
   );
+  await client.query(
+    `insert into grants (tenant_id, membership_id, role_key, location_id) values
+      ($1, $2, 'tenant_administrator', null),
+      ($1, $2, 'it', null),
+      ($1, $2, 'location_manager', $3),
+      ($1, $2, 'shift_lead', $3),
+      ($1, $2, 'reception', $3),
+      ($1, $2, 'employee', $3)`,
+    [tenantA, simpleAdminMembership, locationA],
+  );
 
   const moduleIds = [
     "core",
