@@ -30,7 +30,9 @@ Open the local URL printed by the development server, normally `http://localhost
 | `owner.masulino@example.test` | Reports, campaigns, families and team. |
 | `it.masulino@example.test` | IT. Benutzer, Auswertungen and Stammdaten. |
 
-Those addresses exist only in the local database created by `pnpm dev:workspace`. Production uses its own database. The bootstrapped Inhaber signs in there, opens IT → Benutzer, and creates IT and every later role. The password is shown once. IT cannot create or remove an Inhaber.
+`pnpm dev:workspace` creates these accounts in the embedded database only. `pnpm db:seed` refuses to run when `NODE_ENV=production` and refuses any database that is not on `127.0.0.1` or `localhost`.
+
+On the Vercel database for https://masulino-rho.vercel.app these same accounts are a public demo. `user@example.test` signs in with `password`. The other `@example.test` accounts use `Synthetic-Staff-1`. An operator loads that demo with the one command in `docs/deploy.md`. Do not run it against a database that already has real guests or an owner. A real deployment still starts with one Inhaber, who opens IT → Benutzer and creates later accounts. The password is shown once. IT cannot create or remove an Inhaber.
 
 Every role signs in with email and password and opens its workplace. The second factor stays in the code and stays off, including a production deploy, until `MASULINO_REQUIRE_MFA=1`. An authenticator enrolled earlier does not ask for a code while it is off. Synthetic staff enrollment is cleared, so IT and Inhaber are not left on a code or a backup code. `user@example.test` is also an owner and uses the same password sign-in.
 
