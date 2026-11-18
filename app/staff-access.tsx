@@ -47,6 +47,7 @@ const noCapabilities: StaffCapabilities = {
   portal: false,
   agents: false,
   it: false,
+  operations: false,
 };
 
 function firstName(name: string): string {

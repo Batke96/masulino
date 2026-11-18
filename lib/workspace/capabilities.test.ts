@@ -11,6 +11,7 @@ const owner: StaffCapabilities = {
   portal: false,
   agents: false,
   it: true,
+  operations: false,
 };
 
 const exampleAdmin: StaffCapabilities = {
@@ -19,6 +20,7 @@ const exampleAdmin: StaffCapabilities = {
   team: true,
   campaigns: true,
   portal: true,
+  operations: true,
 };
 
 describe("app visibility", () => {
@@ -42,5 +44,15 @@ describe("app visibility", () => {
     expect(appVisible("bistro", exampleAdmin)).toBe(true);
     expect(appVisible("families", exampleAdmin)).toBe(true);
     expect(appVisible("campaigns", exampleAdmin)).toBe(true);
+  });
+
+  it("opens Kunden und Betrieb only with the matching permission", () => {
+    expect(appVisible("customers", null)).toBe(false);
+    expect(appVisible("betrieb", null)).toBe(false);
+    expect(appVisible("customers", owner)).toBe(false);
+    expect(appVisible("customers", { ...owner, families: true })).toBe(true);
+    expect(appVisible("customers", { ...owner, campaigns: true })).toBe(true);
+    expect(appVisible("betrieb", owner)).toBe(false);
+    expect(appVisible("betrieb", { ...owner, operations: true })).toBe(true);
   });
 });
