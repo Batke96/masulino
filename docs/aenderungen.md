@@ -48,11 +48,21 @@ Arbeitsstand gegen `6c1386d`.
 - Die IT-Benutzerliste nutzt diese Tabelle. Der Hinweis zum gebuchten Betrag nennt Kinderzahl mal Paketpreis plus Erwachsenenpauschale und keine Zahlung.
 - Anmeldetexte ohne abschließenden Punkt. Fehler stehen in `role="alert"`.
 
+### Personal (Team & Schichten)
+
+- Neuer interaktiver Personalbereich in `components/personal/` mit den Reitern Dienstplan, Mitarbeiter, Verfügbarkeit, Zeiterfassung und Regeln. Ab 768px steuern `JellyRadio`-Pillen, darunter `GlideSelect`, wie bei Buchungen und Auswertungen.
+- Die Fachlogik liegt getrennt von der Anzeige in `lib/personal/` (Regeln, Verfügbarkeit, Planprüfung, Planvorschlag, Zeiterfassung, Reducer) und hat Unit-Tests in `lib/personal/personal.test.ts`.
+- Planprüfung in 15-Minuten-Scheiben: Grundbesetzung je Tag, Zusatzbedarf bei hoher Auslastung (nur die höchste passende Bedingung, gedeckelt durch die Höchstbesetzung), Kasse, Leitung, Toilettenreinigung, Sonderöffnungen aus Kita-Buchungen vor 10:00 Uhr, Überschneidungen, Verfügbarkeit und Stundengrenzen. Offene Punkte sperren das Veröffentlichen, Hinweise verlangen eine Bestätigung.
+- Der Planvorschlag ist eine Rechenregel ohne KI. Er zeigt vor der Übernahme, was ergänzt oder ersetzt wird und was offen bleibt. Übernahme, Schichtänderungen, Ausnahmen, Korrekturen und Regeländerungen lassen sich per Toast zurücknehmen.
+- Veröffentlichen, Stempeln und Korrekturen sind Simulationen im Browser. Es wird nichts gesendet, gespeichert oder abgerechnet. Die Demo-Uhr startet am Samstag, 07.11.2026, 16:30 Uhr.
+- Mit angebundenem Arbeitsbereich steht der veröffentlichte Plan aus der Datenbank weiter oben. Der Demo-Bereich folgt getrennt darunter und ist als Beispielbereich gekennzeichnet.
+
 ## Bekannte Lücken
 
 Diese Lieferung schließt sie nicht.
 
 - `app/booking-requests.tsx` ist nicht in `app/page.tsx` eingebunden. Der Client ruft `/api/buchungen` auf. Der Router hat diese Route nicht.
+- Der Personalbereich arbeitet nur mit Beispieldaten im Browser. Es gibt keine Schreib-API für Dienstplan, Verfügbarkeit, Regeln oder Korrekturen. Die Wiederkehrenden Reinigungsdienste (Regeln, Punkt 4) sind eine Annahme der Demo. Die Karte „Schicht prüfen“ auf der Übersicht nutzt weiter eigene Beispielnamen.
 - Migration `0009_website_booking_requests.sql` legt `website_booking_requests` an. Migration `0011_slim.sql` löscht die Tabelle wieder.
 
 ## Nicht in diesem Commit
