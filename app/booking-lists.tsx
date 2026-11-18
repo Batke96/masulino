@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { Cake, Check, Users } from "lucide-react";
 import { DataTable, type DataColumn } from "@/components/data-table";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { JellyButton } from "@/components/ui/jelly-button";
 import { formatDayLabel } from "@/lib/booking/period";
 
 export type ScheduleRow = {
@@ -131,11 +132,11 @@ export function BookingSchedule({
           empty={<div className="empty-state"><h3>Keine Buchung</h3><p>In diesem Zeitraum steht hier nichts an.</p></div>}
           actions={(row) => (
             <>
-              <button type="button" className="button soft" onClick={() => onOpen(row.id)}>Öffnen</button>
-              <button type="button" className={"button checkin " + (row.checkedIn ? "checked" : "")} onClick={() => onCheckIn(row.id)}>
+              <JellyButton variant="soft" onClick={() => onOpen(row.id)}>Öffnen</JellyButton>
+              <JellyButton variant={row.checkedIn ? "dark" : "soft"} className="checkin" aria-pressed={row.checkedIn} onClick={() => onCheckIn(row.id)}>
                 {row.checkedIn ? <><Check size={14} strokeWidth={1.8} />Check-in aufheben</> : "Check-in"}
-              </button>
-              {canRemove ? <button type="button" className="button soft" onClick={() => setPending(row)}>Buchung entfernen</button> : null}
+              </JellyButton>
+              {canRemove ? <JellyButton variant="soft" onClick={() => setPending(row)}>Buchung entfernen</JellyButton> : null}
             </>
           )}
         />
@@ -147,8 +148,8 @@ export function BookingSchedule({
             {pending ? `${pending.name} wird storniert. Der Tisch wird frei. Es geht keine Nachricht an die Website.` : ""}
           </DialogDescription>
           <div className="request-actions">
-            <button type="button" className="button soft" disabled={busy} onClick={() => setPending(null)}>Abbrechen</button>
-            <button type="button" className="button dark" disabled={busy} onClick={() => void confirm()}>{busy ? "Wird storniert …" : "Stornieren"}</button>
+            <JellyButton variant="soft" disabled={busy} onClick={() => setPending(null)}>Abbrechen</JellyButton>
+            <JellyButton disabled={busy} onClick={() => void confirm()}>{busy ? "Wird storniert …" : "Stornieren"}</JellyButton>
           </div>
         </DialogContent>
       </Dialog>

@@ -8,7 +8,7 @@ export function PeriodCompare({
   items: Array<{ label: string; value: string }>
 }) {
   return (
-    <section className="surface">
+    <section className="report-block">
       <div className="section-head"><h2>{title}</h2></div>
       {note ? <p className="fine-print mb-4">{note}</p> : null}
       <div className="grid gap-4 sm:grid-cols-3">

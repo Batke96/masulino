@@ -59,24 +59,24 @@ function KpiCard({
     direction === "flat" ? null : (direction === "up") !== invertDelta
   const trendColor =
     isPositive === true
-      ? "#33775a"
+      ? "var(--success)"
       : isPositive === false
-        ? "#a33b32"
+        ? "var(--destructive)"
         : "var(--primary)"
 
   return (
     <Card
       data-slot="kpi-card"
       data-direction={direction}
-      className={cn("gap-4 py-5", className)}
+      className={cn("gap-4 p-4 shadow-none", className)}
       {...props}
     >
-      <CardHeader className="px-5">
+      <CardHeader className="px-0">
         <CardDescription className="flex items-center gap-1.5 [&>svg]:size-4">
           {icon}
           {label}
         </CardDescription>
-        <CardTitle className="text-2xl font-semibold tabular-nums tracking-tight">
+        <CardTitle className="text-xl font-semibold tabular-nums tracking-tight">
           <MetricValue value={value} format={format} currency={currency} />
         </CardTitle>
         {delta !== undefined ? (
@@ -86,16 +86,16 @@ function KpiCard({
         ) : null}
       </CardHeader>
       {trend && trend.length > 1 ? (
-        <CardContent className="px-5">
+        <CardContent className="px-0">
           <Sparkline data={trend} color={trendColor} />
         </CardContent>
       ) : null}
       {deltaLabel ? (
-        <CardContent className="text-muted-foreground px-5 text-xs">
+        <CardContent className="text-muted-foreground px-0 text-xs">
           <span>{deltaLabel}</span>
         </CardContent>
       ) : null}
-      {children ? <CardContent className="px-5">{children}</CardContent> : null}
+      {children ? <CardContent className="px-0">{children}</CardContent> : null}
     </Card>
   )
 }

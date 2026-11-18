@@ -25,7 +25,7 @@ export function BarList({
                 style={{ width: `${width}%` }}
               />
               <span className="relative flex h-full min-w-0 items-center gap-2 px-3 text-sm">
-                <strong className="shrink-0 tabular-nums font-[650]">{percent(item.share)}</strong>
+                <strong className="shrink-0 tabular-nums font-semibold">{percent(item.share)}</strong>
                 <span className="min-w-0 flex-1 truncate text-right">{item.label}</span>
               </span>
             </span>

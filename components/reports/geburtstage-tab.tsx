@@ -42,8 +42,8 @@ export function GeburtstageTab({
   const month = localDate.slice(0, 7)
 
   return (
-    <div className="flex flex-col gap-6">
-      <section className="flex flex-col gap-4">
+    <div className="report-groups">
+      <section className="report-block">
         <ReportLead note={`Heute im Haus, ${longDate(localDate)}. Gezählt werden Reservierungen, deren Paket ein Geburtstag ist.`} />
         <KpiSlots facts={facts} choices={choices} onChange={onChoice} />
         <section className="surface">

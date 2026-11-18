@@ -48,11 +48,11 @@ function DeltaBadge({
         "inline-flex items-center gap-1 text-xs font-medium tabular-nums",
         variant === "outline" && "rounded-md border px-1.5 py-0.5",
         variant === "soft" && "rounded-md px-1.5 py-0.5",
-        variant === "soft" && positive === true && "bg-emerald-500/10",
-        variant === "soft" && positive === false && "bg-red-500/10",
+        variant === "soft" && positive === true && "bg-success-bg",
+        variant === "soft" && positive === false && "bg-destructive-bg",
         variant === "soft" && positive === null && "bg-muted",
-        positive === true && "text-[#33775a]",
-        positive === false && "text-[#a33b32]",
+        positive === true && "text-success",
+        positive === false && "text-destructive",
         positive === null && "text-muted-foreground",
         className
       )}

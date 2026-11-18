@@ -1,0 +1,345 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-17T22:12:00+01:00",
+  "title": "Design System: Masulino Operate",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Masulino-Korall",
+        "canonical": "#ef603b",
+        "tonalRamp": ["#42180f", "#6d2819", "#983823", "#c44830", "#ef603b", "#f58b70", "#fbb7a5", "#fee4dc"]
+      },
+      "ring": {
+        "role": "primary",
+        "displayName": "Korall-Ring",
+        "canonical": "#ee714f",
+        "tonalRamp": ["#421d13", "#6d3020", "#98432d", "#c4563a", "#ee714f", "#f3987f", "#f9bead", "#fde6de"]
+      },
+      "sidebar-accent": {
+        "role": "primary",
+        "displayName": "Korall-Waschung",
+        "canonical": "#fff0ea",
+        "tonalRamp": ["#35231d", "#5b3c32", "#825649", "#aa7160", "#d39480", "#e8b6a6", "#f6d5ca", "#fff0ea"]
+      },
+      "ink": {
+        "role": "secondary",
+        "displayName": "Theken-Tinte",
+        "canonical": "#2c3040",
+        "tonalRamp": ["#151720", "#222530", "#303442", "#474b5a", "#666a77", "#8c8f99", "#b8bac1", "#e8e9ec"]
+      },
+      "navy": {
+        "role": "secondary",
+        "displayName": "Navy-Panel",
+        "canonical": "#222a44",
+        "tonalRamp": ["#111522", "#1b2237", "#26304d", "#3c4765", "#5c6680", "#838b9e", "#b1b5c1", "#e5e7eb"]
+      },
+      "destructive": {
+        "role": "tertiary",
+        "displayName": "Destruktiv",
+        "canonical": "#a33b32",
+        "tonalRamp": ["#32100d", "#551b17", "#772620", "#99322a", "#b95349", "#d4837b", "#eab3ae", "#f8e3e1"]
+      },
+      "success": {
+        "role": "tertiary",
+        "displayName": "Erfolg",
+        "canonical": "#33775a",
+        "tonalRamp": ["#10251c", "#1a3d2e", "#245640", "#33775a", "#57957a", "#83b49e", "#b5d3c6", "#e7f1ec"]
+      },
+      "warning": {
+        "role": "tertiary",
+        "displayName": "Warnung",
+        "canonical": "#926916",
+        "tonalRamp": ["#2c1f06", "#4a350b", "#684b10", "#926916", "#b48b3b", "#d1ad6b", "#e8d1a6", "#f8efd9"]
+      },
+      "status-high": {
+        "role": "tertiary",
+        "displayName": "Hohe Aufmerksamkeit",
+        "canonical": "#a7582c",
+        "tonalRamp": ["#32190c", "#542a15", "#783d1e", "#a7582c", "#c77b52", "#dda382", "#edc9b3", "#fae9df"]
+      },
+      "info": {
+        "role": "tertiary",
+        "displayName": "Information",
+        "canonical": "#496ca4",
+        "tonalRamp": ["#151f31", "#233550", "#324b72", "#496ca4", "#6f8dbc", "#99aed2", "#c3d0e6", "#edf2f9"]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Kühles Papier",
+        "canonical": "#f6f7fa",
+        "tonalRamp": ["#202126", "#383a41", "#53555e", "#70727b", "#92949c", "#b5b7be", "#d8dae0", "#f6f7fa"]
+      },
+      "background": {
+        "role": "neutral",
+        "displayName": "Weiße Fläche",
+        "canonical": "#ffffff",
+        "tonalRamp": ["#242424", "#3d3d3d", "#595959", "#767676", "#969696", "#b8b8b8", "#dcdcdc", "#ffffff"]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Texttinte",
+        "canonical": "#252937",
+        "tonalRamp": ["#12151c", "#1d212b", "#2b303f", "#424755", "#616570", "#898c95", "#b5b7bd", "#e7e8eb"]
+      },
+      "text-secondary": {
+        "role": "neutral",
+        "displayName": "Sekundärtinte",
+        "canonical": "#70798b",
+        "tonalRamp": ["#1d2026", "#30343e", "#464b58", "#606674", "#70798b", "#979daa", "#bdc1c9", "#e9eaed"]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Haarlinie",
+        "canonical": "#e6e7ec",
+        "tonalRamp": ["#222329", "#3a3b43", "#55565f", "#72737d", "#92939d", "#b5b6be", "#d5d6dc", "#f0f1f4"]
+      },
+      "input": {
+        "role": "neutral",
+        "displayName": "Feldkante",
+        "canonical": "#e0e2e8",
+        "tonalRamp": ["#212329", "#393b43", "#53565f", "#70737d", "#90939d", "#b2b5be", "#d2d5dc", "#eef0f4"]
+      },
+      "secondary": {
+        "role": "neutral",
+        "displayName": "Sekundäre Füllung",
+        "canonical": "#f4f5f7",
+        "tonalRamp": ["#202125", "#38393e", "#525358", "#6f7076", "#8f9096", "#b2b3b8", "#d5d6da", "#f4f5f7"]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Leise Füllung",
+        "canonical": "#f2f3f6",
+        "tonalRamp": ["#202125", "#37383e", "#515258", "#6e6f76", "#8e8f96", "#b1b2b8", "#d3d4da", "#f2f3f6"]
+      },
+      "accent": {
+        "role": "neutral",
+        "displayName": "Interaktionsfüllung",
+        "canonical": "#f0f1f5",
+        "tonalRamp": ["#1f2025", "#36373e", "#505158", "#6c6d75", "#8c8d95", "#aeb0b8", "#d1d2d9", "#f0f1f5"]
+      }
+    },
+    "typographyMeta": {
+      "display": {"displayName": "Display", "purpose": "Seitentitel und Begrüßung."},
+      "metric": {"displayName": "Metric", "purpose": "Kennzahlen und Dialogtitel."},
+      "title": {"displayName": "Title", "purpose": "Abschnitts- und Kartentitel."},
+      "body": {"displayName": "Body", "purpose": "Lauftext und Erklärungen."},
+      "label": {"displayName": "Label", "purpose": "Bedienung, Tabellen und Labels; operative Untergrenze."},
+      "meta": {"displayName": "Meta", "purpose": "Legenden, Zeiten und ergänzende Hinweise."}
+    },
+    "shadows": [
+      {
+        "name": "control",
+        "value": "0 1px 3px color-mix(in srgb, var(--foreground) 8%, transparent)",
+        "purpose": "Leichter Halt für Felder, Outline-Aktionen und kleine eingebettete Elemente."
+      },
+      {
+        "name": "floating",
+        "value": "0 8px 24px color-mix(in srgb, var(--foreground) 10%, transparent)",
+        "purpose": "Menüs, Auswahlflächen, Composer und schwebende Vorschauen."
+      },
+      {
+        "name": "overlay",
+        "value": "0 18px 48px color-mix(in srgb, var(--foreground) 16%, transparent)",
+        "purpose": "Dialoge und Sheets über dem Arbeitsplatz."
+      },
+      {
+        "name": "card-hover",
+        "value": "0 9px 20px color-mix(in srgb, var(--foreground) 6%, transparent)",
+        "purpose": "Ausschließlich als Hover-Reaktion einer interaktiven Karte."
+      }
+    ],
+    "motion": [
+      {
+        "name": "fast",
+        "value": "150ms",
+        "purpose": "Direkte Farb-, Rand- und Buttonzustände."
+      },
+      {
+        "name": "standard",
+        "value": "200ms",
+        "purpose": "Karten, Navigation und normale Zustandswechsel."
+      },
+      {
+        "name": "overlay",
+        "value": "300ms",
+        "purpose": "Sheets, Menüs und größere Overlay-Bewegungen."
+      },
+      {
+        "name": "easing-standard",
+        "value": "cubic-bezier(0.2, 0, 0, 1)",
+        "purpose": "Einheitliches Easing für alle Bewegungsrollen."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "0.01ms",
+        "purpose": "Ersetzt Animationen und Übergänge bei prefers-reduced-motion; Hover-Lifts entfallen."
+      }
+    ],
+    "breakpoints": [
+      {"name": "narrow", "value": "375px"},
+      {"name": "phone", "value": "767px"},
+      {"name": "tablet", "value": "1040px"},
+      {"name": "desk", "value": "1199px"},
+      {"name": "wide", "value": "1500px"}
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Korallfarbene führende Aktion aus dem UI-Primitive.",
+      "html": "<button class=\"ds-btn-primary\">Speichern</button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:8px 16px;border:0;border-radius:var(--radius-control,8px);background:var(--primary,#ef603b);color:var(--primary-foreground,#fff);font:600 14px/1.4 Inter,Aptos,\"Segoe UI\",Arial,sans-serif;transition:background var(--motion-duration-fast,150ms) var(--motion-easing-standard,cubic-bezier(.2,0,0,1)),transform var(--motion-duration-fast,150ms) var(--motion-easing-standard,cubic-bezier(.2,0,0,1))}.ds-btn-primary:hover{background:color-mix(in srgb,var(--primary,#ef603b) 90%,#000)}.ds-btn-primary:active{transform:translateY(1px)}.ds-btn-primary:focus-visible{outline:var(--focus-ring-width,2px) solid var(--focus-ring-color,#ee714f);outline-offset:var(--focus-ring-offset,2px)}.ds-btn-primary:disabled{pointer-events:none;opacity:var(--disabled-opacity,.5)}"
+    },
+    {
+      "name": "Dark Operating Button",
+      "kind": "button",
+      "refersTo": "button-dark",
+      "description": "Dunkle verbindliche Aktion der Empfangstheke.",
+      "html": "<button class=\"ds-btn-dark\">Check-in</button>",
+      "css": ".ds-btn-dark{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:8px 16px;border:0;border-radius:var(--radius-control,8px);background:var(--ink,#2c3040);color:var(--primary-foreground,#fff);box-shadow:var(--elevation-control,0 1px 3px rgb(36 39 50/.08));font:600 14px/1.4 Inter,Aptos,\"Segoe UI\",Arial,sans-serif;transition:background var(--motion-duration-fast,150ms) var(--motion-easing-standard,cubic-bezier(.2,0,0,1)),transform var(--motion-duration-fast,150ms) var(--motion-easing-standard,cubic-bezier(.2,0,0,1))}.ds-btn-dark:hover{background:var(--ink-hover,#151928);transform:translateY(-1px)}.ds-btn-dark:active{transform:translateY(0)}.ds-btn-dark:focus-visible{outline:var(--focus-ring-width,2px) solid var(--focus-ring-color,#ee714f);outline-offset:var(--focus-ring-offset,2px)}.ds-btn-dark:disabled{pointer-events:none;opacity:var(--disabled-opacity,.5)}@media(prefers-reduced-motion:reduce){.ds-btn-dark{transition-duration:.01ms}.ds-btn-dark:hover{transform:none}}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Leise neutrale Aktion mit Haarlinie.",
+      "html": "<button class=\"ds-btn-secondary\">Abbrechen</button>",
+      "css": ".ds-btn-secondary{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:8px 16px;border:1px solid var(--border,#e6e7ec);border-radius:var(--radius-control,8px);background:var(--secondary,#f4f5f7);color:var(--secondary-foreground,#353845);font:600 14px/1.4 Inter,Aptos,\"Segoe UI\",Arial,sans-serif;transition:background var(--motion-duration-fast,150ms) var(--motion-easing-standard,cubic-bezier(.2,0,0,1))}.ds-btn-secondary:hover{background:var(--border,#e6e7ec)}.ds-btn-secondary:active{background:var(--accent,#f0f1f5)}.ds-btn-secondary:focus-visible{outline:var(--focus-ring-width,2px) solid var(--focus-ring-color,#ee714f);outline-offset:var(--focus-ring-offset,2px)}.ds-btn-secondary:disabled{pointer-events:none;opacity:var(--disabled-opacity,.5)}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Operatives Feld mit gemeinsamem Fokus-, Invalid- und Disabled-Vertrag.",
+      "html": "<label class=\"ds-field\">E-Mail<input type=\"email\" placeholder=\"name@masulino.de\" aria-invalid=\"false\"></label>",
+      "css": ".ds-field{display:grid;gap:8px;color:var(--text-secondary,#70798b);font:600 14px/1.4 Inter,Aptos,\"Segoe UI\",Arial,sans-serif}.ds-field input{width:100%;height:36px;padding:8px 12px;border:1px solid var(--input,#e0e2e8);border-radius:var(--radius-control,8px);background:var(--background,#fff);color:var(--text,#252937);box-shadow:var(--elevation-control,0 1px 3px rgb(36 39 50/.08));font:400 14px/1.4 Inter,Aptos,\"Segoe UI\",Arial,sans-serif;transition:border-color var(--motion-duration-fast,150ms) var(--motion-easing-standard,cubic-bezier(.2,0,0,1)),box-shadow var(--motion-duration-fast,150ms) var(--motion-easing-standard,cubic-bezier(.2,0,0,1))}.ds-field input:focus-visible{border-color:var(--ring,#ee714f);outline:var(--focus-ring-width,2px) solid var(--focus-ring-color,#ee714f);outline-offset:var(--focus-ring-offset,2px)}.ds-field input[aria-invalid=true]{border-color:var(--destructive,#a33b32);box-shadow:0 0 0 var(--focus-ring-width,2px) var(--invalid-ring-color,color-mix(in srgb,#a33b32 24%,transparent))}.ds-field input:disabled{pointer-events:none;opacity:var(--disabled-opacity,.5)}"
+    },
+    {
+      "name": "Working Surface",
+      "kind": "card",
+      "refersTo": "surface",
+      "description": "Flache weiße Arbeitsfläche mit identischem Radius und Innenabstand.",
+      "html": "<section class=\"ds-surface\"><h2>Heute</h2><p>Nächste Buchung um 14:00.</p></section>",
+      "css": ".ds-surface{padding:16px;border:1px solid var(--border,#e6e7ec);border-radius:var(--radius-surface,16px);background:var(--background,#fff);color:var(--text,#252937);box-shadow:none;font-family:Inter,Aptos,\"Segoe UI\",Arial,sans-serif}.ds-surface h2{margin:0;font-size:20px;font-weight:600;line-height:1.2;letter-spacing:-.035em}.ds-surface p{margin:8px 0 0;color:var(--text-secondary,#70798b);font-size:16px;line-height:1.65}"
+    },
+    {
+      "name": "Active Navigation Item",
+      "kind": "nav",
+      "refersTo": "nav-active",
+      "description": "Ausgewählte Zeile der stabilen Arbeitsnavigation.",
+      "html": "<a class=\"ds-nav-active\" href=\"#\" aria-current=\"page\">Buchungen</a>",
+      "css": ".ds-nav-active{display:flex;align-items:center;min-height:44px;padding:8px 12px;border-radius:var(--radius-control,8px);background:var(--sidebar-accent,#fff0ea);color:var(--primary,#ef603b);font:600 14px/1.4 Inter,Aptos,\"Segoe UI\",Arial,sans-serif;text-decoration:none;transition:background var(--motion-duration-fast,150ms) var(--motion-easing-standard,cubic-bezier(.2,0,0,1)),color var(--motion-duration-fast,150ms) var(--motion-easing-standard,cubic-bezier(.2,0,0,1))}.ds-nav-active:hover{background:color-mix(in srgb,var(--sidebar-accent,#fff0ea) 88%,var(--primary,#ef603b))}.ds-nav-active:active{color:var(--text,#252937)}.ds-nav-active:focus-visible{outline:var(--focus-ring-width,2px) solid var(--focus-ring-color,#ee714f);outline-offset:var(--focus-ring-offset,2px)}"
+    },
+    {
+      "name": "Status Pill",
+      "kind": "chip",
+      "refersTo": "status-pill",
+      "description": "Kompakter semantischer Zustand, hier in der Erfolgsrolle.",
+      "html": "<span class=\"ds-status-pill\">Eingecheckt</span>",
+      "css": ".ds-status-pill{display:inline-flex;align-items:center;width:max-content;padding:4px 8px;border-radius:var(--radius-pill,4px);background:var(--success-bg,#eaf5ef);color:var(--success,#33775a);font:600 12px/1.3 Inter,Aptos,\"Segoe UI\",Arial,sans-serif;white-space:nowrap}"
+    },
+    {
+      "name": "App Card",
+      "kind": "card",
+      "refersTo": "app-card",
+      "description": "Signatur-Einstieg in eine operative Arbeitsfläche.",
+      "html": "<button class=\"ds-app-card\"><span class=\"ds-app-icon\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M3 6h18v12H3z\"></path><path d=\"M8 6V4h8v2M7 10h10M7 14h6\"></path></svg></span><span><strong>Buchungen</strong><small>Heute und kommende Besuche</small></span></button>",
+      "css": ".ds-app-card{display:flex;align-items:center;gap:12px;width:100%;padding:16px;border:1px solid var(--border,#e6e7ec);border-radius:var(--radius-surface,16px);background:var(--background,#fff);color:var(--text,#252937);text-align:left;font-family:Inter,Aptos,\"Segoe UI\",Arial,sans-serif;transition:transform var(--motion-duration-standard,200ms) var(--motion-easing-standard,cubic-bezier(.2,0,0,1)),border-color var(--motion-duration-standard,200ms) var(--motion-easing-standard,cubic-bezier(.2,0,0,1)),box-shadow var(--motion-duration-standard,200ms) var(--motion-easing-standard,cubic-bezier(.2,0,0,1))}.ds-app-card:hover{transform:translateY(-4px);border-color:var(--ring,#ee714f);box-shadow:var(--elevation-card-hover,0 9px 20px rgb(36 39 50/.06))}.ds-app-card:active{transform:translateY(-1px)}.ds-app-card:focus-visible{outline:var(--focus-ring-width,2px) solid var(--focus-ring-color,#ee714f);outline-offset:var(--focus-ring-offset,2px)}.ds-app-icon{display:grid;place-items:center;width:40px;height:40px;flex:0 0 40px;border:1px solid rgb(0 0 0/.02);border-radius:var(--radius-control,8px);background:#ffebe2;color:#e7784d}.ds-app-card strong{display:block;font-size:14px;font-weight:600;line-height:1.4}.ds-app-card small{display:block;margin-top:4px;color:var(--text-secondary,#70798b);font-size:12px;line-height:1.5}@media(prefers-reduced-motion:reduce){.ds-app-card{transition-duration:.01ms}.ds-app-card:hover,.ds-app-card:active{transform:none}}"
+    },
+    {
+      "name": "Overview Contracts",
+      "kind": "custom",
+      "refersTo": "overview",
+      "description": "Gemeinsame Inhaltsachse, KPI-Geometrie und responsive Auslastungssteuerung der Übersicht mit GlideSelect unter 768px.",
+      "html": "<section class=\"ds-overview\"><header class=\"ds-section-bar\"><h2>Tischauslastung</h2><a href=\"#\">Alle Details</a></header><article class=\"ds-kpi-card\"><span>Auslastung heute</span><strong>72 %</strong><small>+8 % zum Vortag</small></article><div class=\"ds-occupancy-tabs\" aria-label=\"Auslastungssteuerung\"><div role=\"tablist\" aria-label=\"Zeitraum\"><button role=\"tab\" aria-selected=\"true\">7 Tage</button><button role=\"tab\">14 Tage</button><button role=\"tab\">Monat</button></div><div role=\"tablist\" aria-label=\"Informationstiefe\"><button role=\"tab\" aria-selected=\"true\">Tag</button><button role=\"tab\">Tische</button></div></div><div class=\"ds-occupancy-selects\"><label>Zeitraum<button role=\"combobox\" aria-expanded=\"false\" aria-label=\"Zeitraum der Auslastung\">7 Tage<svg aria-hidden=\"true\" viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"m6 9 6 6 6-6\"></path></svg></button></label><label>Informationstiefe<button role=\"combobox\" aria-expanded=\"false\" aria-label=\"Informationstiefe\">Tag<svg aria-hidden=\"true\" viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"m6 9 6 6 6-6\"></path></svg></button></label></div></section>",
+      "css": ".ds-overview{--ds-inset-line:calc(1px + 16px);display:grid;gap:16px;color:var(--text,#252937);font-family:Inter,Aptos,\"Segoe UI\",Arial,sans-serif}.ds-section-bar{display:flex;align-items:center;gap:16px;padding-inline:var(--inset-line,var(--ds-inset-line))}.ds-section-bar h2{margin:0;font-size:20px;font-weight:600;line-height:1.2;letter-spacing:-.035em}.ds-section-bar a{margin-left:auto;color:var(--text-secondary,#70798b);font-size:14px;font-weight:600;text-decoration:none}.ds-section-bar a:hover{color:var(--primary,#ef603b)}.ds-section-bar a:focus-visible,.ds-occupancy-tabs button:focus-visible,.ds-occupancy-selects button:focus-visible{outline:var(--focus-ring-width,2px) solid var(--focus-ring-color,#ee714f);outline-offset:var(--focus-ring-offset,2px)}.ds-kpi-card{display:grid;gap:8px;padding:16px;border:1px solid var(--border,#e6e7ec);border-radius:var(--radius-surface,16px);background:var(--background,#fff);box-shadow:none}.ds-kpi-card span,.ds-kpi-card small{color:var(--text-secondary,#70798b);font-size:12px;line-height:1.4}.ds-kpi-card strong{font-size:24px;font-weight:600;line-height:1.2;letter-spacing:-.035em}.ds-occupancy-tabs{display:flex;align-items:center;justify-content:flex-end;gap:8px}.ds-occupancy-tabs div{display:inline-flex;padding:3px;border:1px solid var(--border,#e6e7ec);border-radius:24px;background:var(--background,#fff)}.ds-occupancy-tabs button{min-height:36px;padding:0 16px;border:0;border-radius:18px;background:var(--muted,#f2f3f6);color:var(--text-secondary,#70798b);font:600 13px/1 Inter,Aptos,\"Segoe UI\",Arial,sans-serif}.ds-occupancy-tabs button[aria-selected=true]{background:var(--ink,#2c3040);color:var(--primary-foreground,#fff)}.ds-occupancy-selects{display:none}.ds-occupancy-selects label{display:grid;gap:8px;color:var(--text-secondary,#70798b);font-size:14px;font-weight:600}.ds-occupancy-selects button{display:flex;align-items:center;justify-content:space-between;width:100%;height:36px;padding:0 10px;border:0;border-radius:10px;background:var(--muted,#f2f3f6);color:var(--text,#252937);box-shadow:none;font:600 13px/1 Inter,Aptos,\"Segoe UI\",Arial,sans-serif}@media(max-width:767px){.ds-occupancy-tabs{display:none}.ds-occupancy-selects{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}}"
+    },
+    {
+      "name": "Dialog",
+      "kind": "custom",
+      "refersTo": "dialog",
+      "description": "Overlay-Fläche mit semantischer Tiefe und Standardgeometrie.",
+      "html": "<section class=\"ds-dialog\" role=\"dialog\" aria-modal=\"true\" aria-labelledby=\"ds-dialog-title\"><h2 id=\"ds-dialog-title\">Buchung prüfen</h2><p>Kontrolliere die Angaben vor der Freigabe.</p><button>Schließen</button></section>",
+      "css": ".ds-dialog{width:min(480px,calc(100% - 32px));padding:24px;border:1px solid var(--border,#e6e7ec);border-radius:var(--radius-surface,16px);background:var(--background,#fff);color:var(--text,#252937);box-shadow:var(--elevation-overlay,0 18px 48px rgb(36 39 50/.16));font-family:Inter,Aptos,\"Segoe UI\",Arial,sans-serif;animation:ds-dialog-in var(--motion-duration-overlay,300ms) var(--motion-easing-standard,cubic-bezier(.2,0,0,1))}.ds-dialog h2{margin:0;font-size:20px;font-weight:600;line-height:1.2;letter-spacing:-.035em}.ds-dialog p{margin:12px 0 20px;color:var(--text-secondary,#70798b);font-size:16px;line-height:1.65}.ds-dialog button{min-height:36px;padding:8px 16px;border:1px solid var(--border,#e6e7ec);border-radius:var(--radius-control,8px);background:var(--secondary,#f4f5f7);color:var(--secondary-foreground,#353845);font:600 14px/1.4 Inter,Aptos,\"Segoe UI\",Arial,sans-serif}.ds-dialog button:hover{background:var(--border,#e6e7ec)}.ds-dialog button:focus-visible{outline:var(--focus-ring-width,2px) solid var(--focus-ring-color,#ee714f);outline-offset:var(--focus-ring-offset,2px)}@keyframes ds-dialog-in{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}@media(prefers-reduced-motion:reduce){.ds-dialog{animation-duration:.01ms}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Die Empfangstheke",
+    "overview": "Masulino Operate ist eine ruhige, belastbare Arbeitsfläche für deutschsprachige Mitarbeitende am Empfang und im Backoffice. Wie eine gut organisierte Empfangstheke zeigt das System zuerst, was für den heutigen Betrieb zählt: klare Aufgaben, stabile Navigation, lesbare Zustände und eindeutige nächste Schritte.\n\nKühles Papier, weiße Arbeitsflächen, Haarlinien und eine einzelne korallfarbene Stimme bilden die visuelle Basis. Die Oberfläche ist kompakt, aber nicht gedrängt; Hierarchie entsteht durch Typografie, Einzüge und semantische Zustände, nicht durch Dekoration. Die CSS-Tokens unter `app/styles/tokens/` sind normativ; bei einer Abweichung gewinnt immer der Token.",
+    "keyCharacteristics": [
+      "Kühler Arbeitsgrund mit weißen, flachen Flächen und feinen Grenzen.",
+      "Ein selten eingesetzter Korallakzent für Marke, aktive Navigation und führende Aktion.",
+      "Inter in sechs Rollen und ausschließlich den Gewichten 400 und 600.",
+      "4px-Rhythmus, 8px-Steuerelemente und 16px-Arbeitsflächen.",
+      "Sichtbarer, einheitlicher Tastaturfokus und reduzierte Bewegung auf Systemwunsch."
+    ],
+    "rules": [
+      {
+        "name": "The One Accent Rule",
+        "section": "colors",
+        "body": "Neue UI verwendet `primary` als einzige warme Akzentstimme. Navy und Statusfarben bleiben an ihre semantischen Rollen gebunden."
+      },
+      {
+        "name": "The Local Data Color Rule",
+        "section": "colors",
+        "body": "Die Saalplanfarben für freie, reservierte und gebuchte Tische sowie Aquarium, Wände und Raumkörper sind lokale Diagrammfarben. Die Berichtskategorien in `components/reports/kasse-tab.tsx` sind ebenfalls lokal; beide Gruppen werden weder zu globalen UI-Tokens noch auf Statusfarben umgedeutet."
+      },
+      {
+        "name": "The Two Weight Rule",
+        "section": "typography",
+        "body": "Es gibt nur 400 für regulären Text und 600 für Überschriften oder Betonung. Tailwinds `font-medium` bildet ausdrücklich auf 600 ab."
+      },
+      {
+        "name": "The Role Ramp Rule",
+        "section": "typography",
+        "body": "`text-xs` bis `text-2xl` bilden genau Meta, Label, Body, Title, Metric und Display ab. Größere Tailwind-Schritte sind deaktiviert."
+      },
+      {
+        "name": "The Token Step Rule",
+        "section": "layout",
+        "body": "Responsive Layouts dürfen nur auf vorhandene Abstands-, Radius- und Typerollen wechseln."
+      },
+      {
+        "name": "The Flat-by-Default Rule",
+        "section": "elevation",
+        "body": "Eine ruhende Arbeitsfläche ist flach. Semantische Elevationsrollen ersetzen rohe, komponentenspezifische Schatten."
+      },
+      {
+        "name": "The Surface Geometry Rule",
+        "section": "shapes",
+        "body": "Eine Standardfläche verwendet ausnahmslos 16px Radius und 16px Padding."
+      },
+      {
+        "name": "The One Choice Control Rule",
+        "section": "components",
+        "body": "Kompakte Auswahl auf einer Zeile ist JellyRadio; Dropdowns und Phone unter 768px sind GlideSelect. Kein drittes Auswahlmuster für dieselbe Aufgabe."
+      },
+      {
+        "name": "The Section Separator Rule",
+        "section": "components",
+        "body": "Übersichtsabschnitte trennt nur eine 1px-Haarlinie mit Padding und Titel auf --inset-line. Kein Schatten, keine zweite Karte, kein dekorativer Divider."
+      }
+    ],
+    "dos": [
+      "Do neue visuelle Rollen zuerst in der passenden CSS-Token-Datei anlegen und danach hier spiegeln.",
+      "Do operative Texte bei mindestens 14px halten und für Betonung ausschließlich Gewicht 600 verwenden.",
+      "Do den einheitlichen 2px-Fokus mit 2px Offset, die Invalid-Ring-Rolle und Opazität 0.5 für Disabled verwenden.",
+      "Do UI-Icons ausschließlich aus `lucide-react` mit Strichstärke 1.8 und passender Nachbargröße verwenden.",
+      "Do Sortierung mit `ArrowUp` oder `ArrowDown`, `aria-hidden` am Icon und `aria-sort` an der Spalte ausdrücken.",
+      "Do Aktionen als JellyButton, kompakte Auswahl als JellyRadio und Dropdowns als GlideSelect umsetzen.",
+      "Do Übersichtsabschnitte nur mit der Haarlinien-Trennung und --inset-line gliedern."
+    ],
+    "donts": [
+      "Don't rohe Farben, Schatten, Radien, Schriftgrößen, Gewichte oder Bewegungswerte neben dem Tokensystem etablieren.",
+      "Don't Saalplan- oder Berichtskategoriefarben als globale UI-Rollen behandeln.",
+      "Don't ein zweites Icon-Pack oder Unicode-Pfeile als Icons einsetzen; Diagramme, Favicon und Saalplan-Farbflächen bleiben davon ausgenommen.",
+      "Don't Karten ohne funktionalen Grund ineinander verschachteln.",
+      "Don't simulierte Kampagnen, Check-ins, Zahlungen oder vorbereitete Assistenzantworten als Live-Integration darstellen.",
+      "Don't neue UI mit Legacy-.button-Klassen oder einem dritten Auswahlmuster neben JellyRadio/GlideSelect bauen.",
+      "Don't Sektionen mit Schatten, zweiten Karten oder dekorativen Dividern trennen."
+    ]
+  }
+}

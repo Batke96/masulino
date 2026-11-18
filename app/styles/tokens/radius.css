@@ -1,0 +1,9 @@
+/* Radius roles. A surface radius equals its padding so the curve ends at the content edge. */
+
+:root {
+  --radius-pill: var(--space-1);
+  --radius-control: var(--space-2);
+  --radius-surface: var(--space-4);
+  --radius-full: 999px;
+  --radius: var(--radius-surface);
+}

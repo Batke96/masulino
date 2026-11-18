@@ -1,0 +1,17 @@
+/* Type ramp. 1rem is the root size, 16px. Steps are roles, not one-off sizes. */
+
+:root {
+  --font-sans: Inter, "Aptos", "Segoe UI", Arial, sans-serif;
+  --text-meta: 12px;
+  --text-label: 14px;
+  --text-body: 16px;
+  --text-title: 20px;
+  --text-metric: 24px;
+  --text-display: 32px;
+  --font-weight-body: 400;
+  --font-weight-heading: 600;
+  --leading-body: 1.65;
+  --leading-heading: 1.2;
+  --tracking-heading: -0.035em;
+  --tracking-label: 0.1em;
+}

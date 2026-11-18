@@ -1,0 +1,64 @@
+/* Color roles. One value per role. New colors belong here as a new role, then they are mandatory. */
+
+:root {
+  --canvas: #f6f7fa;
+  --background: #fff;
+  --foreground: #242732;
+  --text: #252937;
+  --text-secondary: #70798b;
+  --card: var(--background);
+  --card-foreground: var(--foreground);
+  --popover: var(--background);
+  --popover-foreground: var(--foreground);
+  --secondary: #f4f5f7;
+  --secondary-foreground: #353845;
+  --muted: #f2f3f6;
+  --muted-foreground: var(--text-secondary);
+  --accent: #f0f1f5;
+  --accent-foreground: #262934;
+  --border: #e6e7ec;
+  --input: #e0e2e8;
+  --tile-border: #00000004;
+
+  --primary: #ef603b;
+  --primary-foreground: #fff;
+  --ring: #ee714f;
+
+  --ink: #2c3040;
+  --ink-hover: #151928;
+  --navy: #222a44;
+
+  --destructive: #a33b32;
+  --destructive-foreground: var(--primary-foreground);
+  --destructive-bg: color-mix(in srgb, var(--destructive) 18%, white);
+  --success: #33775a;
+  --success-bg: #eaf5ef;
+  --warning: #926916;
+  --warning-bg: #fff3d9;
+  --status-high: #a7582c;
+  --status-high-bg: #fff0e7;
+  --info: #496ca4;
+  --info-bg: #eaf1fe;
+
+  --sidebar: var(--background);
+  --sidebar-foreground: var(--text-secondary);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: #fff0ea;
+  --sidebar-accent-foreground: var(--primary);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+
+  --tile-orange: #e7784d;
+  --tile-orange-bg: #ffebe2;
+  --tile-violet: #8a77d5;
+  --tile-violet-bg: #eeeafd;
+  --tile-pink: #e3779c;
+  --tile-pink-bg: #ffe9f0;
+  --tile-blue: #7194d9;
+  --tile-blue-bg: #e8effe;
+  --tile-green: #6b9e8d;
+  --tile-green-bg: #e5f3ed;
+  --tile-amber: #c89745;
+  --tile-amber-bg: #fff1d9;
+}

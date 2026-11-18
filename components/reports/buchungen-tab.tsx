@@ -41,8 +41,8 @@ export function BuchungenTab({
   const facts = factsInCatalog("buchungen", bookingFacts(window))
 
   return (
-    <div className="flex flex-col gap-6">
-      <section className="flex flex-col gap-4">
+    <div className="report-groups">
+      <section className="report-block">
         <ReportLead />
         <KpiSlots facts={facts} choices={choices} onChange={onChoice} />
         <OccupancyPanel rows={rows} anchorDate={localDate} />

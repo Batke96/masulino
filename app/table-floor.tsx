@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { JellyButton } from "@/components/ui/jelly-button";
+import { JellyRadio } from "@/components/ui/jelly-radio";
 import { formatDayLabel } from "@/lib/booking/period";
 import { windowLabel, windowsFor, type BookingKind } from "@/lib/booking/slots";
 import {
@@ -14,12 +15,27 @@ import {
   type FloorBooking,
 } from "@/lib/booking/tables";
 
-const kinds: Array<{ id: BookingKind; label: string }> = [
-  { id: "group", label: "Gruppen" },
-  { id: "birthday", label: "Geburtstage" },
+const kinds: Array<{ value: BookingKind; label: string }> = [
+  { value: "group", label: "Gruppen" },
+  { value: "birthday", label: "Geburtstage" },
 ];
 
-const segmented = "bg-background *:data-[slot=toggle-group-item]:bg-background *:data-[slot=toggle-group-item]:px-3";
+const jellyRadioProps = {
+  chipColor: "var(--muted)",
+  activeColor: "var(--ink)",
+  textColor: "var(--text-secondary)",
+  activeTextColor: "var(--primary-foreground)",
+  size: "md" as const,
+  gap: 8,
+  radius: 18,
+  swell: 0,
+  barge: 0,
+  shrink: 0,
+  jelly: 0.15,
+  bounce: 0.05,
+  stagger: 6,
+  stiffness: 780,
+};
 
 export function TableFloor({
   dates,
@@ -64,68 +80,53 @@ export function TableFloor({
       <h2>Tischauslastung</h2>
       <div className="floor-day">
           {dates.length > 1 && (
-            <button
-              type="button"
-              className="icon-button"
+            <JellyButton
+              variant="icon"
               aria-label="Vorheriger Tag"
               disabled={index === 0}
               onClick={() => setDay(dates[index - 1]!)}
             >
               <ChevronLeft size={18} strokeWidth={1.8} />
-            </button>
+            </JellyButton>
           )}
           <strong>{formatDayLabel(current)}</strong>
           {dates.length > 1 && (
-            <button
-              type="button"
-              className="icon-button"
+            <JellyButton
+              variant="icon"
               aria-label="Nächster Tag"
               disabled={index >= dates.length - 1}
               onClick={() => setDay(dates[index + 1]!)}
             >
               <ChevronRight size={18} strokeWidth={1.8} />
-            </button>
+            </JellyButton>
           )}
       </div>
     </div>
     <section className="surface floor-section" aria-label="Tischauslastung">
       <div className="floor-band">
-        <ToggleGroup
-          type="single"
-          variant="outline"
-          size="sm"
+        <JellyRadio
+          {...jellyRadioProps}
+          items={kinds}
           value={kind}
-          aria-label="Art"
-          className={segmented}
-          onValueChange={(value) => {
-            const next = kinds.find((item) => item.id === value);
-            if (!next) return;
-            setKind(next.id);
+          ariaLabel="Art"
+          onChange={(value) => {
+            if (value !== "group" && value !== "birthday") return;
+            setKind(value);
             setWindowStart(null);
           }}
-        >
-          {kinds.map((item) => (
-            <ToggleGroupItem key={item.id} value={item.id}>{item.label}</ToggleGroupItem>
-          ))}
-        </ToggleGroup>
+        />
         {windows.length === 0 ? (
           <p className="floor-note">An diesem Tag gibt es kein Gruppenfenster.</p>
         ) : (
-          <ToggleGroup
-            type="single"
-            variant="outline"
-            size="sm"
+          <JellyRadio
+            {...jellyRadioProps}
+            items={windows.map((item) => ({ value: item.start, label: windowLabel(item) }))}
             value={active?.start ?? ""}
-            aria-label="Zeitfenster"
-            className={segmented}
-            onValueChange={(value) => {
+            ariaLabel="Zeitfenster"
+            onChange={(value) => {
               if (windows.some((item) => item.start === value)) setWindowStart(value);
             }}
-          >
-            {windows.map((item) => (
-              <ToggleGroupItem key={item.start} value={item.start}>{windowLabel(item)}</ToggleGroupItem>
-            ))}
-          </ToggleGroup>
+          />
         )}
       </div>
       <div className="floor-stage">

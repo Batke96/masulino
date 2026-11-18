@@ -2,8 +2,10 @@
 
 import { useState } from "react"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { GlideSelect } from "@/components/ui/glide-select"
+import { JellyButton } from "@/components/ui/jelly-button"
+import { JellyRadio } from "@/components/ui/jelly-radio"
 import { KpiCard } from "@/components/ui/kpi-card"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { evaluateSlot, type Fact, type SlotChoice } from "@/lib/reports/measures"
 
 export function KpiSlots({
@@ -33,13 +35,22 @@ export function KpiSlots({
     ? { numerator, denominator: null }
     : { numerator, denominator: denominator && denominator !== numerator ? denominator : null }
   const preview = evaluateSlot(facts, draft)
+  const cardOptions = choices.map((choice, index) => ({
+    value: String(index),
+    label: `Karte ${index + 1}: ${evaluateSlot(facts, choice).label}`,
+  }))
+  const factOptions = facts.map((fact) => ({ value: fact.id, label: fact.label }))
+  const denominatorOptions = [
+    { value: "", label: "Kein Nenner" },
+    ...facts.filter((fact) => fact.id !== numerator).map((fact) => ({ value: fact.id, label: fact.label })),
+  ]
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex justify-end">
-        <button type="button" className="button soft" onClick={() => { load(0); setOpen(true) }}>
+        <JellyButton variant="soft" onClick={() => { load(0); setOpen(true) }}>
           Bearbeiten
-        </button>
+        </JellyButton>
       </div>
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4" aria-label="Kennzahlen">
         {choices.map((choice, index) => {
@@ -66,63 +77,91 @@ export function KpiSlots({
           </DialogHeader>
           <label className="field-label">
             Karte
-            <select aria-label="Karte" value={position} onChange={(event) => load(Number(event.target.value))}>
-              {choices.map((choice, index) => (
-                <option key={index} value={index}>Karte {index + 1}: {evaluateSlot(facts, choice).label}</option>
-              ))}
-            </select>
+            <GlideSelect
+              options={cardOptions}
+              value={String(position)}
+              onChange={(next) => load(Number(next))}
+              showTags={false}
+              size="sm"
+              ariaLabel="Karte"
+            />
           </label>
-          <Tabs value={mode} onValueChange={(next) => { if (next === "existing" || next === "compose") setMode(next) }}>
-            <TabsList aria-label="Art der Kennzahl">
-              <TabsTrigger value="existing">Bestehend</TabsTrigger>
-              <TabsTrigger value="compose">Zusammensetzen</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <JellyRadio
+            items={[
+              { value: "existing", label: "Bestehend" },
+              { value: "compose", label: "Zusammensetzen" },
+            ]}
+            value={mode}
+            onChange={(next) => {
+              if (next === "existing" || next === "compose") setMode(next)
+            }}
+            chipColor="var(--muted)"
+            activeColor="var(--ink)"
+            textColor="var(--text-secondary)"
+            activeTextColor="var(--primary-foreground)"
+            size="md"
+            gap={8}
+            radius={18}
+            swell={0}
+            barge={0}
+            shrink={0}
+            jelly={0.15}
+            bounce={0.05}
+            stagger={6}
+            stiffness={780}
+            ariaLabel="Art der Kennzahl"
+          />
           {mode === "existing" ? (
             <label className="field-label">
               Kennzahl
-              <select aria-label="Bestehende Kennzahl" value={numerator} onChange={(event) => setNumerator(event.target.value)}>
-                {facts.map((fact) => (
-                  <option key={fact.id} value={fact.id}>{fact.label}</option>
-                ))}
-              </select>
+              <GlideSelect
+                options={factOptions}
+                value={numerator}
+                onChange={setNumerator}
+                showTags={false}
+                size="sm"
+                ariaLabel="Bestehende Kennzahl"
+              />
             </label>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="field-label">
                 Zähler
-                <select aria-label="Zähler" value={numerator} onChange={(event) => setNumerator(event.target.value)}>
-                  {facts.map((fact) => (
-                    <option key={fact.id} value={fact.id}>{fact.label}</option>
-                  ))}
-                </select>
+                <GlideSelect
+                  options={factOptions}
+                  value={numerator}
+                  onChange={setNumerator}
+                  showTags={false}
+                  size="sm"
+                  ariaLabel="Zähler"
+                />
               </label>
               <label className="field-label">
                 pro
-                <select aria-label="Nenner" value={denominator} onChange={(event) => setDenominator(event.target.value)}>
-                  <option value="">Kein Nenner</option>
-                  {facts.filter((fact) => fact.id !== numerator).map((fact) => (
-                    <option key={fact.id} value={fact.id}>{fact.label}</option>
-                  ))}
-                </select>
+                <GlideSelect
+                  options={denominatorOptions}
+                  value={denominator}
+                  onChange={setDenominator}
+                  showTags={false}
+                  size="sm"
+                  ariaLabel="Nenner"
+                />
               </label>
             </div>
           )}
           <p className="text-sm text-muted-foreground">Vorschau: {preview.label} · {preview.display}</p>
           <DialogFooter>
             <DialogClose asChild>
-              <button type="button" className="button soft">Abbrechen</button>
+              <JellyButton variant="soft">Abbrechen</JellyButton>
             </DialogClose>
-            <button
-              type="button"
-              className="button dark"
+            <JellyButton
               onClick={() => {
                 onChange(position, draft)
                 setOpen(false)
               }}
             >
               Übernehmen
-            </button>
+            </JellyButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

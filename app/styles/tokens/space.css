@@ -1,0 +1,21 @@
+/* Space is a 4px grid. A new step is the next multiple of 4, then it is mandatory. */
+
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-9: 36px;
+  --space-10: 40px;
+  --space-11: 44px;
+  --space-12: 48px;
+  --border-width: 1px;
+  --inset-content: var(--space-4);
+  --inset-line: calc(var(--border-width) + var(--inset-content));
+  --shell-content-max: 1600px;
+  --shell-pad-inline: var(--space-8);
+}

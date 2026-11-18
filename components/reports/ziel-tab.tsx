@@ -40,8 +40,8 @@ export function ZielTab({
   const attainment = (gross: number, target: number) => (target > 0 ? percent(gross / target) : "—")
 
   return (
-    <div className="flex flex-col gap-6">
-      <section className="flex flex-col gap-4">
+    <div className="report-groups">
+      <section className="report-block">
         <ReportLead note={`Das Tagesziel ist der mittlere Umsatz desselben Wochentags${report.targetLabel ? ` aus ${report.targetLabel}` : ""}. Gezählt sind die Tage mit einem Ziel bis zum letzten erfassten Tag.`} />
         <KpiSlots facts={facts} choices={choices} onChange={onChoice} />
         {view.splits.length > 0 ? (

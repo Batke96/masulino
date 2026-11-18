@@ -45,8 +45,8 @@ export function BesucherTab({
     : []
 
   return (
-    <div className="flex flex-col gap-6">
-      <section className="flex flex-col gap-4">
+    <div className="report-groups">
+      <section className="report-block">
         <ReportLead
           alert={reportState === "failed" ? <p role="alert">Die Kasse ist gerade nicht erreichbar.</p> : report?.empty ? <p>Für diesen Standort liegen noch keine Kassenpositionen vor.</p> : null}
           note="Zahlende Kinder kommen aus der Kasse. Gebuchte Personen sind Kinder und Erwachsene in den Reservierungen. Die Paketdauer ist kein gemessener Aufenthalt."

@@ -5,11 +5,11 @@ import { BuchungenTab } from "@/components/reports/buchungen-tab"
 import { BesucherTab } from "@/components/reports/besucher-tab"
 import { GeburtstageTab } from "@/components/reports/geburtstage-tab"
 import { KasseTab } from "@/components/reports/kasse-tab"
+import { ReportPeriodTools, ReportTabNav } from "@/components/reports/report-nav"
 import { ZielTab } from "@/components/reports/ziel-tab"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { SpanBooking } from "@/lib/reports/booking-window"
-import { monthBounds, monthTitle, reportSpan, shiftMonth } from "@/lib/reports/dates"
-import { initialSlots, tabLabel, tabOrder, type SlotChoice, type TabId } from "@/lib/reports/measures"
+import { monthBounds, reportSpan, shiftMonth } from "@/lib/reports/dates"
+import { initialSlots, tabOrder, type SlotChoice, type TabId } from "@/lib/reports/measures"
 import { fetchBootstrap, fetchPosReport, fetchReservationSpan, isWorkspaceMode, type PosReport } from "@/lib/workspace/client"
 
 type LoadState = "loading" | "ready" | "empty" | "failed"
@@ -167,16 +167,10 @@ export function PosDashboard() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="report-page">
       <div className="report-toolbar">
-        <Tabs className="w-fit" value={tab} onValueChange={(next) => { if (isTab(next)) setTab(next) }}>
-          <TabsList aria-label="Auswertung">
-            {tabOrder.map((id) => (
-              <TabsTrigger key={id} value={id}>{tabLabel[id]}</TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-        <PeriodTools tab={tab} view={view} onView={setView} month={month} onMonth={setMonth} report={monthReport} />
+        <ReportTabNav value={tab} onChange={setTab} />
+        <ReportPeriodTools tab={tab} view={view} onView={setView} month={month} onMonth={setMonth} report={monthReport} />
       </div>
       {tab === "kasse" ? (
         <KasseTab
@@ -218,51 +212,6 @@ export function PosDashboard() {
           onChoice={choose("ziel")}
         />
       ) : null}
-    </div>
-  )
-}
-
-function isTab(value: string): value is TabId {
-  return tabOrder.includes(value as TabId)
-}
-
-function PeriodTools({
-  tab,
-  view,
-  onView,
-  month,
-  onMonth,
-  report,
-}: {
-  tab: TabId
-  view: "month" | "year"
-  onView: (view: "month" | "year") => void
-  month: string | undefined
-  onMonth: (month: string) => void
-  report: PosReport | null
-}) {
-  if (tab !== "kasse" && tab !== "besucher" && tab !== "ziel") return null
-  if (!report || (report.months.length === 0 && report.years.length === 0)) return null
-  const yearMode = tab === "kasse" && view === "year"
-  return (
-    <div className="report-toolbar-tools">
-      {tab === "kasse" ? (
-        <Tabs className="w-fit" value={view} onValueChange={(next) => { if (next === "month" || next === "year") onView(next) }}>
-          <TabsList aria-label="Zeitraum">
-            <TabsTrigger value="month">Monat</TabsTrigger>
-            <TabsTrigger value="year">Jahr</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      ) : null}
-      {yearMode ? (
-        <select className="period-choice" aria-label="Jahr" value={month?.slice(0, 4) ?? ""} onChange={(event) => onMonth(`${event.target.value}-01`)}>
-          {report.years.map((item) => <option key={item} value={item}>{item}</option>)}
-        </select>
-      ) : (
-        <select className="period-choice" aria-label="Monat" value={report.month ?? month ?? ""} onChange={(event) => onMonth(event.target.value)}>
-          {report.months.map((item) => <option key={item} value={item}>{monthTitle(item)}</option>)}
-        </select>
-      )}
     </div>
   )
 }

@@ -6,7 +6,8 @@ import { BarList } from "@/components/reports/bar-list"
 import { KpiSlots } from "@/components/reports/kpi-slots"
 import { ReportLead } from "@/components/reports/report-lead"
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { JellyButton } from "@/components/ui/jelly-button"
+import { JellyRadio } from "@/components/ui/jelly-radio"
 import { isWeekend, monthTitle } from "@/lib/reports/dates"
 import { kasseFacts } from "@/lib/reports/facts"
 import { count, euro, percent } from "@/lib/reports/format"
@@ -16,8 +17,8 @@ import type { PosReport } from "@/lib/workspace/client"
 const shortMonths = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
 
 const groupColor: Record<string, string> = {
-  eintritt: "#ef603b",
-  gastro: "#222a44",
+  eintritt: "var(--primary)",
+  gastro: "var(--navy)",
   geburtstag: "#c9862a",
   chips: "#7a7e8b",
   sonstiges: "#b9bcc6",
@@ -76,9 +77,9 @@ export function KasseTab({
   const productGross = visibleProducts.reduce((sum, item) => sum + item.gross, 0)
   const mixTotal = report.mix.reduce((sum, item) => sum + item.gross, 0)
   const trendConfig = {
-    current: { label: String(report.year), color: "#ef603b" },
-    currentPartial: { label: report.year ? `${report.year}, unvollständig` : "Unvollständig", color: "#ef603b" },
-    previous: { label: String((report.year ?? 0) - 1), color: "#222a44" },
+    current: { label: String(report.year), color: "var(--primary)" },
+    currentPartial: { label: report.year ? `${report.year}, unvollständig` : "Unvollständig", color: "var(--primary)" },
+    previous: { label: String((report.year ?? 0) - 1), color: "var(--navy)" },
   } satisfies ChartConfig
   const partialMonth = report.incomplete ? throughMonth : undefined
   const trendRows = report.trend.map((item, index, all) => {
@@ -103,8 +104,8 @@ export function KasseTab({
     ? ` Bis ${new Date(`${report.throughDate}T00:00:00Z`).toLocaleDateString("de-DE", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })} gestrichelt.`
     : ""
   const dayConfig = {
-    gross: { label: "Umsatz", color: "#ef603b" },
-    quantity: { label: "Stück", color: "#222a44" },
+    gross: { label: "Umsatz", color: "var(--primary)" },
+    quantity: { label: "Stück", color: "var(--navy)" },
     target: { label: report.targetLabel ? `Ziel ${report.targetLabel}` : "Ziel", color: "#7a7e8b" },
   } satisfies ChartConfig
   const dayRows = report.days.map((day) => ({
@@ -119,8 +120,8 @@ export function KasseTab({
   const weekendLabels = new Set(dayRows.filter((day) => day.weekend).map((day) => day.label))
 
   return (
-    <div className="flex flex-col gap-6">
-      <section className="flex flex-col gap-4">
+    <div className="report-groups">
+      <section className="report-block">
         <ReportLead
           alert={report.incomplete && report.throughDate ? (
             <div className="callout blue"><div><strong>Unvollständiger Zeitraum</strong><p>Die Daten reichen bis zum {new Date(`${report.throughDate}T00:00:00Z`).toLocaleDateString("de-DE", { timeZone: "UTC" })}.</p></div></div>
@@ -176,7 +177,7 @@ export function KasseTab({
                 >
                   <span className="inline-flex items-center gap-1.5">
                     <span className="size-2.5 rounded-full" style={{ background: groupColor[item.key] ?? "#b9bcc6" }} />
-                    <strong className="tabular-nums font-[650]">{percent(mixTotal > 0 ? item.gross / mixTotal : 0)}</strong>
+                    <strong className="tabular-nums font-semibold">{percent(mixTotal > 0 ? item.gross / mixTotal : 0)}</strong>
                   </span>
                   {item.label}
                   <span className="tabular-nums text-muted-foreground">{euro(item.gross)}</span>
@@ -193,8 +194,8 @@ export function KasseTab({
               <h2 id="kategorien-titel">{category ?? "Kategorien"}</h2>
               <div className="flex flex-wrap items-center justify-end gap-2">
                 <p className="fine-print" aria-live="polite">{activeGroup ? `Nur ${activeGroup.label} · ` : ""}Nach Umsatz</p>
-                {category ? <button type="button" className="button soft" onClick={() => setCategory(null)}>Alle Kategorien</button> : null}
-                {activeGroup ? <button type="button" className="button soft" onClick={() => { setGroup(null); setCategory(null) }}>Alle Gruppen</button> : null}
+                {category ? <JellyButton variant="soft" onClick={() => setCategory(null)}>Alle Kategorien</JellyButton> : null}
+                {activeGroup ? <JellyButton variant="soft" onClick={() => { setGroup(null); setCategory(null) }}>Alle Gruppen</JellyButton> : null}
               </div>
             </div>
             <BarList
@@ -267,7 +268,7 @@ export function KasseTab({
         ) : null}
       </section>
 
-      <section className="flex flex-col gap-4">
+      <section className="report-block">
         <div className="section-head"><h2>Vergleich</h2></div>
         {view === "month" ? (
           <section className="surface">
@@ -294,12 +295,31 @@ export function KasseTab({
         <section className="surface">
           <div className="section-head flex-wrap">
             <h2>Verlauf</h2>
-            <Tabs value={measure} onValueChange={(next) => { if (next === "gross" || next === "quantity") setMeasure(next) }}>
-              <TabsList aria-label="Kennzahl im Verlauf">
-                <TabsTrigger value="gross">Umsatz</TabsTrigger>
-                <TabsTrigger value="quantity">Stück</TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <JellyRadio
+              items={[
+                { value: "gross", label: "Umsatz" },
+                { value: "quantity", label: "Stück" },
+              ]}
+              value={measure}
+              onChange={(next) => {
+                if (next === "gross" || next === "quantity") setMeasure(next)
+              }}
+              chipColor="var(--muted)"
+              activeColor="var(--ink)"
+              textColor="var(--text-secondary)"
+              activeTextColor="var(--primary-foreground)"
+              size="md"
+              gap={8}
+              radius={18}
+              swell={0}
+              barge={0}
+              shrink={0}
+              jelly={0.15}
+              bounce={0.05}
+              stagger={6}
+              stiffness={780}
+              ariaLabel="Kennzahl im Verlauf"
+            />
           </div>
           <p className="fine-print mb-3">
             {measure === "gross" ? "Umsatz in Euro." : "Stück."} Gesamter Standort, ohne Filter aus der Verteilung. {report.year} gegen {report.year ? report.year - 1 : "das Vorjahr"}.{compareFrom}{partialNote}

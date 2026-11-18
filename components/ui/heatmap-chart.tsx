@@ -162,6 +162,37 @@ function HeatmapChart({
           }}
           onPointerLeave={() => setActive(null)}
         >
+          {showColumnLabels ? (
+            <>
+              {showRowLabels ? <div aria-hidden /> : null}
+              {columns.map((column, c) => (
+                <div
+                  key={`label-${c}`}
+                  data-slot="heatmap-chart-column-label"
+                  data-active={active?.column === c}
+                  data-selected={selectedColumn === c}
+                  onPointerEnter={() => setActive(null)}
+                  className="text-muted-foreground data-[active=true]:text-foreground data-[selected=true]:text-foreground min-w-0 pb-0.5 text-center leading-none whitespace-nowrap transition-colors"
+                >
+                  {c % every === 0 ? column : ""}
+                </div>
+              ))}
+            </>
+          ) : null}
+          {columnNotes && columnNotes.length > 0 ? (
+            <>
+              {showRowLabels ? <div aria-hidden /> : null}
+              {columns.map((_, c) => (
+                <div
+                  key={`note-${c}`}
+                  data-selected={selectedColumn === c}
+                  className="text-muted-foreground data-[selected=true]:text-foreground min-w-0 pb-0.5 text-center text-[10px] leading-tight font-medium tabular-nums"
+                >
+                  {columnNotes[c] ?? ""}
+                </div>
+              ))}
+            </>
+          ) : null}
           {rows.map((row, r) => (
             <React.Fragment key={r}>
               {showRowLabels ? (
@@ -214,10 +245,9 @@ function HeatmapChart({
                     onClick={onCellClick ? () => onCellClick(datum) : undefined}
                     data-selected={selectedColumn === c}
                     className={cn(
-                      "inset-ring-foreground/6 aspect-square w-full rounded-sm outline-none inset-ring transition-[box-shadow] duration-100",
+                      "inset-ring-foreground/6 aspect-square min-w-0 w-full rounded-sm outline-none inset-ring transition-[box-shadow] duration-[var(--motion-duration-fast)]",
                       "data-[active=true]:inset-ring-foreground/45 data-[active=true]:inset-ring-2",
                       "data-[selected=true]:inset-ring-primary data-[selected=true]:inset-ring-2",
-                      "focus-visible:inset-ring-ring focus-visible:inset-ring-2",
                       onCellClick ? "cursor-pointer" : "cursor-default"
                     )}
                     style={{
@@ -243,38 +273,6 @@ function HeatmapChart({
               })}
             </React.Fragment>
           ))}
-
-          {showColumnLabels ? (
-            <>
-              {showRowLabels ? <div aria-hidden /> : null}
-              {columns.map((column, c) => (
-                <div
-                  key={c}
-                  data-slot="heatmap-chart-column-label"
-                  data-active={active?.column === c}
-                  data-selected={selectedColumn === c}
-                  onPointerEnter={() => setActive(null)}
-                  className="text-muted-foreground data-[active=true]:text-foreground data-[selected=true]:text-foreground min-w-0 pt-0.5 text-center leading-none whitespace-nowrap transition-colors"
-                >
-                  {c % every === 0 ? column : ""}
-                </div>
-              ))}
-            </>
-          ) : null}
-          {columnNotes && columnNotes.length > 0 ? (
-            <>
-              {showRowLabels ? <div aria-hidden /> : null}
-              {columns.map((_, c) => (
-                <div
-                  key={c}
-                  data-selected={selectedColumn === c}
-                  className="text-muted-foreground data-[selected=true]:text-foreground min-w-0 text-center text-[10px] leading-tight font-medium tabular-nums"
-                >
-                  {columnNotes[c] ?? ""}
-                </div>
-              ))}
-            </>
-          ) : null}
         </div>
       </TooltipProvider>
 

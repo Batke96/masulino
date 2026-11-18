@@ -1,0 +1,9 @@
+/* Shared interaction states. Focus and disabled feedback must not vary by component. */
+
+:root {
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --focus-ring-color: var(--ring);
+  --invalid-ring-color: color-mix(in srgb, var(--destructive) 24%, transparent);
+  --disabled-opacity: 0.5;
+}
