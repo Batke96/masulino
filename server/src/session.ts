@@ -12,6 +12,11 @@ import { getAuthDb, rows, withTenant } from "@masulino/database";
 import { sql } from "drizzle-orm";
 import { getAuth } from "./auth";
 import { staffCapabilities } from "./capabilities";
+import {
+  ensureExampleAdminGrants,
+  isExampleAdmin,
+  withExampleAdminEntitlements,
+} from "./example-admin";
 import { allowDevSession, requireMfa } from "./env";
 import { json } from "./errors";
 import { readTwoFactorEnabled, rotatePreMfaSessions } from "./mfa";
@@ -90,6 +95,9 @@ export async function loadRequestActor(
   staff: StaffSession,
   tenantId: string,
 ): Promise<ActorContext | null> {
+  if (isExampleAdmin(staff.user.email)) {
+    await ensureExampleAdminGrants(tenantId, staff.principalId);
+  }
   const mfaRequired = requireMfa();
   const enrolled = mfaRequired && staff.source === "session" ? await readTwoFactorEnabled(staff.user.id) : false;
   const preview = await loadActor({
@@ -105,16 +113,24 @@ export async function loadRequestActor(
     devBypass: staff.source === "dev" && allowDevSession(),
     mfaRequired,
   });
-  if (!satisfied) return preview;
+  if (!satisfied) return widenExampleAdmin(staff.user.email, preview);
   if (mfaRequired && enrolled && staff.sessionToken) {
     await rotatePreMfaSessions(staff.user.id, staff.sessionToken);
   }
-  return loadActor({
-    principalId: staff.principalId,
-    tenantId,
-    mfaSatisfied: true,
-    mfaRequired,
-  });
+  return widenExampleAdmin(
+    staff.user.email,
+    await loadActor({
+      principalId: staff.principalId,
+      tenantId,
+      mfaSatisfied: true,
+      mfaRequired,
+    }),
+  );
+}
+
+function widenExampleAdmin(email: string, actor: ActorContext | null): ActorContext | null {
+  if (!actor || !isExampleAdmin(email)) return actor;
+  return { ...actor, entitlements: withExampleAdminEntitlements(actor.entitlements) };
 }
 
 const roleLabels: Record<string, string> = {
