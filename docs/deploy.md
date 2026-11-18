@@ -17,7 +17,7 @@ Nothing in this repository publishes itself. The steps below are the ones that n
 | `CRON_SECRET` | At least 16 characters from a generator. Vercel cron sends it as `Authorization: Bearer`. |
 | `BETTER_AUTH_URL` | The public origin of the staff UI, for example `https://staff.example.tld`. Auth cookies are set for that origin. |
 | Vercel project | Connect the Git branch that contains `vercel.json`. Leave the framework preset unset so the file’s `"framework": null` is used. The build command stays `pnpm run build`. Do not set an output directory; Nitro writes `.vercel/output`. Set the function region to `fra1` if the dashboard overrides the file. Do not put `DATABASE_URL_MIGRATE` on the runtime. |
-| First owner | Public sign-up is disabled. Bootstrap one owner against the EU database. That Inhaber then creates IT and every later account under IT → Benutzer. Do not run `pnpm db:seed` against Neon. |
+| First owner | Public sign-up is disabled. Bootstrap one owner against the EU database. That Inhaber then creates IT and every later account under IT → Benutzer. Do not run `pnpm db:seed` against Neon. The public demo command below is only for an empty database. |
 
 Apply `packages/database/migrations/0001_platform.sql` through `0007_birthday_intake.sql` with the direct migration URL before the first request. Run the integration tests against the `masulino_app` role on that database so row-level security is proven there, not only on a laptop.
 
@@ -70,7 +70,28 @@ The next person is created in the signed-in app, not from a laptop. The bootstra
 STAFF_ADD_CONFIRM=1 STAFF_EMAIL='user@example.test' STAFF_PASSWORD='password' STAFF_CLEAR_MFA=1 pnpm staff:add
 ```
 
-Default role is `tenant_owner`. Do not put Neon URLs or passwords in tracked files. Local `pnpm dev:workspace` seeds synthetic logins into the embedded database only. Those rows are not copied to Neon.
+Default role is `tenant_owner`. Do not put Neon URLs or passwords in tracked files. Local `pnpm dev:workspace` seeds synthetic logins into the embedded database only. It does not copy those rows to Neon.
+
+## Public demo on the Vercel database
+
+`pnpm db:seed` stays local. It throws when `NODE_ENV=production` or when `DATABASE_URL_MIGRATE` is not `127.0.0.1` or `localhost`. `pnpm build`, the Vercel build, and `pnpm dev:workspace` do not call the demo command.
+
+The signed-in workplace at `https://masulino-rho.vercel.app` can show the same synthetic Masulino Spielwelt as a laptop: location Äppelallee (Biebrich), the drawn floor tables, the birthday packages, and the sample reservations (Familie Beispiel, Familie Anfrage, and the two claim rows). Those staff logins are a public demo on that Vercel database:
+
+| Email | Password |
+| --- | --- |
+| `user@example.test` | `password` |
+| `owner.masulino@example.test`, `it.masulino@example.test`, `manager.masulino@example.test`, `reception.masulino@example.test`, `employee.masulino@example.test`, `revoked.masulino@example.test` | `Synthetic-Staff-1` |
+
+`revoked.masulino@example.test` is the revoked login. Kasse stays empty. This repository has no till CSV, and the command does not invent POS lines.
+
+Do not run the command against a database that already has real guests or an owner. It does not truncate. If a tenant with slug `masulino-spielwelt` already exists, it exits without changing rows. If any `tenant_owner` grant exists for a different tenant, it exits without writing.
+
+One operator command. It reads the direct Neon URL from gitignored `.env.production.local` (`DATABASE_URL_MIGRATE`, pooling off, host without `-pooler`). Do not commit that file, and do not put `DATABASE_URL_MIGRATE` on the Vercel runtime.
+
+```sh
+MASULINO_DEMO_SEED_CONFIRM=synthetic pnpm db:demo-seed
+```
 
 ## What this hosting still is not
 
