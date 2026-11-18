@@ -23,7 +23,7 @@ Open the local URL printed by the development server, normally `http://localhost
 
 | Email | What opens after login |
 | --- | --- |
-| `user@example.test` | Full admin for Masulino Spielwelt. Password is `password`. On sign-in this account receives every staff role, and every module is treated as enabled, so Buchungen, Tagesmappe, Team, Auswertungen, Familien, Kampagnen, Kasse, Bistro and IT are in the menu. |
+| `user@example.test` | Full admin for Masulino Spielwelt. Password is `password`. On sign-in this account receives every staff role. The menu stays Übersicht, Buchungen, Personal, Auswertungen, Kunden & Marketing, Betrieb, Gastro & Lager and Verwaltung. Tagesmappe, Kasse, Familien, Kampagnen and Bistro are not separate menu entries. |
 | `reception.masulino@example.test` | Buchungen and Geburtstage. |
 | `employee.masulino@example.test` | Team only. No booking list. |
 | `manager.masulino@example.test` | Location operations. |

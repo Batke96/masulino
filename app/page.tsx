@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, type CSSProperties, type ReactElement } from "react";
-import { LayoutDashboard, Sparkles, BookOpen, CalendarDays, Users, Ticket, Cake, ChartNoAxesCombined, Megaphone, Coffee, Globe, CloudRain, Sun, CloudSun, Cloud, Bell, Search, ChevronDown, Plus, Settings2, Clock3, Check, CheckCheck, CircleHelp, X, Send, ShieldCheck, CircleCheck, History, Pause, Play, RotateCcw, MapPin, ExternalLink, ScanLine, CreditCard, Heart, Menu, SlidersHorizontal, CalendarCheck, Info, Mail, Smartphone, Target, TrendingUp, Pencil, GripVertical, Command as CommandIcon, PanelLeftClose, PanelLeftOpen, LogOut, FolderOpen, type LucideIcon } from "lucide-react";
+import { LayoutDashboard, Sparkles, BookOpen, CalendarDays, Users, Ticket, Cake, ChartNoAxesCombined, Megaphone, Coffee, Globe, CloudRain, Sun, CloudSun, Cloud, Bell, Search, ChevronDown, Plus, Settings2, Settings, Clock3, Check, CheckCheck, CircleHelp, X, Send, ShieldCheck, CircleCheck, History, Pause, Play, RotateCcw, MapPin, ExternalLink, ScanLine, CreditCard, Heart, Menu, SlidersHorizontal, CalendarCheck, Info, Mail, Smartphone, Target, TrendingUp, Pencil, ClipboardList, Package, Command as CommandIcon, PanelLeftClose, PanelLeftOpen, LogOut, FolderOpen, type LucideIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { JellyButton } from "@/components/ui/jelly-button";
 import { Sheet, SheetContent, SheetTitle, SheetDescription, SheetClose } from "@/components/ui/sheet";
@@ -36,6 +36,7 @@ import {
 import { PosDashboard } from "@/components/reports/pos-dashboard";
 import { StaffAccess, useStaffIdentity, type StaffIdentity } from "@/app/staff-access";
 import { appVisible, viewVisible } from "@/lib/workspace/capabilities";
+import { isSidebarDestination, sidebarMenu, type SidebarEntry } from "@/lib/workspace/sidebar-menu";
 import { shownBookings } from "@/lib/workspace/shown-bookings";
 import { TableFloor } from "@/app/table-floor";
 import { OccupancyPanel } from "@/components/booking/occupancy-panel";
@@ -85,31 +86,6 @@ function defaultPinnedIds(capabilities: StaffIdentity["capabilities"] | null): A
 
 function pinStorageKey(email: string): string {
   return `masulino.pinned-apps:${email}`;
-}
-
-function menuOrderKey(email: string): string {
-  return `masulino.menu-order:${email}`;
-}
-
-function readMenuOrder(email: string, capabilities: StaffIdentity["capabilities"] | null): AppId[] {
-  const defaults = orderedAppIds(capabilities);
-  if (typeof window === "undefined") return defaults;
-  try {
-    const raw = window.localStorage.getItem(menuOrderKey(email));
-    if (!raw) return defaults;
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return defaults;
-    const allowed = new Set(defaults);
-    const kept = parsed.filter((id): id is AppId => isAppId(id) && allowed.has(id));
-    const missing = defaults.filter((id) => !kept.includes(id));
-    return [...kept, ...missing];
-  } catch {
-    return defaults;
-  }
-}
-
-function writeMenuOrder(email: string, ids: AppId[]): void {
-  window.localStorage.setItem(menuOrderKey(email), JSON.stringify(ids));
 }
 
 function readPinnedIds(email: string, capabilities: StaffIdentity["capabilities"] | null): AppId[] {
@@ -214,43 +190,43 @@ function SidebarShowButton(){
   if(mode!=="hidden"||isMobile) return null;
   return <Tooltip><TooltipTrigger asChild><button id="sidebar-show" type="button" className="icon-button sidebar-show" aria-label="Navigation einblenden" onClick={showSidebar}><PanelLeftOpen size={20} strokeWidth={1.8}/></button></TooltipTrigger><TooltipContent side="bottom" sideOffset={8}>Navigation einblenden</TooltipContent></Tooltip>;
 }
-function Navigation({view,onNavigate,pending,staff}:{view:View;onNavigate:(view:View)=>void;pending:number;staff:StaffIdentity|null}){
+const navIcons: Record<string, LucideIcon> = {
+  today: LayoutDashboard,
+  bookings: CalendarDays,
+  team: Users,
+  reports: ChartNoAxesCombined,
+  customers: Heart,
+  operations: ClipboardList,
+  gastro: Package,
+  it: Settings,
+};
+
+function NavRow({entry,current,iconMode,onOpen}:{entry:SidebarEntry;current:boolean;iconMode:boolean;onOpen:(entry:SidebarEntry)=>void}){
+  const Icon=navIcons[entry.id]??LayoutDashboard;
+  const label=entry.phase?`${entry.name}. ${entry.detail}. ${entry.phase}`:`${entry.name}. ${entry.detail}`;
+  return <SidebarTip label={entry.name} enabled={iconMode}><button type="button" className={"nav-item nav-entry"+(current?" active":"")} aria-label={label} aria-current={current?"page":undefined} onClick={()=>onOpen(entry)}><Icon size={19} strokeWidth={1.8}/><span className="nav-copy"><span className="nav-name">{entry.name}</span><span className="nav-detail">{entry.detail}</span></span>{entry.phase&&<span className={"nav-phase"+(entry.phase==="MVP"?" mvp":"")}>{entry.phase}</span>}</button></SidebarTip>;
+}
+
+function Navigation({view,onNavigate,staff}:{view:View;onNavigate:(view:View)=>void;pending:number;staff:StaffIdentity|null}){
   const {setOpenMobile,mode,isMobile,hideSidebar} = useSidebar();
   const iconMode=mode==="icon";
   const go=(v:View)=>{onNavigate(v);setOpenMobile(false)};
-  const orderKey=staff?.email??"demo";
-  const capabilityKey=staff?[staff.capabilities.bookings,staff.capabilities.families,staff.capabilities.team,staff.capabilities.reports,staff.capabilities.campaigns,staff.capabilities.portal,staff.capabilities.it].join(","):"demo";
-  const [menuOrder,setMenuOrder]=useState<AppId[]>(()=>orderedAppIds(null));
-  const [editingMenu,setEditingMenu]=useState(false);
-  const [dropIndex,setDropIndex]=useState<number|null>(null);
-  const dragFrom=useRef<number|null>(null);
-  useEffect(()=>{
-    setMenuOrder(readMenuOrder(orderKey, staff?.capabilities??null));
-    setEditingMenu(false);
-  },[orderKey,capabilityKey]);
-  useEffect(()=>{
-    if(mode==="expanded") return;
-    setEditingMenu(false);
-    setDropIndex(null);
-  },[mode]);
-  const primary=([{id:"today",name:"Übersicht",icon:LayoutDashboard}] as {id:View;name:string;icon:LucideIcon}[]).filter(item=>viewVisible(item.id, staff?.capabilities??null));
-  const menuApps=menuOrder.map((id)=>apps.find((app)=>app.id===id)).filter((app): app is AppTile => Boolean(app));
-  function moveApp(from:number,to:number){
-    if(from===to||from<0||to<0||from>=menuOrder.length||to>=menuOrder.length) return;
-    const next=[...menuOrder];
-    const [moved]=next.splice(from,1);
-    if(!moved) return;
-    next.splice(to,0,moved);
-    setMenuOrder(next);
-    writeMenuOrder(orderKey, next);
+  const menu=sidebarMenu(staff?.capabilities??null);
+  function openEntry(entry:SidebarEntry){
+    if(entry.destination){go(entry.destination);return}
+    toast("Noch nicht geöffnet",{description:`${entry.name} ist in dieser Ansicht nicht dabei.`});
   }
   const profileName=staff?.name??"Peed";
   const profileRole=staff?staff.roleLabel:"Betriebsleitung · Demo";
   const locationName=staff?staff.locationName:"Dein Spielraum";
   const tenantName=staff?staff.tenantName:"Masulino · Hauptstandort";
   return <Sidebar className="side-navigation"><SidebarHeader className="brand-area"><button className="brand" onClick={()=>go("today")} aria-label="Masulino Startseite"><span className="brand-mark">m</span><span className="brand-word">masulino<span className="brand-dot">.</span></span></button>{!isMobile&&<Tooltip><TooltipTrigger asChild><button id="sidebar-hide" type="button" className="icon-button sidebar-hide" aria-label="Navigation ausblenden" onClick={hideSidebar}><PanelLeftClose size={19} strokeWidth={1.8}/></button></TooltipTrigger><TooltipContent side="right" sideOffset={8}>Navigation ausblenden</TooltipContent></Tooltip>}</SidebarHeader>
-    <SidebarContent><div className="nav-label">ARBEITSRAUM</div><nav aria-label="Hauptnavigation">{primary.map(({id,name,icon:Icon})=>{const label=id==="agents"&&pending>0?`${name}, ${pending} Hinweise`:name;return <SidebarTip key={id} label={label} enabled={iconMode}><button className={"nav-item "+(view===id?"active":"")} aria-label={label} aria-current={view===id?"page":undefined} onClick={()=>go(id)}><Icon size={19} strokeWidth={1.8}/><span>{name}</span>{id==="agents"&&pending>0&&<span className="nav-count">{pending}</span>}</button></SidebarTip>})}</nav>
-    {menuApps.length>0&&<><div className="nav-label second apps-label"><span>MEINE APPS</span><button type="button" className="nav-edit" aria-pressed={editingMenu} onClick={()=>setEditingMenu((value)=>!value)}>{editingMenu?"Fertig":"Bearbeiten"}</button></div><nav id="meine-apps" aria-label={editingMenu?"Meine Apps sortieren":"Meine Apps"}>{editingMenu&&<p id="apps-sort-hint" className="sr-only">Nur die Reihenfolge ändert sich. Eintrag ziehen oder mit den Pfeiltasten verschieben.</p>}{menuApps.map(({id,name,icon:Icon},index)=><SidebarTip key={id} label={name} enabled={iconMode}><button type="button" className={"nav-item"+(view===id?" active":"")+(editingMenu?" sorting":"")+(dropIndex===index?" drop-target":"")} aria-label={name} aria-current={!editingMenu&&view===id?"page":undefined} aria-describedby={editingMenu?"apps-sort-hint":undefined} draggable={editingMenu} onClick={()=>{if(!editingMenu) go(id)}} onKeyDown={(event)=>{if(!editingMenu) return; if(event.key==="ArrowUp"&&index>0){event.preventDefault();moveApp(index,index-1)} if(event.key==="ArrowDown"&&index<menuApps.length-1){event.preventDefault();moveApp(index,index+1)}}} onDragStart={(event)=>{dragFrom.current=index; event.dataTransfer.effectAllowed="move"; event.dataTransfer.setData("text/plain", id)}} onDragOver={(event)=>{if(!editingMenu||dragFrom.current===null) return; event.preventDefault(); event.dataTransfer.dropEffect="move"; if(dropIndex!==index) setDropIndex(index)}} onDrop={(event)=>{event.preventDefault(); const from=dragFrom.current; dragFrom.current=null; setDropIndex(null); if(from!==null) moveApp(from,index)}} onDragEnd={()=>{dragFrom.current=null; setDropIndex(null)}}><Icon size={18} strokeWidth={1.8}/><span>{name}</span>{editingMenu&&<GripVertical className="nav-grip" size={16} strokeWidth={1.8} aria-hidden="true"/>}</button></SidebarTip>)}</nav></>}
+    <SidebarContent>
+      <div className="nav-label">ARBEITSRAUM</div>
+      <nav aria-label="Hauptnavigation"><NavRow entry={menu.primary} current={view==="today"} iconMode={iconMode} onOpen={openEntry}/></nav>
+      <div className="nav-label second">MEINE APPS</div>
+      <nav id="meine-apps" aria-label="Meine Apps">{menu.apps.map((entry)=><NavRow key={entry.id} entry={entry} current={entry.destination===view} iconMode={iconMode} onOpen={openEntry}/>)}</nav>
+      {menu.settings&&<nav className="nav-settings" aria-label="Verwaltung und Einstellungen"><NavRow entry={menu.settings} current={view==="it"} iconMode={iconMode} onOpen={openEntry}/></nav>}
     </SidebarContent>
     <SidebarFooter className="side-footer"><SidebarTip label={`${profileName}. ${profileRole}`} enabled={iconMode}><div className="profile"><span className="avatar">{profileName.trim().charAt(0).toUpperCase()||"P"}</span><div><strong>{profileName}</strong><small>{profileRole}</small></div></div></SidebarTip><SidebarTip label={`${locationName}, ${tenantName}`} enabled={iconMode}><div className="workspace-name"><span className="workspace-icon"><MapPin size={17} strokeWidth={1.8}/></span><div>{locationName}<small>{tenantName}</small></div></div></SidebarTip>{staff&&<SidebarTip label="Abmelden" enabled={iconMode}><button className="nav-item" type="button" aria-label="Abmelden" onClick={staff.signOut}><LogOut className="nav-icon-only" size={18} strokeWidth={1.8}/><span>Abmelden</span></button></SidebarTip>}</SidebarFooter>
   </Sidebar>
@@ -486,7 +462,7 @@ function Workspace(){
   return()=>lifecycle.abort();
  },[scenario,view,states]);
  const currentApp=apps.find(a=>a.id===view);
- const title=view==="today"?"Übersicht":view==="agents"?"Agenten":view==="knowledge"?"Wissen":view==="concept"?"Konzept & Quellen":currentApp?.name??"Übersicht";
+ const title=view==="today"?"Übersicht":view==="team"?"Personal":view==="it"?"Verwaltung & Einstellungen":view==="agents"?"Agenten":view==="knowledge"?"Wissen":view==="concept"?"Konzept & Quellen":currentApp?.name??"Übersicht";
  function tileMeta(app:AppTile):string{
   if(!staff||!liveTileIds.has(app.id)) return app.meta;
   if(app.id==="bookings"){
@@ -611,7 +587,7 @@ function Workspace(){
  }
  function Stat({icon:Icon,label,value,note,warning=false}:{icon:LucideIcon;label:string;value:string;note:string;warning?:boolean}){return <div className="stat"><div className="stat-label"><Icon size={16}/>{label}</div><div className="stat-value">{value}</div><div className={"stat-note "+(warning?"warning":"")}>{note}</div></div>}
 
- return <SidebarProvider style={{"--sidebar-width":"224px","--sidebar-width-icon":"72px"} as CSSProperties}><Navigation view={view} onNavigate={navigate} pending={pending} staff={staff}/><div className="main-shell"><header className="topbar"><div className="breadcrumb"><SidebarTrigger className="mobile-nav-trigger"/><SidebarShowButton/><h1 className="topbar-title">{title}<span className="orange-text">.</span></h1></div><div className="header-actions">{iconButton(Search,"Suchen",()=>setSearchOpen(true))}</div></header>
+ return <SidebarProvider style={{"--sidebar-width":"320px","--sidebar-width-icon":"72px"} as CSSProperties}><Navigation view={view} onNavigate={navigate} pending={pending} staff={staff}/><div className="main-shell"><header className="topbar"><div className="breadcrumb"><SidebarTrigger className="mobile-nav-trigger"/><SidebarShowButton/><h1 className="topbar-title">{title}<span className="orange-text">.</span></h1></div><div className="header-actions">{iconButton(Search,"Suchen",()=>setSearchOpen(true))}</div></header>
  <main className="main-content" id="main-content">
  {view==="today"?<>
   <div className="dashboard-header">
@@ -635,7 +611,7 @@ function Workspace(){
  </>}
  </main></div>
 
- <Dialog open={searchOpen} onOpenChange={setSearchOpen}><DialogContent className="search-dialog" showCloseButton={false}><DialogTitle className="sr-only">Masulino durchsuchen</DialogTitle><DialogDescription className="sr-only">Apps, Buchungen und Wissenskarten finden.</DialogDescription><Command><CommandInput value={query} onValueChange={setQuery} placeholder="Was möchtest du finden?"/><CommandList><CommandEmpty><p>Keine direkten Treffer.</p>{!staff&&<button className="button soft" onClick={()=>{setSearchOpen(false);ask(query)}}>Masu dazu fragen</button>}</CommandEmpty><CommandGroup heading="Apps">{apps.filter(a=>appVisible(a.id, staff?.capabilities??null)).map(a=><CommandItem key={a.id} value={a.name+" "+a.description} onSelect={()=>navigate(a.id)}><a.icon size={18}/><span>{a.name}</span><span className="command-meta">App öffnen</span></CommandItem>)}</CommandGroup><CommandGroup heading="Buchungen">{allBookings.map(b=><CommandItem key={b.id} value={b.name+" "+b.id} onSelect={()=>{setSearchOpen(false);setDetailBooking(b.id)}}><CalendarDays size={18}/>{b.name}<span className="command-meta">{b.time}</span></CommandItem>)}</CommandGroup><CommandGroup heading="Wissen">{knowledge.map((a,i)=><CommandItem key={a.title} value={a.title+" "+a.text} onSelect={()=>{setSearchOpen(false);setSelectedArticle(i)}}><BookOpen size={18}/>{a.title}</CommandItem>)}</CommandGroup></CommandList><div className="command-footer"><span>Mit ↑ ↓ wählen · Enter zum Öffnen</span><kbd>esc</kbd></div></Command></DialogContent></Dialog>
+ <Dialog open={searchOpen} onOpenChange={setSearchOpen}><DialogContent className="search-dialog" showCloseButton={false}><DialogTitle className="sr-only">Masulino durchsuchen</DialogTitle><DialogDescription className="sr-only">Apps, Buchungen und Wissenskarten finden.</DialogDescription><Command><CommandInput value={query} onValueChange={setQuery} placeholder="Was möchtest du finden?"/><CommandList><CommandEmpty><p>Keine direkten Treffer.</p>{!staff&&<button className="button soft" onClick={()=>{setSearchOpen(false);ask(query)}}>Masu dazu fragen</button>}</CommandEmpty><CommandGroup heading="Apps">{apps.filter(a=>isSidebarDestination(a.id, staff?.capabilities??null)).map(a=><CommandItem key={a.id} value={a.name+" "+a.description} onSelect={()=>navigate(a.id)}><a.icon size={18}/><span>{a.name}</span><span className="command-meta">App öffnen</span></CommandItem>)}</CommandGroup><CommandGroup heading="Buchungen">{allBookings.map(b=><CommandItem key={b.id} value={b.name+" "+b.id} onSelect={()=>{setSearchOpen(false);setDetailBooking(b.id)}}><CalendarDays size={18}/>{b.name}<span className="command-meta">{b.time}</span></CommandItem>)}</CommandGroup><CommandGroup heading="Wissen">{knowledge.map((a,i)=><CommandItem key={a.title} value={a.title+" "+a.text} onSelect={()=>{setSearchOpen(false);setSelectedArticle(i)}}><BookOpen size={18}/>{a.title}</CommandItem>)}</CommandGroup></CommandList><div className="command-footer"><span>Mit ↑ ↓ wählen · Enter zum Öffnen</span><kbd>esc</kbd></div></Command></DialogContent></Dialog>
 
  <Sheet open={chatOpen} onOpenChange={setChatOpen}><SheetContent className="chat-sheet" showCloseButton={false}><header className="chat-header"><span className="masu-symbol"><Sparkles size={23}/></span><div><SheetTitle>Masu</SheetTitle><SheetDescription>Dein Assistent im Spielraum</SheetDescription></div><SheetClose className="icon-button" aria-label="Assistent schließen"><X size={20}/></SheetClose></header><div className="chat-demo-note"><Info size={14}/>Demo-Assistent · vorbereitete Antworten</div><div className="chat-messages">{messages.length===0?<div className="chat-welcome"><span className="chat-orbit"><Sparkles size={35}/></span><h2>Was machen wir<br/>heute möglich?</h2><p>Ich helfe dir, den Überblick zu behalten und den nächsten Schritt zu finden.</p><div className="chat-prompts">{["Wie wird morgen?","Welche Familien fehlen uns?","Was steht heute an?","Wie funktionieren Club-Punkte?"].map(q=><button key={q} onClick={()=>ask(q)}>{q}<Plus size={16}/></button>)}</div></div>:messages.map((m,i)=><div className={"chat-message "+m.role} key={i}>{m.role==="assistant"&&<div className="message-label"><Sparkles size={14}/>MASU</div>}<p>{m.text}</p>{m.kind&&m.kind!=="unknown"&&<div className="answer-card"><div className="answer-card-top">{m.kind==="weather"?<><d.icon size={21}/><strong>{d.temperature} · {d.occupancy} % Auslastung</strong></>:m.kind==="return"?<><Users size={21}/><strong>47 passende Familien</strong></>:m.kind==="team"?<><Users size={21}/><strong>{scenario==="full"?"Morgen · Check-in 09–12 Uhr":"Samstag · Check-in 13–15 Uhr"}</strong></>:m.kind==="bookings"?<><Cake size={21}/><strong>3 Geburtstage heute</strong></>:m.kind==="club"?<><Heart size={21}/><strong>100 Punkte = 5 € Vorteil</strong></>:<><CalendarCheck size={21}/><strong>Dein Tagesüberblick</strong></>}</div><span className="source-caption">Quelle: {m.kind==="weather"?"Demo-Wetter + Besuchsprognose · 09:40":m.kind==="return"?"Demo-CRM · Segment Wiederbesuch":m.kind==="team"?(scenario==="full"?"Demo-Schichtplan · Mittwoch":"Demo-Schichtplan · Samstag"):m.kind==="club"?"Wissenskarte: Club & Treuepunkte":"Demo-Buchungen · 29.09.2026"}</span><button className="button soft" onClick={()=>{setChatOpen(false);if(m.kind==="weather"){scenario==="full"?navigate("team"):openCampaign("weather")}else if(m.kind==="return")openCampaign("return");else if(m.kind==="team")openCampaign("team");else if(m.kind==="club")navigate("families");else navigate("bookings")}}>{m.kind==="weather"&&scenario!=="full"||m.kind==="return"?"Vorschlag gemeinsam prüfen":"Details öffnen"}</button></div>}</div>)}{thinking&&<div className="thinking"><span/><span/><span/>Masu schaut nach …</div>}<div ref={bottomRef}/></div><form className="chat-composer" onSubmit={e=>{e.preventDefault();ask(chatInput)}}><label className="sr-only" htmlFor="chat-question">Deine Frage</label><textarea id="chat-question" value={chatInput} onChange={e=>setChatInput(e.target.value)} placeholder="Frag Masu …" onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();ask(chatInput)}}}/><button className="send-button" disabled={!chatInput.trim()||thinking} aria-label="Frage senden"><Send size={19}/></button></form><div className="chat-footnote">Demo-Antworten sind keine Live-Auskunft.</div></SheetContent></Sheet>
 
