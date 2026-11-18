@@ -76,7 +76,9 @@ Default role is `tenant_owner`. Do not put Neon URLs or passwords in tracked fil
 
 `pnpm db:seed` stays local. It throws when `NODE_ENV=production` or when `DATABASE_URL_MIGRATE` is not `127.0.0.1` or `localhost`. `pnpm build`, the Vercel build, and `pnpm dev:workspace` do not call the demo command.
 
-The signed-in workplace at `https://masulino-rho.vercel.app` reads Postgres. It does not show the browser fixtures. After this command, Heute, the floor plan and the Tagesmappe include the co-founder's three parties from the 29.10.2026 mock: Familie Müller (B-1024, Deluxe, Tisch 7), Familie Schmidt (B-1025, Comfort, Tisch 3) and Familie Weber (B-1026, Deluxe, Tisch 10), on the Berlin day of the run, at 14:30. The older sample rows stay too: Familie Beispiel, Familie Anfrage, and the two claim rows. Those staff logins are a public demo on that Vercel database:
+The signed-in workplace at `https://masulino-rho.vercel.app` reads Postgres. It does not show the browser fixtures. That database is the bootstrapped tenant `masulino` at location `hauptstandort`, not the local Spielwelt seed. `pnpm db:demo-seed` refuses to write once that owner exists, so the co-founder's parties never arrived and Heute stayed empty. The API now fills that one location when staff open Buchungen: the floor tables, Comfort and Deluxe, and Familie Müller (B-1024, Tisch 7), Familie Schmidt (B-1025, Tisch 3) and Familie Weber (B-1026, Tisch 10) at 14:30 on the Berlin day. Other tenants are not touched.
+
+`pnpm db:demo-seed` is still only the local-shaped Spielwelt database. On a fresh database it also stores Familie Beispiel, Familie Anfrage, and the two claim rows. Those staff logins are a public demo on the Vercel database:
 
 | Email | Password |
 | --- | --- |
