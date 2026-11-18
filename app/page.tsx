@@ -36,6 +36,7 @@ import {
 import { PosDashboard } from "@/components/reports/pos-dashboard";
 import { StaffAccess, useStaffIdentity, type StaffIdentity } from "@/app/staff-access";
 import { appVisible, viewVisible } from "@/lib/workspace/capabilities";
+import { shownBookings } from "@/lib/workspace/shown-bookings";
 import { TableFloor } from "@/app/table-floor";
 import { OccupancyPanel } from "@/components/booking/occupancy-panel";
 import { PersonalWorkspace } from "@/components/personal/personal-workspace";
@@ -343,20 +344,22 @@ function Workspace(){
  const d=scenarios[scenario];
  const pending=(Object.keys(states) as Suggestion[]).filter(k=>states[k]==="pending"&&enabled[k]).length;
  const fixtureBookings=[...reservations,...extraBookings];
- const allBookings=(liveBookings??fixtureBookings).filter((row)=>!("status" in row && row.status==="cancelled") && !hiddenBookings.includes(row.id));
+ const liveMode=isWorkspaceMode();
+ const shown=shownBookings({liveMode, live:liveBookings, fixtures:fixtureBookings, hiddenIds:hiddenBookings});
+ const allBookings=shown.rows;
  const canSeeBookings=!staff||staff.capabilities.bookings;
- const bookingsLoading=Boolean(canSeeBookings&&workspaceReady&&liveBookings===null);
- const dashboardBookings=(!canSeeBookings||bookingsLoading)?[]:(liveBookings??fixtureBookings).filter((row)=>!("status" in row && row.status==="cancelled") && !hiddenBookings.includes(row.id));
+ const bookingsLoading=Boolean(canSeeBookings&&shown.loading&&!workspaceFailed&&!bookingsFailed);
+ const dashboardBookings=(!canSeeBookings||bookingsLoading||(liveMode&&(workspaceFailed||bookingsFailed)))?[]:shown.rows;
  const dashboardBirthdays=dashboardBookings.filter((row)=>row.type==="Geburtstag").length;
  const anchorDate=venueDate??browserDate;
  const historyReady=!workspaceReady||priorDays!==null;
  const historyRows=anchorDate?[...(priorDays??[]),...dashboardBookings.map((row)=>({date:anchorDate,type:row.type}))]:[];
  const bookingSeries=canSeeBookings&&anchorDate&&historyReady&&!bookingsLoading?seriesForDates(historyDates(anchorDate),historyRows,false):undefined;
  const birthdaySeries=canSeeBookings&&anchorDate&&historyReady&&!bookingsLoading?seriesForDates(historyDates(anchorDate),historyRows,true):undefined;
- const occupancyRows=workspaceReady
+ const occupancyRows=liveMode
   ?(spanBookings??[]).filter((row)=>!hiddenBookings.includes(row.id))
   :occupancyFallback(dashboardBookings, anchorDate??"");
- const bookingDayLabel=workspaceReady?"Heute":"Dienstag, 29. September";
+ const bookingDayLabel=liveMode?"Heute":"Dienstag, 29. September";
  const agentTitles={weather:d.agentTitle,return:"Zeit für ein Wiedersehen.",team:scenario==="full"?"Morgen braucht Verstärkung.":"Samstag wird’s lebhaft."};
  function navigate(next:View){setView(next);setSearchOpen(false);if(typeof window!=="undefined"){const url=new URL(window.location.href);if(next==="it")url.hash="it";else if(url.hash==="#it"||url.searchParams.get("app")==="it"){url.hash="";url.searchParams.delete("app");}window.history.replaceState(null,"",`${url.pathname}${url.search}${url.hash}`);}window.scrollTo({top:0,behavior:"instant"});}
  function changeScenario(next:Scenario){setScenario(next);setStates(s=>({...s,weather:"pending",team:"pending"}));toast("Szenario: "+scenarios[next].label,{description:"Wetter, Auslastung und Empfehlungen wurden neu simuliert."})}
@@ -533,7 +536,7 @@ function Workspace(){
   </>;
  }
  function BookingRows({items,showDate=false}:{items:Array<{id:string;time:string;name:string;detail:string;type:string;color:string;date?:string}>;showDate?:boolean}){return <div className="booking-list">{items.length===0?<div className="empty-state"><Search size={26}/><h3>Keine Buchung</h3><p>In diesem Zeitraum steht hier nichts an.</p></div>:items.map(r=>{const marked=checkedIn.includes(r.id);return <div className="booking-row" key={r.id}><time>{showDate&&r.date?formatDayLabel(r.date)+" · "+r.time:r.time}</time><IconTile icon={r.type==="Geburtstag"?Cake:Users} color={r.color} small/><button className="booking-name" onClick={()=>setDetailBooking(r.id)}><strong>{r.name}</strong><span>{r.detail}</span></button><JellyButton variant={marked?"dark":"soft"} className="checkin" aria-pressed={marked} onClick={()=>{setCheckedIn(c=>c.includes(r.id)?c.filter(id=>id!==r.id):[...c,r.id]);toast(marked?"Markierung entfernt":"Nur in dieser Ansicht markiert. Der Check-in wird nicht gespeichert.")}}>{marked?<><Check size={14} strokeWidth={1.8}/>Check-in aufheben</>:"Check-in"}</JellyButton></div>})}</div>}
- function BookingTable({short=false}:{short?:boolean}){const items=allBookings.slice(0,short?3:50);return <BookingRows items={items}/>}
+ function BookingTable({short=false}:{short?:boolean}){if(bookingsLoading)return <div className="empty-state" aria-live="polite"><h3>Buchungen werden geladen.</h3></div>;const items=allBookings.slice(0,short?3:50);return <BookingRows items={items}/>}
  function appContent(){
   if(staff&&!viewVisible(view, staff.capabilities))return <div className="empty-state surface"><ShieldCheck size={28}/><h3>Kein Zugriff.</h3><p>{staff.roleLabel} darf diesen Bereich nicht öffnen.</p></div>;
   if(view==="mappe") return <TagesmappeApp live={workspaceReady} anchorDate={anchorDate}/>;
@@ -543,11 +546,11 @@ function Workspace(){
     const visitDates=new Set(anchorDate?periodDates(anchorDate, visitPeriod):[]);
     const allowed=new Set(dates);
     const fixtureRows=fixtureBookings.map((row)=>({...row, date:anchorDate??"", tables:[] as string[], status:"confirmed"}));
-    const source=workspaceReady?(rangeBookings??[]):fixtureRows;
+    const source=liveMode?(rangeBookings??[]):fixtureRows;
     const ranged=source.filter((row)=>allowed.has(row.date)&&row.status!=="cancelled"&&!hiddenBookings.includes(row.id));
     const birthdays=ranged.filter((row)=>birthdayDates.has(row.date)&&row.type==="Geburtstag");
     const visits=ranged.filter((row)=>visitDates.has(row.date)&&row.type!=="Geburtstag");
-    const loadingRange=workspaceReady&&rangeBookings===null;
+    const loadingRange=liveMode&&rangeBookings===null;
     const canRemove=!staff||staff.capabilities.createBooking;
     async function removeBooking(row: ScheduleRow){
       if(workspaceReady&&typeof row.version==="number"){
@@ -587,10 +590,10 @@ function Workspace(){
         </>}
       </div>
       {!loadingRange&&defaultDay&&<TableFloor dates={dates} defaultDay={defaultDay} bookings={ranged}/>}
-      <div className="info-inline"><Info size={17}/>{workspaceReady?"Buchungen aus dem Buchungsservice für den gewählten Zeitraum. Check-in bleibt lokal.":"Alle gezeigten Personen und Buchungen sind fiktiv."}</div>
+      <div className="info-inline"><Info size={17}/>{liveMode?"Buchungen aus dem Buchungsservice für den gewählten Zeitraum. Check-in bleibt lokal.":"Alle gezeigten Personen und Buchungen sind fiktiv."}</div>
     </>;
   }
-  if(view==="families"){const familyRows=liveFamilies?liveFamilies.map(f=>({n:f.name,t:f.lastVisit,p:f.points,s:f.consent,l:f.longAbsent})) : [{n:"Familie Keller",t:"vor 74 Tagen",p:86,s:true,l:true},{n:"Familie Sommer",t:"vor 63 Tagen",p:142,s:true,l:true},{n:"Familie Braun",t:"vor 3 Tagen",p:54,s:true,l:false},{n:"Familie Richter",t:"vor 92 Tagen",p:28,s:false,l:true}];
+  if(view==="families"&&liveMode&&!liveFamilies)return <section className="surface"><div className="empty-state"><Users size={26}/><h3>Keine Familien aus dem Betrieb</h3><p>Diese Anmeldung hat hier keine Kontaktliste.</p></div></section>;if(view==="families"){const familyRows=liveFamilies?liveFamilies.map(f=>({n:f.name,t:f.lastVisit,p:f.points,s:f.consent,l:f.longAbsent})) : [{n:"Familie Keller",t:"vor 74 Tagen",p:86,s:true,l:true},{n:"Familie Sommer",t:"vor 63 Tagen",p:142,s:true,l:true},{n:"Familie Braun",t:"vor 3 Tagen",p:54,s:true,l:false},{n:"Familie Richter",t:"vor 92 Tagen",p:28,s:false,l:true}];
   return <><div className="family-summary"><div><span className="eyebrow">MASULINO CLUB</span><h2>Eine Verbindung, die bleibt.</h2><p>Besuche, Lieblingsmomente und ein guter Grund, wiederzukommen.</p>{liveFamilies?<p>Kontakte mit Marketing-Freigabe stehen in der Tabelle. Ein Versand ist nicht angebunden.</p>:(!staff||staff.capabilities.campaigns)&&<button className="button dark" onClick={()=>openCampaign("return")}>{(liveAudienceCount??47)+" Familien wieder einladen"}</button>}</div><span className="big-number">{liveFamilies?String(liveFamilies.length):"1.248"}<small>{liveFamilies?"Kontakte am Standort":"Familien im Demo-Club"}</small></span></div><Tabs value={familyFilter} onValueChange={setFamilyFilter}><TabsList><TabsTrigger value="all">Alle Familien</TabsTrigger><TabsTrigger value="return">Länger nicht da</TabsTrigger></TabsList><TabsContent value={familyFilter}><div className="section-head"><h2>Familien</h2><span className="pill">{familyRows.filter(f=>familyFilter==="all"||f.l).length.toLocaleString("de-DE")}</span></div><section className="surface table-surface"><DataTable rows={familyRows.filter(f=>familyFilter==="all"||f.l)} columns={familyColumns} rowKey={(row)=>row.n} initialSort={{id:"name", direction:"asc"}} empty={<div className="empty-state"><h3>Keine Familie in dieser Ansicht</h3><p>Ein anderer Filter oder ein späterer Besuchsnachweis füllt die Tabelle.</p></div>}/></section></TabsContent></Tabs><p className="fine-print">{liveFamilies?"Kontakte und Consent aus dem Domain-Service. Letzter Besuch bleibt leer, bis Besuchsnachweise angebunden sind.":"Auszug aus fiktiven Kundendaten. Nur Kontakte mit passender Freigabe werden für Kampagnen berücksichtigt."}</p></>;}
   if(view==="team"&&workspaceReady)return <><LiveTeamPanel team={liveTeam}/><section className="personal-live-demo" aria-label="Planungsdemo"><div className="section-head"><h2>Planungsdemo</h2><Pill>Beispieldaten</Pill></div><p className="fine-print">Getrennt von den Daten oben: Namen, Schichten und Zeiten sind fiktiv und werden nicht gespeichert.</p><PersonalWorkspace/></section></>;if(view==="team")return <PersonalWorkspace/>;
   if(view==="reports") return <PosDashboard/>;
@@ -608,8 +611,8 @@ function Workspace(){
   <section className="welcome"><div><div className="eyebrow">{staff?.dateLabel||"DIENSTAG, 29. SEPTEMBER 2026"}</div><h1>Guten Morgen, {staff?.firstName??"Peed"}<span className="orange-text">.</span></h1></div></section>
   {staff && !staff.capabilities.bookings && !staff.capabilities.reports && !staff.capabilities.it && <div className="callout blue"><Users size={22}/><div><strong>Dein Arbeitsbereich</strong><p>Schichten und eigene Zeiten. Buchungen, Auswertungen und Kampagnen sind für diese Rolle nicht freigegeben.</p></div></div>}
   <section className="kpi-row" aria-label="Tageskennzahlen">
-    <KpiCard label="Buchungen heute" value={canSeeBookings?(bookingsLoading?"…":dashboardBookings.length):"—"} delta={bookingSeries?deltaAgainstPrevious(bookingSeries):undefined} deltaLabel={canSeeBookings?(bookingsLoading?"Buchungen werden geladen.":historyCaption(bookingSeries,"booking")):"Für diese Rolle nicht freigegeben."} trend={bookingSeries}/>
-    <KpiCard label="Geburtstage heute" value={canSeeBookings?(bookingsLoading?"…":dashboardBirthdays):"—"} delta={birthdaySeries?deltaAgainstPrevious(birthdaySeries):undefined} deltaLabel={canSeeBookings?(bookingsLoading?"Buchungen werden geladen.":historyCaption(birthdaySeries,"birthday")):"Für diese Rolle nicht freigegeben."} trend={birthdaySeries}/>
+    <KpiCard label="Buchungen heute" value={canSeeBookings?(workspaceFailed||bookingsFailed?"—":bookingsLoading?"…":dashboardBookings.length):"—"} delta={bookingSeries?deltaAgainstPrevious(bookingSeries):undefined} deltaLabel={canSeeBookings?(workspaceFailed||bookingsFailed?"Die Buchungen sind gerade nicht erreichbar.":bookingsLoading?"Buchungen werden geladen.":historyCaption(bookingSeries,"booking")):"Für diese Rolle nicht freigegeben."} trend={bookingSeries}/>
+    <KpiCard label="Geburtstage heute" value={canSeeBookings?(workspaceFailed||bookingsFailed?"—":bookingsLoading?"…":dashboardBirthdays):"—"} delta={birthdaySeries?deltaAgainstPrevious(birthdaySeries):undefined} deltaLabel={canSeeBookings?(workspaceFailed||bookingsFailed?"Die Buchungen sind gerade nicht erreichbar.":bookingsLoading?"Buchungen werden geladen.":historyCaption(birthdaySeries,"birthday")):"Für diese Rolle nicht freigegeben."} trend={birthdaySeries}/>
     <KpiCard label="Gebuchter Wert" value={liveReport?liveReport.bookedValueMinor/100:"—"} format={liveReport?"currency":"number"} currency={liveReport?.currency??"EUR"} deltaLabel={liveReport?"Zugesagter Betrag dieses Monats. Keine eingegangene Zahlung.":"Platzhalter"}/>
     <KpiCard label="Gäste im Haus" value="—" deltaLabel="Platzhalter · Check-in nicht angebunden."/>
   </section>
@@ -617,7 +620,7 @@ function Workspace(){
   <div className="dashboard-grid"><div className="dashboard-primary">
     {false && <section className={"weather-card "+scenario}><div className="weather-topline"><span><CloudRain size={17}/>WETTER TRIFFT SPIELRAUM</span><Choice label="Wetterszenario" value={scenario} onChange={v=>changeScenario(v as Scenario)} items={[{value:"rain",label:"Szenario: Regen"},{value:"sun",label:"Szenario: Sonne"},{value:"full",label:"Szenario: Volles Haus"}]}/></div><div className="weather-main"><div><h2>{d.title.split("\n").map((line,i)=><span key={i}>{line}</span>)}</h2><p>{d.description}</p><button className="button weather-button" onClick={()=>scenario==="full"?ask("Wie wird morgen?"):openCampaign("weather")}>{scenario==="full"?"Besetzung prüfen":"Kampagne prüfen"}</button></div><div className="weather-visual"><d.icon size={63} strokeWidth={1.25}/><strong>{d.temperature}</strong><span>Morgen · {d.rain} Regen</span></div></div><div className="forecast-strip">{["Heute","Morgen","Do","Fr"].map((day,i)=>{const WeatherIcon=scenario==="sun"?Sun:[CloudSun,CloudRain,Cloud,CloudSun][i];return <div key={day} className={i===1?"tomorrow":""}><span>{day}</span><WeatherIcon size={20}/><strong>{d.forecast[i]}°</strong></div>})}<div className="forecast-insight"><span>{scenario==="full"?"Erwartete Auslastung":"Auslastung im Aktionsfenster"}</span><strong>{d.occupancy} % <span>{scenario==="full"?"keine Aktion": "Platz für mehr"}</span></strong></div></div></section>}
     <section className="apps-section"><div className="section-head"><h2>Deine Apps</h2><div className="pin-actions">{editingPins?<><JellyButton variant="soft" onClick={cancelPinEdit}>Abbrechen</JellyButton><JellyButton onClick={savePinEdit}>Fertig</JellyButton></>:<JellyButton variant="icon" aria-label="Fixierte Apps bearbeiten" aria-pressed="false" onClick={startPinEdit}><Pencil size={18} strokeWidth={1.8}/></JellyButton>}</div></div><PinnedApps/></section>
-    <section className="dashboard-section">{!canSeeBookings?<><div className="section-head"><h2>Tischauslastung</h2></div><div className="surface"><p className="fine-print">Für diese Rolle nicht freigegeben.</p></div></>:workspaceReady&&occupancyState==="loading"?<><div className="section-head"><h2>Tischauslastung</h2></div><div className="surface"><p className="fine-print" aria-live="polite">Die Buchungen werden geladen.</p></div></>:workspaceReady&&occupancyState==="failed"?<><div className="section-head"><h2>Tischauslastung</h2></div><div className="surface"><p className="fine-print" role="alert">Die Buchungen sind gerade nicht erreichbar. Es wurde nichts neu berechnet.</p></div></>:anchorDate?<OccupancyPanel rows={occupancyRows} anchorDate={anchorDate}/>:null}</section>
+    <section className="dashboard-section">{!canSeeBookings?<><div className="section-head"><h2>Tischauslastung</h2></div><div className="surface"><p className="fine-print">Für diese Rolle nicht freigegeben.</p></div></>:liveMode&&occupancyState==="loading"?<><div className="section-head"><h2>Tischauslastung</h2></div><div className="surface"><p className="fine-print" aria-live="polite">Die Buchungen werden geladen.</p></div></>:liveMode&&occupancyState==="failed"?<><div className="section-head"><h2>Tischauslastung</h2></div><div className="surface"><p className="fine-print" role="alert">Die Buchungen sind gerade nicht erreichbar. Es wurde nichts neu berechnet.</p></div></>:anchorDate?<OccupancyPanel rows={occupancyRows} anchorDate={anchorDate}/>:null}</section>
     {(!staff || staff.capabilities.bookings) && <section className="dashboard-section"><div className="section-head"><h2>Heutige Buchungen</h2><JellyButton onClick={()=>navigate("bookings")}>Buchungen öffnen</JellyButton></div><div className="surface day-section"><BookingTable short/></div></section>}
   </div>{false && <aside className="agent-column"><div className="section-head agent-heading"><h2><Sparkles size={19}/>Für dich vorausgedacht</h2><span className="count-bubble">{pending}</span></div><div className="agent-card-stack">{(Object.keys(states) as Suggestion[]).filter(k=>enabled[k]&&states[k]==="pending").map(k=><AgentCard key={k} kind={k} compact/>)}{pending===0&&<div className="empty-state surface"><CircleCheck size={28}/><h3>Alles im Blick.</h3><p>Alle Hinweise sind bearbeitet oder pausiert.</p><button className="text-button" onClick={()=>navigate("agents")}>Aktivität ansehen</button></div>}</div><div className="assistant-card"><span className="masu-symbol"><Sparkles size={24}/></span><div><h3>Frag einfach Masu.</h3><p>Dein Wissen. Deine Apps.<br/>Eine Antwort entfernt.</p></div><button className="assistant-input" onClick={()=>setChatOpen(true)}><span>Was möchtest du wissen?</span><Plus size={19}/></button></div><p className="side-footnote">* Illustratives Potenzial, keine Zusage.<br/>Alle Daten und Agenten sind simuliert.</p></aside>}</div>
  </>:<>{view==="agents"&&!staff&&<div className="section-head end"><button type="button" className="button soft" onClick={()=>setRulesOpen(true)}><Settings2 size={17}/>Agentenregeln</button></div>}
