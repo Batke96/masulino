@@ -1,6 +1,6 @@
 import { AppError } from "@masulino/contracts";
 import { requirePermission, type ActorContext } from "@masulino/core";
-import { rows, withTenant } from "@masulino/database";
+import { rows, withTenant, type Tx } from "@masulino/database";
 import { sql } from "drizzle-orm";
 import { DateTime } from "luxon";
 
@@ -13,6 +13,33 @@ export function isBirthdayPackage(name: string): boolean {
 /** Promised package total: children times the per-child price, plus the adult flat rate. */
 export function promisedBookingMinor(priceMinor: number, childrenCount: number, adultFlatTotalMinor: number): number {
   return priceMinor * childrenCount + adultFlatTotalMinor;
+}
+
+/**
+ * SQL for the promised total. The adult-flat column arrived in migration 0007.
+ * A database that has not applied it yet still has the per-child price, and the
+ * dashboard span must keep reading those rows.
+ */
+export function promisedMinorSql(hasAdultFlat: boolean, table?: string): string {
+  const col = (name: string) => (table ? `${table}.${name}` : name);
+  const adult = hasAdultFlat ? ` + ${col("adult_flat_total_minor")}` : "";
+  return `coalesce(${col("price_minor_snapshot")}, 0) * coalesce(${col("children_count")}, 0)${adult}`;
+}
+
+async function reservationsStoreAdultFlat(tx: Tx): Promise<boolean> {
+  const found = await rows<{ present: boolean }>(
+    tx,
+    sql`
+      select exists (
+        select 1
+        from information_schema.columns
+        where table_schema = 'public'
+          and table_name = 'reservations'
+          and column_name = 'adult_flat_total_minor'
+      ) as present
+    `,
+  );
+  return found[0]?.present === true;
 }
 
 export type MoneyFact =
@@ -53,10 +80,11 @@ export async function readBookedValueReport(args: {
       sql`select id from locations where id = ${args.locationId} and status = 'active'`,
     );
     if (!location[0]) throw new AppError("not_found", "location");
+    const hasAdultFlat = await reservationsStoreAdultFlat(tx);
     const booked = await rows<{ amount_minor: number; currencies: number; currency: string | null }>(
       tx,
       sql`
-        select coalesce(sum(price_minor_snapshot * children_count + adult_flat_total_minor), 0)::int as amount_minor,
+        select coalesce(sum(${sql.raw(promisedMinorSql(hasAdultFlat))}), 0)::int as amount_minor,
                count(distinct currency_snapshot)::int as currencies,
                min(currency_snapshot) as currency
         from reservations
@@ -144,24 +172,25 @@ export async function readReservationSpan(args: {
       sql`select id from locations where id = ${args.locationId} and status = 'active'`,
     );
     if (!location[0]) throw new AppError("not_found", "location");
+    const hasAdultFlat = await reservationsStoreAdultFlat(tx);
     const reservations = await rows<{
       id: string;
       local_date: string;
       starts_at: Date;
       status: string;
       organizer_name: string;
-      package_name_snapshot: string;
+      package_name_snapshot: string | null;
       children_count: number;
       adult_count: number;
       booked_value_minor: number;
-      currency_snapshot: string;
+      currency_snapshot: string | null;
       timezone: string;
     }>(
       tx,
       sql`
         select r.id, r.local_date::text as local_date, r.starts_at, r.status, r.organizer_name,
                r.package_name_snapshot, r.children_count, r.adult_count,
-               (r.price_minor_snapshot * r.children_count + r.adult_flat_total_minor)::int as booked_value_minor,
+               (${sql.raw(promisedMinorSql(hasAdultFlat, "r"))})::int as booked_value_minor,
                r.currency_snapshot, l.timezone
         from reservations r
         join locations l on l.id = r.location_id
@@ -190,13 +219,13 @@ export async function readReservationSpan(args: {
       localTime: DateTime.fromJSDate(new Date(row.starts_at)).setZone(row.timezone).toFormat("HH:mm"),
       status: row.status,
       organizerName: row.organizer_name,
-      packageName: row.package_name_snapshot,
-      party: isBirthdayPackage(row.package_name_snapshot),
+      packageName: row.package_name_snapshot ?? "",
+      party: isBirthdayPackage(row.package_name_snapshot ?? ""),
       childrenCount: row.children_count,
       adultCount: row.adult_count,
       tables: tables.filter((table) => table.reservation_id === row.id).map((table) => table.name),
       bookedValueMinor: row.booked_value_minor,
-      currency: row.currency_snapshot.trim() || "EUR",
+      currency: (row.currency_snapshot ?? "EUR").trim() || "EUR",
     }));
   });
 }
