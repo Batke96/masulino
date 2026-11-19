@@ -1,6 +1,6 @@
 import { AppError } from "@masulino/contracts";
 import { authorize, requirePermission, type ActorContext } from "@masulino/core";
-import { rows, withTenant, type Tx } from "@masulino/database";
+import { pgCode, rows, withTenant, type Tx } from "@masulino/database";
 import { sql } from "drizzle-orm";
 import {
   daysInMonth,
@@ -135,7 +135,8 @@ export async function readPosReport(args: {
   if (args.month && !/^\d{4}-(0[1-9]|1[0-2])$/.test(args.month)) {
     throw new AppError("validation", "month");
   }
-  return withTenant(args.actor.tenantId, async (tx) => {
+  try {
+    return await withTenant(args.actor.tenantId, async (tx) => {
     const siteRows = await rows<SiteRow>(
       tx,
       sql`
@@ -395,7 +396,13 @@ export async function readPosReport(args: {
       }),
       days,
     };
-  });
+    });
+  } catch (error) {
+    const code = pgCode(error);
+    if (code !== "42P01" && code !== "3F000") throw error;
+    requirePermission(args.actor, "reporting.booked_value.read", args.locationId);
+    return emptyReport(args.locationId, "", args.view);
+  }
 }
 
 async function periodTotal(tx: Tx, locationId: string, from: string, to: string): Promise<TotalRow> {

@@ -3,6 +3,7 @@ import { rows, withTenant } from "@masulino/database";
 import { sql } from "drizzle-orm";
 import { tableSeats } from "../../lib/booking/tables";
 import { startsWithin, windowsFor } from "../../lib/booking/slots";
+import { fixturePackage, homeTableSeat, shiftClock, workplaceFixtures } from "../../lib/demo/workplace";
 import { exampleBookings } from "../../lib/tagesmappe/folder";
 
 /**
@@ -10,8 +11,10 @@ import { exampleBookings } from "../../lib/tagesmappe/folder";
  * tenant `masulino` / `hauptstandort`. It has no Spielwelt seed, and
  * `pnpm db:demo-seed` refuses to write once that owner exists.
  * Staff reads then have nothing to render. This fills the floor, the
- * two birthday packages and the three Tagesmappe parties for that
- * location only. Other tenants are left alone.
+ * birthday packages, the three Tagesmappe parties, and the same two
+ * visits the local seed shows on Übersicht (Familie Beispiel, Familie
+ * Anfrage). Other tenants are left alone. Addresses outside
+ * `@example.test` are not rewritten.
  */
 
 const hostedTenant = "masulino";
@@ -62,19 +65,27 @@ export async function ensureMockParties(scope: {
     const day = dayRow[0]?.day;
     if (!day) throw new Error("Could not read the venue date.");
 
-    const present = await rows<{ reference: string; day: string; email: string; table_name: string | null }>(
+    const home = homeTableSeat();
+    const homeName = `Tisch ${home.id}`;
+    const present = await rows<{
+      reference: string;
+      day: string;
+      email: string;
+      status: string;
+      table_name: string | null;
+    }>(
       tx,
       sql`
-        select r.reference, r.local_date::text as day, r.organizer_email as email, res.name as table_name
+        select r.reference, r.local_date::text as day, r.organizer_email as email, r.status, res.name as table_name
         from reservations r
         left join allocations a on a.tenant_id = r.tenant_id and a.reservation_id = r.id
         left join resources res on res.id = a.resource_id
         where r.location_id = ${scope.locationId}
-          and r.reference in ('B-1024', 'B-1025', 'B-1026')
+          and r.reference in ('B-1024', 'B-1025', 'B-1026', 'MS-FIXTURE1', 'MS-REQUEST1')
       `,
     );
     const ready = new Map(present.map((row) => [row.reference, row]));
-    const current = exampleBookings.every((booking) => {
+    const partiesReady = exampleBookings.every((booking) => {
       const row = ready.get(booking.reference);
       return (
         row &&
@@ -83,7 +94,14 @@ export async function ensureMockParties(scope: {
         row.table_name === booking.tables[0]
       );
     });
-    if (current) return;
+    const fixturesReady = workplaceFixtures.every((booking) => {
+      const row = ready.get(booking.reference);
+      if (!row) return false;
+      if (!row.email.endsWith("@example.test")) return true;
+      const table = booking.seated ? homeName : null;
+      return row.day === day && row.status === booking.status && row.table_name === table;
+    });
+    if (partiesReady && fixturesReady) return;
 
     const tables = new Map<string, { resourceId: string; combinationId: string }>();
     for (const seat of tableSeats) {
@@ -97,7 +115,9 @@ export async function ensureMockParties(scope: {
     }
 
     const rule = await ensureRule(tx, scope);
+    const sample = await ensureFixturePackage(tx, scope);
 
+    if (!partiesReady) {
     for (const booking of exampleBookings) {
       const contact = contacts[booking.reference];
       const table = tables.get(booking.tables[0] ?? "");
@@ -127,6 +147,65 @@ export async function ensureMockParties(scope: {
         combinationId: table.combinationId,
         resourceId: table.resourceId,
       });
+    }
+    }
+
+    if (!fixturesReady) {
+      const table = tables.get(homeName);
+      if (!table) throw new Error(`Incomplete mock party ${homeName}.`);
+      for (const booking of workplaceFixtures) {
+        if (booking.seated) {
+          const before = shiftClock(booking.start, -30);
+          const after = shiftClock(booking.end, 30);
+          const clash = await rows<{ id: string }>(
+            tx,
+            sql`
+              select a.id
+              from allocations a
+              where a.tenant_id = ${scope.tenantId}
+                and a.resource_id = ${table.resourceId}
+                and a.occupancy && tstzrange(
+                  (${day}::date + ${before}::time) at time zone 'Europe/Berlin',
+                  (${day}::date + ${after}::time) at time zone 'Europe/Berlin',
+                  '[)'
+                )
+                and not exists (
+                  select 1 from reservations r
+                  where r.tenant_id = a.tenant_id
+                    and r.id = a.reservation_id
+                    and r.reference = ${booking.reference}
+                )
+              limit 1
+            `,
+          );
+          if (clash[0]) continue;
+        }
+        const reservationId = await upsertParty(tx, scope, {
+          reference: booking.reference,
+          name: booking.name,
+          email: booking.email,
+          phone: booking.phone,
+          day,
+          start: booking.start,
+          end: booking.end,
+          before: shiftClock(booking.start, -30),
+          after: shiftClock(booking.end, 30),
+          children: booking.children,
+          adults: booking.adults,
+          packageId: sample.id,
+          packageName: sample.name,
+          priceMinor: sample.priceMinor,
+          currency: sample.currency,
+          ruleId: rule.id,
+          ruleVersion: rule.version,
+          combinationId: booking.seated ? table.combinationId : null,
+          resourceId: booking.seated ? table.resourceId : null,
+          status: booking.status,
+          source: booking.source,
+          notes: "",
+        });
+        if (reservationId && booking.task) await ensureTask(tx, scope, reservationId, booking.task);
+      }
     }
   });
 }
@@ -220,6 +299,44 @@ async function ensurePackage(
   return { id, name: pkg.name, priceMinor: pkg.priceMinor, currency: pkg.currency };
 }
 
+async function ensureFixturePackage(
+  tx: Tx,
+  scope: { tenantId: string; locationId: string },
+): Promise<{ id: string; name: string; priceMinor: number; currency: string }> {
+  const existing = await rows<{ id: string; name: string; price_minor: number; currency: string }>(
+    tx,
+    sql`
+      select id, name, price_minor, currency
+      from packages
+      where tenant_id = ${scope.tenantId}
+        and location_id = ${scope.locationId}
+        and name = ${fixturePackage.name}
+      limit 1
+    `,
+  );
+  const found = existing[0];
+  if (found) {
+    return { id: found.id, name: found.name, priceMinor: found.price_minor, currency: String(found.currency).trim() };
+  }
+  const inserted = await rows<{ id: string }>(
+    tx,
+    sql`
+      insert into packages (
+        tenant_id, location_id, name, duration_minutes, price_minor, currency,
+        min_children, max_children, fixture
+      ) values (
+        ${scope.tenantId}, ${scope.locationId}, ${fixturePackage.name}, ${fixturePackage.durationMinutes},
+        ${fixturePackage.priceMinor}, ${fixturePackage.currency},
+        ${fixturePackage.minChildren}, ${fixturePackage.maxChildren}, true
+      )
+      returning id
+    `,
+  );
+  const id = inserted[0]?.id;
+  if (!id) throw new Error(`Could not store package ${fixturePackage.name}.`);
+  return { id, name: fixturePackage.name, priceMinor: fixturePackage.priceMinor, currency: fixturePackage.currency };
+}
+
 async function ensureRule(
   tx: Tx,
   scope: { tenantId: string; locationId: string; timezone: string },
@@ -273,10 +390,13 @@ async function upsertParty(
     currency: string;
     ruleId: string;
     ruleVersion: number;
-    combinationId: string;
-    resourceId: string;
+    combinationId?: string | null;
+    resourceId?: string | null;
+    status?: "confirmed" | "requested";
+    source?: "staff_phone" | "staff_walk_in";
+    notes?: string | null;
   },
-): Promise<void> {
+): Promise<string | null> {
   const existing = await rows<{ id: string; email: string }>(
     tx,
     sql`
@@ -286,7 +406,11 @@ async function upsertParty(
     `,
   );
   const prior = existing[0];
-  if (prior && !prior.email.endsWith("@example.test")) return;
+  if (prior && !prior.email.endsWith("@example.test")) return null;
+  const status = party.status ?? "confirmed";
+  const source = party.source ?? "staff_phone";
+  const notes = party.notes === undefined ? note : party.notes;
+  const combinationId = party.combinationId ?? null;
 
   const starts = sql`(${party.day}::date + ${party.start}::time) at time zone 'Europe/Berlin'`;
   const ends = sql`(${party.day}::date + ${party.end}::time) at time zone 'Europe/Berlin'`;
@@ -301,10 +425,10 @@ async function upsertParty(
           price_minor_snapshot, currency_snapshot, rule_id, rule_version_snapshot, combination_id,
           source_channel, notes, created_by_principal_id
         ) values (
-          ${scope.tenantId}, ${scope.locationId}, ${party.reference}, 'confirmed', ${party.name}, ${party.email}, ${party.phone},
+          ${scope.tenantId}, ${scope.locationId}, ${party.reference}, ${status}, ${party.name}, ${party.email}, ${party.phone},
           ${starts}, ${ends}, ${party.day}::date, ${party.children}, ${party.adults}, ${party.packageId}, ${party.packageName},
-          ${party.priceMinor}, ${party.currency}, ${party.ruleId}, ${party.ruleVersion}, ${party.combinationId},
-          'staff_phone', ${note}, ${scope.principalId}
+          ${party.priceMinor}, ${party.currency}, ${party.ruleId}, ${party.ruleVersion}, ${combinationId},
+          ${source}, ${notes}, ${scope.principalId}
         )
         returning id
       `,
@@ -328,9 +452,10 @@ async function upsertParty(
         currency_snapshot = ${party.currency},
         rule_id = ${party.ruleId},
         rule_version_snapshot = ${party.ruleVersion},
-        combination_id = ${party.combinationId},
-        notes = ${note},
-        status = 'confirmed',
+        combination_id = ${combinationId},
+        source_channel = ${source},
+        notes = ${notes},
+        status = ${status},
         updated_at = now()
       where tenant_id = ${scope.tenantId} and id = ${reservationId} and reference = ${party.reference}
     `);
@@ -339,16 +464,40 @@ async function upsertParty(
   await tx.execute(sql`
     delete from allocations where tenant_id = ${scope.tenantId} and reservation_id = ${reservationId}
   `);
-  await tx.execute(sql`
-    insert into allocations (tenant_id, location_id, reservation_id, resource_id, occupancy)
-    values (
-      ${scope.tenantId}, ${scope.locationId}, ${reservationId}, ${party.resourceId},
-      tstzrange(
-        (${party.day}::date + ${party.before}::time) at time zone 'Europe/Berlin',
-        (${party.day}::date + ${party.after}::time) at time zone 'Europe/Berlin',
-        '[)'
+  if (party.resourceId) {
+    await tx.execute(sql`
+      insert into allocations (tenant_id, location_id, reservation_id, resource_id, occupancy)
+      values (
+        ${scope.tenantId}, ${scope.locationId}, ${reservationId}, ${party.resourceId},
+        tstzrange(
+          (${party.day}::date + ${party.before}::time) at time zone 'Europe/Berlin',
+          (${party.day}::date + ${party.after}::time) at time zone 'Europe/Berlin',
+          '[)'
+        )
       )
-    )
+    `);
+  }
+  return reservationId;
+}
+
+async function ensureTask(
+  tx: Tx,
+  scope: { tenantId: string; locationId: string },
+  reservationId: string,
+  title: string,
+): Promise<void> {
+  const existing = await rows<{ id: string }>(
+    tx,
+    sql`
+      select id from reservation_tasks
+      where tenant_id = ${scope.tenantId} and reservation_id = ${reservationId} and title = ${title}
+      limit 1
+    `,
+  );
+  if (existing[0]) return;
+  await tx.execute(sql`
+    insert into reservation_tasks (tenant_id, location_id, reservation_id, title, status)
+    values (${scope.tenantId}, ${scope.locationId}, ${reservationId}, ${title}, 'open')
   `);
 }
 
