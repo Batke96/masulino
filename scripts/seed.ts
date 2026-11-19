@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import pg from "pg";
 import { birthdayPackages } from "@masulino/contracts";
 import { tableSeats } from "../lib/booking/tables.ts";
+import { fixturePackage, homeTableSeat, shiftClock, workplaceFixtures } from "../lib/demo/workplace.ts";
 import { ensureExampleParties } from "./example-parties.ts";
 import { loadRootEnv } from "./load-env";
 
@@ -207,8 +208,10 @@ for (const seat of tableSeats) {
     [tenantA, comboId, resourceId],
   );
 }
-const homeSeat = tableSeats.filter((seat) => seat.seats >= 8).sort((left, right) => left.seats - right.seats || left.id - right.id)[0];
-if (!homeSeat) throw new Error("No floor table fits 8 children");
+const homeSeat = homeTableSeat();
+const beispiel = workplaceFixtures[0];
+const anfrage = workplaceFixtures[1];
+if (!beispiel?.task || !anfrage) throw new Error("Workplace fixtures are missing");
 const homeCombo = comboIds.get(homeSeat.id);
 const homeResource = resourceIds.get(homeSeat.id);
 if (!homeCombo || !homeResource) throw new Error("Floor table was not inserted");
@@ -216,8 +219,18 @@ const packageId = randomUUID();
 await client.query(
   `insert into packages (
     id, tenant_id, location_id, name, duration_minutes, price_minor, currency, min_children, max_children, fixture
-  ) values ($1, $2, $3, 'Geburtstagsfeier Fixture', 120, 25000, 'EUR', 1, 16, true)`,
-  [packageId, tenantA, locationA],
+  ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, true)`,
+  [
+    packageId,
+    tenantA,
+    locationA,
+    fixturePackage.name,
+    fixturePackage.durationMinutes,
+    fixturePackage.priceMinor,
+    fixturePackage.currency,
+    fixturePackage.minChildren,
+    fixturePackage.maxChildren,
+  ],
 );
 for (const pkg of birthdayPackages) {
   await client.query(
@@ -246,27 +259,48 @@ await client.query(
     price_minor_snapshot, currency_snapshot, rule_id, rule_version_snapshot, combination_id,
     source_channel, notes, created_by_principal_id
   ) values (
-    $1, $2, $3, 'MS-FIXTURE1', 'confirmed', 'Familie Beispiel', 'familie@example.test', '030000000',
-    (current_date::timestamp + time '14:00') at time zone 'Europe/Berlin',
-    (current_date::timestamp + time '16:00') at time zone 'Europe/Berlin',
+    $1, $2, $3, $8, $9, $10, $11, $12,
+    (current_date::timestamp + $13::time) at time zone 'Europe/Berlin',
+    (current_date::timestamp + $14::time) at time zone 'Europe/Berlin',
     (timezone('Europe/Berlin', now()))::date,
-    8, 4, $4, 'Geburtstagsfeier Fixture', 25000, 'EUR', $5, 1, $6, 'staff_phone', '', $7
+    $15, $16, $4, $17, $18, $19, $5, 1, $6, $20, '', $7
   )`,
-  [reservationId, tenantA, locationA, packageId, ruleId, homeCombo, reception],
+  [
+    reservationId,
+    tenantA,
+    locationA,
+    packageId,
+    ruleId,
+    homeCombo,
+    reception,
+    beispiel.reference,
+    beispiel.status,
+    beispiel.name,
+    beispiel.email,
+    beispiel.phone,
+    beispiel.start,
+    beispiel.end,
+    beispiel.children,
+    beispiel.adults,
+    fixturePackage.name,
+    fixturePackage.priceMinor,
+    fixturePackage.currency,
+    beispiel.source,
+  ],
 );
 await client.query(
   `insert into allocations (tenant_id, location_id, reservation_id, resource_id, occupancy)
    select $1, $2, $3, $4, tstzrange(
-     (current_date::timestamp + time '13:30') at time zone 'Europe/Berlin',
-     (current_date::timestamp + time '16:30') at time zone 'Europe/Berlin',
+     (current_date::timestamp + $5::time) at time zone 'Europe/Berlin',
+     (current_date::timestamp + $6::time) at time zone 'Europe/Berlin',
      '[)'
    )`,
-  [tenantA, locationA, reservationId, homeResource],
+  [tenantA, locationA, reservationId, homeResource, shiftClock(beispiel.start, -30), shiftClock(beispiel.end, 30)],
 );
 await client.query(
   `insert into reservation_tasks (tenant_id, location_id, reservation_id, title, status)
-   values ($1, $2, $3, 'Tische vorbereiten', 'open')`,
-  [tenantA, locationA, reservationId],
+   values ($1, $2, $3, $4, 'open')`,
+  [tenantA, locationA, reservationId, beispiel.task],
 );
 await client.query(
   `insert into reservations (
@@ -274,13 +308,33 @@ await client.query(
     starts_at, ends_at, local_date, children_count, adult_count, package_id, package_name_snapshot,
     price_minor_snapshot, currency_snapshot, rule_id, rule_version_snapshot, source_channel, created_by_principal_id
   ) values (
-    $1, $2, $3, 'MS-REQUEST1', 'requested', 'Familie Anfrage', 'anfrage@example.test', '030000001',
-    (current_date::timestamp + time '11:00') at time zone 'Europe/Berlin',
-    (current_date::timestamp + time '13:00') at time zone 'Europe/Berlin',
+    $1, $2, $3, $7, $8, $9, $10, $11,
+    (current_date::timestamp + $12::time) at time zone 'Europe/Berlin',
+    (current_date::timestamp + $13::time) at time zone 'Europe/Berlin',
     (timezone('Europe/Berlin', now()))::date,
-    6, 2, $4, 'Geburtstagsfeier Fixture', 25000, 'EUR', $5, 1, 'staff_walk_in', $6
+    $14, $15, $4, $16, $17, $18, $5, 1, $19, $6
   )`,
-  [randomUUID(), tenantA, locationA, packageId, ruleId, reception],
+  [
+    randomUUID(),
+    tenantA,
+    locationA,
+    packageId,
+    ruleId,
+    reception,
+    anfrage.reference,
+    anfrage.status,
+    anfrage.name,
+    anfrage.email,
+    anfrage.phone,
+    anfrage.start,
+    anfrage.end,
+    anfrage.children,
+    anfrage.adults,
+    fixturePackage.name,
+    fixturePackage.priceMinor,
+    fixturePackage.currency,
+    anfrage.source,
+  ],
 );
 await client.query(
   `insert into audit_events (
