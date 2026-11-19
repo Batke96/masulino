@@ -1,0 +1,70 @@
+/* Workspace navigation from the section list: title, description, phase. */
+
+.nav-item.nav-entry {
+  align-items: center;
+  height: auto;
+  min-height: 52px;
+  gap: var(--space-3);
+}
+
+.nav-item > .nav-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  white-space: normal;
+}
+
+.nav-title {
+  overflow: hidden;
+  color: var(--text);
+  font-size: var(--text-label);
+  font-weight: var(--font-weight-heading);
+  line-height: var(--leading-heading);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-desc {
+  color: var(--text-secondary);
+  font-size: var(--text-meta);
+  font-weight: var(--font-weight-body);
+  line-height: 1.4;
+  white-space: normal;
+}
+
+.nav-item.active .nav-title {
+  color: var(--primary);
+}
+
+.nav-phase {
+  flex-shrink: 0;
+  margin-left: var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--text-meta);
+  font-weight: var(--font-weight-body);
+  line-height: var(--leading-heading);
+  white-space: nowrap;
+}
+
+.nav-phase.mvp {
+  color: var(--success);
+  font-weight: var(--font-weight-heading);
+}
+
+.nav-admin {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+.customer-sections {
+  margin-bottom: var(--space-5);
+}
+
+[data-collapsible="icon"] .nav-admin {
+  margin-top: var(--space-2);
+  padding-top: 0;
+  border-top: 0;
+}
