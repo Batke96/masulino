@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, type CSSProperties, type ReactElement } from "react";
-import { LayoutDashboard, Sparkles, BookOpen, CalendarDays, Users, Ticket, Cake, ChartNoAxesCombined, Megaphone, Coffee, Globe, CloudRain, Sun, CloudSun, Cloud, Bell, Search, ChevronDown, Plus, Settings2, Settings, Clock3, Check, CheckCheck, CircleHelp, X, Send, ShieldCheck, CircleCheck, History, Pause, Play, RotateCcw, MapPin, ExternalLink, ScanLine, CreditCard, Heart, Menu, SlidersHorizontal, CalendarCheck, Info, Mail, Smartphone, Target, TrendingUp, Pencil, ClipboardList, Package, Command as CommandIcon, PanelLeftClose, PanelLeftOpen, LogOut, FolderOpen, type LucideIcon } from "lucide-react";
+import { LayoutGrid, Sparkles, BookOpen, CalendarDays, Users, Ticket, Cake, ChartLine, Coffee, Globe, CloudRain, Sun, CloudSun, Cloud, Bell, Search, ChevronDown, Plus, Settings2, Clock3, Check, CheckCheck, CircleHelp, X, Send, ShieldCheck, CircleCheck, History, Pause, Play, RotateCcw, MapPin, ExternalLink, ScanLine, CreditCard, Heart, Menu, SlidersHorizontal, CalendarCheck, Info, Mail, Smartphone, Target, TrendingUp, Pencil, Command as CommandIcon, PanelLeftClose, PanelLeftOpen, LogOut, FolderOpen, ClipboardList, Package, Settings, type LucideIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { JellyButton } from "@/components/ui/jelly-button";
 import { Sheet, SheetContent, SheetTitle, SheetDescription, SheetClose } from "@/components/ui/sheet";
@@ -36,12 +36,13 @@ import {
 import { PosDashboard } from "@/components/reports/pos-dashboard";
 import { StaffAccess, useStaffIdentity, type StaffIdentity } from "@/app/staff-access";
 import { appVisible, viewVisible } from "@/lib/workspace/capabilities";
-import { isSidebarDestination, sidebarMenu, type SidebarEntry } from "@/lib/workspace/sidebar-menu";
 import { shownBookings } from "@/lib/workspace/shown-bookings";
 import { TableFloor } from "@/app/table-floor";
 import { OccupancyPanel } from "@/components/booking/occupancy-panel";
 import { ItWorkspace } from "@/app/it-workspace";
 import { PersonalWorkspace } from "@/components/personal/personal-workspace";
+import { SegmentNav } from "@/components/personal/segment-nav";
+import "./nav-sections.css";
 import { TagesmappeApp } from "@/components/tagesmappe/tagesmappe-app";
 import type { SpanBooking } from "@/lib/reports/booking-window";
 import { KpiCard } from "@/components/ui/kpi-card";
@@ -54,20 +55,19 @@ import { deltaAgainstPrevious, historyCaption, historyDates, seriesForDates } fr
 type Scenario = "rain" | "sun" | "full";
 type Suggestion = "weather" | "return" | "team";
 type AgentState = "pending" | "planned" | "snoozed";
-type AppId = "bookings" | "mappe" | "tickets" | "families" | "team" | "reports" | "campaigns" | "bistro" | "portal" | "it";
+type AppPhase = "MVP" | "Phase 2" | "Phase 3" | "Optional";
+type AppId = "bookings" | "mappe" | "tickets" | "families" | "team" | "reports" | "campaigns" | "bistro" | "portal" | "it" | "customers" | "betrieb";
 type View = "today" | "agents" | "knowledge" | "concept" | AppId;
 type ChatMessage = { role: "user" | "assistant"; text: string; kind?: string };
-type AppTile = { id: AppId; name: string; description: string; icon: LucideIcon; color: string; meta: string };
+type AppTile = { id: AppId; name: string; description: string; icon: LucideIcon; color: string; meta: string; phase?: AppPhase };
 const apps: AppTile[] = [
-  { id:"bookings", name:"Buchungen", description:"Besuche & Reservierungen", icon:CalendarDays, color:"violet", meta:"24 heute" },
-  { id:"mappe", name:"Tagesmappe", description:"Seiten für den Ausdruck", icon:FolderOpen, color:"blue", meta:"Für den Tag" },
-  { id:"team", name:"Team & Schichten", description:"Gemeinsam gut geplant", icon:Users, color:"green", meta:"6 im Einsatz" },
-  { id:"reports", name:"Auswertungen", description:"Zahlen mit Überblick", icon:ChartNoAxesCombined, color:"amber", meta:"September 2026" },
-  { id:"families", name:"Familien & Club", description:"Gäste & Treuepunkte", icon:Heart, color:"pink", meta:"1.248 Familien" },
-  { id:"campaigns", name:"Kampagnen", description:"Familien wieder einladen", icon:Megaphone, color:"orange", meta:"2 Vorschläge" },
-  { id:"tickets", name:"Kasse & Eintritt", description:"Tickets & Check-in", icon:Ticket, color:"orange", meta:"Demo-Kasse" },
-  { id:"bistro", name:"Bistro", description:"Kleine Pausen, großer Genuss", icon:Coffee, color:"amber", meta:"Sortiment & Bestand" },
-  { id:"it", name:"IT", description:"Benutzer, Auswertungen und Stammdaten", icon:ShieldCheck, color:"blue", meta:"Betrieb pflegen" },
+  { id:"bookings", name:"Buchungen", description:"Reservierungen, Geburtstage & Tische", icon:CalendarDays, color:"violet", meta:"24 heute", phase:"MVP" },
+  { id:"team", name:"Personal", description:"Dienstplan, Verfügbarkeit & Zeiterfassung", icon:Users, color:"green", meta:"6 im Einsatz", phase:"Phase 2" },
+  { id:"reports", name:"Auswertungen", description:"Umsatz, Trends & Wirtschaftlichkeit", icon:ChartLine, color:"amber", meta:"September 2026", phase:"Phase 2" },
+  { id:"customers", name:"Kunden & Marketing", description:"Kundenhistorie, Erinnerungen, Aktionen", icon:Heart, color:"pink", meta:"Familien & Aktionen", phase:"Phase 3" },
+  { id:"betrieb", name:"Betrieb", description:"Checklisten, Aufgaben & Instandhaltung", icon:ClipboardList, color:"blue", meta:"Checklisten", phase:"Phase 3" },
+  { id:"bistro", name:"Gastro & Lager", description:"Bestände, Bedarfsplanung & Einkauf", icon:Package, color:"orange", meta:"Beispielbestand", phase:"Optional" },
+  { id:"it", name:"Verwaltung & Einstellungen", description:"Standort, Raumplan, Preise, Regeln & Rechte", icon:Settings, color:"blue", meta:"Standort & Rechte" },
 ];
 const liveTileIds = new Set<AppId>(["bookings", "mappe", "team", "reports"]);
 
@@ -76,8 +76,7 @@ function isAppId(value: unknown): value is AppId {
 }
 
 function orderedAppIds(capabilities: StaffIdentity["capabilities"] | null): AppId[] {
-  const visible = apps.filter((app) => appVisible(app.id, capabilities));
-  return [...visible.filter((app) => app.id === "it"), ...visible.filter((app) => app.id !== "it")].map((app) => app.id);
+  return apps.filter((app) => appVisible(app.id, capabilities)).map((app) => app.id);
 }
 
 function defaultPinnedIds(capabilities: StaffIdentity["capabilities"] | null): AppId[] {
@@ -190,43 +189,42 @@ function SidebarShowButton(){
   if(mode!=="hidden"||isMobile) return null;
   return <Tooltip><TooltipTrigger asChild><button id="sidebar-show" type="button" className="icon-button sidebar-show" aria-label="Navigation einblenden" onClick={showSidebar}><PanelLeftOpen size={20} strokeWidth={1.8}/></button></TooltipTrigger><TooltipContent side="bottom" sideOffset={8}>Navigation einblenden</TooltipContent></Tooltip>;
 }
-const navIcons: Record<string, LucideIcon> = {
-  today: LayoutDashboard,
-  bookings: CalendarDays,
-  team: Users,
-  reports: ChartNoAxesCombined,
-  customers: Heart,
-  operations: ClipboardList,
-  gastro: Package,
-  it: Settings,
-};
-
-function NavRow({entry,current,iconMode,onOpen}:{entry:SidebarEntry;current:boolean;iconMode:boolean;onOpen:(entry:SidebarEntry)=>void}){
-  const Icon=navIcons[entry.id]??LayoutDashboard;
-  const label=entry.phase?`${entry.name}. ${entry.detail}. ${entry.phase}`:`${entry.name}. ${entry.detail}`;
-  return <SidebarTip label={entry.name} enabled={iconMode}><button type="button" className={"nav-item nav-entry"+(current?" active":"")} aria-label={label} aria-current={current?"page":undefined} onClick={()=>onOpen(entry)}><Icon size={19} strokeWidth={1.8}/><span className="nav-copy"><span className="nav-name">{entry.name}</span><span className="nav-detail">{entry.detail}</span></span>{entry.phase&&<span className={"nav-phase"+(entry.phase==="MVP"?" mvp":"")}>{entry.phase}</span>}</button></SidebarTip>;
+function sectionActive(id: AppId | "today", view: View): boolean {
+  if (id === "customers") return view === "families" || view === "campaigns" || view === "customers";
+  return view === id;
 }
 
-function Navigation({view,onNavigate,staff}:{view:View;onNavigate:(view:View)=>void;pending:number;staff:StaffIdentity|null}){
+function Navigation({view,onNavigate,staff}:{view:View;onNavigate:(view:View)=>void;staff:StaffIdentity|null}){
   const {setOpenMobile,mode,isMobile,hideSidebar} = useSidebar();
   const iconMode=mode==="icon";
+  const capabilities=staff?.capabilities??null;
   const go=(v:View)=>{onNavigate(v);setOpenMobile(false)};
-  const menu=sidebarMenu(staff?.capabilities??null);
-  function openEntry(entry:SidebarEntry){
-    if(entry.destination){go(entry.destination);return}
-    toast("Noch nicht geöffnet",{description:`${entry.name} ist in dieser Ansicht nicht dabei.`});
-  }
+  const openSection=(id: AppId | "today")=>{
+    if(id==="customers"){
+      go(appVisible("families", capabilities) ? "families" : "campaigns");
+      return;
+    }
+    go(id);
+  };
+  const workspace={id:"today" as const, name:"Übersicht", description:"Dein Chef-Dashboard", icon:LayoutGrid};
+  const menuApps=apps.filter((app)=>app.id!=="it"&&appVisible(app.id, capabilities));
+  const adminApp=apps.find((app)=>app.id==="it");
+  const showAdmin=Boolean(adminApp&&appVisible("it", capabilities));
   const profileName=staff?.name??"Peed";
   const profileRole=staff?staff.roleLabel:"Betriebsleitung · Demo";
   const locationName=staff?staff.locationName:"Dein Spielraum";
   const tenantName=staff?staff.tenantName:"Masulino · Hauptstandort";
+  function entry(item:{id:AppId|"today";name:string;description:string;icon:LucideIcon;phase?:AppPhase}){
+    const Icon=item.icon;
+    const active=sectionActive(item.id, view);
+    const label=item.phase?`${item.name}, ${item.description}, ${item.phase}`:`${item.name}, ${item.description}`;
+    return <SidebarTip key={item.id} label={item.name} enabled={iconMode}><button type="button" className={"nav-item nav-entry"+(active?" active":"")} aria-label={label} aria-current={active?"page":undefined} onClick={()=>openSection(item.id)}><Icon size={18} strokeWidth={1.8} aria-hidden="true"/><span className="nav-copy"><span className="nav-title">{item.name}</span><span className="nav-desc">{item.description}</span></span>{item.phase&&<span className={"nav-phase"+(item.phase==="MVP"?" mvp":"")}>{item.phase}</span>}</button></SidebarTip>;
+  }
   return <Sidebar className="side-navigation"><SidebarHeader className="brand-area"><button className="brand" onClick={()=>go("today")} aria-label="Masulino Startseite"><span className="brand-mark">m</span><span className="brand-word">masulino<span className="brand-dot">.</span></span></button>{!isMobile&&<Tooltip><TooltipTrigger asChild><button id="sidebar-hide" type="button" className="icon-button sidebar-hide" aria-label="Navigation ausblenden" onClick={hideSidebar}><PanelLeftClose size={19} strokeWidth={1.8}/></button></TooltipTrigger><TooltipContent side="right" sideOffset={8}>Navigation ausblenden</TooltipContent></Tooltip>}</SidebarHeader>
     <SidebarContent>
-      <div className="nav-label">ARBEITSRAUM</div>
-      <nav aria-label="Hauptnavigation"><NavRow entry={menu.primary} current={view==="today"} iconMode={iconMode} onOpen={openEntry}/></nav>
-      <div className="nav-label second">MEINE APPS</div>
-      <nav id="meine-apps" aria-label="Meine Apps">{menu.apps.map((entry)=><NavRow key={entry.id} entry={entry} current={entry.destination===view} iconMode={iconMode} onOpen={openEntry}/>)}</nav>
-      {menu.settings&&<nav className="nav-settings" aria-label="Verwaltung und Einstellungen"><NavRow entry={menu.settings} current={view==="it"} iconMode={iconMode} onOpen={openEntry}/></nav>}
+      {viewVisible("today", capabilities)&&<><div className="nav-label">ARBEITSRAUM</div><nav aria-label="Hauptnavigation">{entry(workspace)}</nav></>}
+      {menuApps.length>0&&<><div className="nav-label second">MEINE APPS</div><nav id="meine-apps" aria-label="Meine Apps">{menuApps.map((app)=>entry(app))}</nav></>}
+      {showAdmin&&adminApp&&<nav className="nav-admin" aria-label="Verwaltung">{entry(adminApp)}</nav>}
     </SidebarContent>
     <SidebarFooter className="side-footer"><SidebarTip label={`${profileName}. ${profileRole}`} enabled={iconMode}><div className="profile"><span className="avatar">{profileName.trim().charAt(0).toUpperCase()||"P"}</span><div><strong>{profileName}</strong><small>{profileRole}</small></div></div></SidebarTip><SidebarTip label={`${locationName}, ${tenantName}`} enabled={iconMode}><div className="workspace-name"><span className="workspace-icon"><MapPin size={17} strokeWidth={1.8}/></span><div>{locationName}<small>{tenantName}</small></div></div></SidebarTip>{staff&&<SidebarTip label="Abmelden" enabled={iconMode}><button className="nav-item" type="button" aria-label="Abmelden" onClick={staff.signOut}><LogOut className="nav-icon-only" size={18} strokeWidth={1.8}/><span>Abmelden</span></button></SidebarTip>}</SidebarFooter>
   </Sidebar>
@@ -308,7 +306,7 @@ function Workspace(){
  const [familiesFailed,setFamiliesFailed]=useState(false);
  const [workspaceFailed,setWorkspaceFailed]=useState(false);
  const pinKey=staff?.email??"demo";
- const capabilityKey=staff?[staff.capabilities.bookings,staff.capabilities.families,staff.capabilities.team,staff.capabilities.reports,staff.capabilities.campaigns,staff.capabilities.portal,staff.capabilities.it].join(","):"demo";
+ const capabilityKey=staff?[staff.capabilities.bookings,staff.capabilities.families,staff.capabilities.team,staff.capabilities.reports,staff.capabilities.campaigns,staff.capabilities.portal,staff.capabilities.it,staff.capabilities.operations].join(","):"demo";
  const [pinnedIds,setPinnedIds]=useState<AppId[]>(()=>defaultPinnedIds(null));
  const [pinDraft,setPinDraft]=useState<AppId[]>([]);
  const [editingPins,setEditingPins]=useState(false);
@@ -343,7 +341,7 @@ function Workspace(){
   :occupancyFallback(dashboardBookings, anchorDate??"");
  const bookingDayLabel=liveMode?"Heute":"Dienstag, 29. September";
  const agentTitles={weather:d.agentTitle,return:"Zeit für ein Wiedersehen.",team:scenario==="full"?"Morgen braucht Verstärkung.":"Samstag wird’s lebhaft."};
- function navigate(next:View){setView(next);setSearchOpen(false);if(typeof window!=="undefined"){const url=new URL(window.location.href);if(next==="it")url.hash="it";else if(url.hash==="#it"||url.searchParams.get("app")==="it"){url.hash="";url.searchParams.delete("app");}window.history.replaceState(null,"",`${url.pathname}${url.search}${url.hash}`);}window.scrollTo({top:0,behavior:"instant"});}
+ function navigate(next:View){const target=next==="customers"?(appVisible("families", staff?.capabilities??null)?"families":"campaigns"):next;setView(target);setSearchOpen(false);if(typeof window!=="undefined"){const url=new URL(window.location.href);if(target==="it")url.hash="it";else if(url.hash==="#it"||url.searchParams.get("app")==="it"){url.hash="";url.searchParams.delete("app");}window.history.replaceState(null,"",`${url.pathname}${url.search}${url.hash}`);}window.scrollTo({top:0,behavior:"instant"});}
  function changeScenario(next:Scenario){setScenario(next);setStates(s=>({...s,weather:"pending",team:"pending"}));toast("Szenario: "+scenarios[next].label,{description:"Wetter, Auslastung und Empfehlungen wurden neu simuliert."})}
  function openCampaign(kind:Suggestion){setCampaign(kind);setReview(false);setChannel("email");setOffer(kind==="return"?"points":"coffee");setSendTime("today");setSubject(kind==="return"?"Lange nicht gespielt? Wir vermissen euch!":d.campaign);setMessage(kind==="return"?"Es ist eine Weile her! Wir würden uns freuen, euch wieder bei Masulino zu sehen. Sucht euch einen ruhigen Spieltermin aus und sammelt bei eurem nächsten Besuch doppelte Club-Punkte.":scenario==="sun"?"Lust auf einen entspannten Spielnachmittag? Morgen ab 16 Uhr ist viel Platz zum Toben. Zu eurem gebuchten Kinderticket laden wir eine Begleitperson auf einen Kaffee ein.":"Morgen regnet es? Bei uns regnet’s nur Spielideen. Kommt zwischen 9 und 12 Uhr vorbei. Zu eurem gebuchten Kinderticket laden wir eine Begleitperson auf einen Kaffee ein.")}
  function snooze(kind:Suggestion){setStates(s=>({...s,[kind]:"snoozed"}));setLogs(l=>[{title:agentTitles[kind]+" · zurückgestellt",detail:"Erinnerung für morgen, 09:00 · nur in dieser Demo"},...l]);toast("Für morgen zurückgestellt",{action:{label:"Rückgängig",onClick:()=>setStates(s=>({...s,[kind]:"pending"}))}})}
@@ -462,8 +460,13 @@ function Workspace(){
   return()=>lifecycle.abort();
  },[scenario,view,states]);
  const currentApp=apps.find(a=>a.id===view);
- const title=view==="today"?"Übersicht":view==="team"?"Personal":view==="it"?"Verwaltung & Einstellungen":view==="agents"?"Agenten":view==="knowledge"?"Wissen":view==="concept"?"Konzept & Quellen":currentApp?.name??"Übersicht";
+ const title=view==="today"?"Übersicht":view==="families"||view==="campaigns"||view==="customers"?"Kunden & Marketing":view==="mappe"?"Tagesmappe":view==="agents"?"Agenten":view==="knowledge"?"Wissen":view==="concept"?"Konzept & Quellen":currentApp?.name??"Übersicht";
  function tileMeta(app:AppTile):string{
+  if(app.id==="customers"){
+    if(!staff||!staff.capabilities.families||familiesFailed) return app.meta;
+    if(!liveFamilies) return "…";
+    return `${liveFamilies.length.toLocaleString("de-DE")} Kontakte`;
+  }
   if(!staff||!liveTileIds.has(app.id)) return app.meta;
   if(app.id==="bookings"){
     if(!staff.capabilities.bookings||bookingsFailed||workspaceFailed) return "—";
@@ -519,6 +522,15 @@ function Workspace(){
  }
  function BookingRows({items,showDate=false}:{items:Array<{id:string;time:string;name:string;detail:string;type:string;color:string;date?:string}>;showDate?:boolean}){return <div className="booking-list">{items.length===0?<div className="empty-state"><Search size={26}/><h3>Keine Buchung</h3><p>In diesem Zeitraum steht hier nichts an.</p></div>:items.map(r=>{const marked=checkedIn.includes(r.id);return <div className="booking-row" key={r.id}><time>{showDate&&r.date?formatDayLabel(r.date)+" · "+r.time:r.time}</time><IconTile icon={r.type==="Geburtstag"?Cake:Users} color={r.color} small/><button className="booking-name" onClick={()=>setDetailBooking(r.id)}><strong>{r.name}</strong><span>{r.detail}</span></button><JellyButton variant={marked?"dark":"soft"} className="checkin" aria-pressed={marked} onClick={()=>{setCheckedIn(c=>c.includes(r.id)?c.filter(id=>id!==r.id):[...c,r.id]);toast(marked?"Markierung entfernt":"Nur in dieser Ansicht markiert. Der Check-in wird nicht gespeichert.")}}>{marked?<><Check size={14} strokeWidth={1.8}/>Check-in aufheben</>:"Check-in"}</JellyButton></div>})}</div>}
  function BookingTable({short=false}:{short?:boolean}){if(bookingsLoading)return <div className="empty-state" aria-live="polite"><h3>Buchungen werden geladen.</h3></div>;const items=allBookings.slice(0,short?3:50);return <BookingRows items={items}/>}
+ function customerSections(){
+  const caps=staff?.capabilities??null;
+  const items=[
+    ...(!staff||appVisible("families", caps)?[{value:"families" as const,label:"Kundenhistorie"}]:[]),
+    ...(!staff||appVisible("campaigns", caps)?[{value:"campaigns" as const,label:"Aktionen"}]:[]),
+  ];
+  if(items.length<2) return null;
+  return <div className="customer-sections"><SegmentNav label="Kunden und Marketing" items={items} value={view==="campaigns"?"campaigns":"families"} onChange={(next)=>navigate(next)}/></div>;
+ }
  function appContent(){
   if(staff&&!viewVisible(view, staff.capabilities))return <div className="empty-state surface"><ShieldCheck size={28}/><h3>Kein Zugriff.</h3><p>{staff.roleLabel} darf diesen Bereich nicht öffnen.</p></div>;
   if(view==="mappe") return <TagesmappeApp live={workspaceReady} anchorDate={anchorDate}/>;
@@ -555,6 +567,7 @@ function Workspace(){
     const periodTools = (
       <div className="toolbar-end">
         <PeriodToggle value={birthdayPeriod} onChange={setBirthdayPeriod} label="Zeitraum Geburtstage" />
+        <JellyButton variant="soft" onClick={()=>navigate("mappe")}><FolderOpen size={17} strokeWidth={1.8}/>Tagesmappe</JellyButton>
         {(!staff||staff.capabilities.createBooking)&&<JellyButton onClick={()=>setNewBooking(true)}><Plus size={17} strokeWidth={1.8}/>Buchung anlegen</JellyButton>}
       </div>
     );
@@ -575,19 +588,20 @@ function Workspace(){
       <div className="info-inline"><Info size={17}/>{liveMode?"Buchungen aus dem Buchungsservice für den gewählten Zeitraum. Check-in bleibt lokal.":"Alle gezeigten Personen und Buchungen sind fiktiv."}</div>
     </>;
   }
-  if(view==="families"&&liveMode&&!liveFamilies)return <section className="surface"><div className="empty-state"><Users size={26}/><h3>Keine Familien aus dem Betrieb</h3><p>Diese Anmeldung hat hier keine Kontaktliste.</p></div></section>;if(view==="families"){const familyRows=liveFamilies?liveFamilies.map(f=>({n:f.name,t:f.lastVisit,p:f.points,s:f.consent,l:f.longAbsent})) : [{n:"Familie Keller",t:"vor 74 Tagen",p:86,s:true,l:true},{n:"Familie Sommer",t:"vor 63 Tagen",p:142,s:true,l:true},{n:"Familie Braun",t:"vor 3 Tagen",p:54,s:true,l:false},{n:"Familie Richter",t:"vor 92 Tagen",p:28,s:false,l:true}];
-  return <><div className="family-summary"><div><span className="eyebrow">MASULINO CLUB</span><h2>Eine Verbindung, die bleibt.</h2><p>Besuche, Lieblingsmomente und ein guter Grund, wiederzukommen.</p>{liveFamilies?<p>Kontakte mit Marketing-Freigabe stehen in der Tabelle. Ein Versand ist nicht angebunden.</p>:(!staff||staff.capabilities.campaigns)&&<button className="button dark" onClick={()=>openCampaign("return")}>{(liveAudienceCount??47)+" Familien wieder einladen"}</button>}</div><span className="big-number">{liveFamilies?String(liveFamilies.length):"1.248"}<small>{liveFamilies?"Kontakte am Standort":"Familien im Demo-Club"}</small></span></div><Tabs value={familyFilter} onValueChange={setFamilyFilter}><TabsList><TabsTrigger value="all">Alle Familien</TabsTrigger><TabsTrigger value="return">Länger nicht da</TabsTrigger></TabsList><TabsContent value={familyFilter}><div className="section-head"><h2>Familien</h2><span className="pill">{familyRows.filter(f=>familyFilter==="all"||f.l).length.toLocaleString("de-DE")}</span></div><section className="surface table-surface"><DataTable rows={familyRows.filter(f=>familyFilter==="all"||f.l)} columns={familyColumns} rowKey={(row)=>row.n} initialSort={{id:"name", direction:"asc"}} empty={<div className="empty-state"><h3>Keine Familie in dieser Ansicht</h3><p>Ein anderer Filter oder ein späterer Besuchsnachweis füllt die Tabelle.</p></div>}/></section></TabsContent></Tabs><p className="fine-print">{liveFamilies?"Kontakte und Consent aus dem Domain-Service. Letzter Besuch bleibt leer, bis Besuchsnachweise angebunden sind.":"Auszug aus fiktiven Kundendaten. Nur Kontakte mit passender Freigabe werden für Kampagnen berücksichtigt."}</p></>;}
+  if(view==="families"&&liveMode&&!liveFamilies)return <>{customerSections()}<section className="surface"><div className="empty-state"><Users size={26}/><h3>Keine Familien aus dem Betrieb</h3><p>Diese Anmeldung hat hier keine Kontaktliste.</p></div></section></>;if(view==="families"){const familyRows=liveFamilies?liveFamilies.map(f=>({n:f.name,t:f.lastVisit,p:f.points,s:f.consent,l:f.longAbsent})) : [{n:"Familie Keller",t:"vor 74 Tagen",p:86,s:true,l:true},{n:"Familie Sommer",t:"vor 63 Tagen",p:142,s:true,l:true},{n:"Familie Braun",t:"vor 3 Tagen",p:54,s:true,l:false},{n:"Familie Richter",t:"vor 92 Tagen",p:28,s:false,l:true}];
+  return <>{customerSections()}<div className="family-summary"><div><span className="eyebrow">MASULINO CLUB</span><h2>Eine Verbindung, die bleibt.</h2><p>Besuche, Lieblingsmomente und ein guter Grund, wiederzukommen.</p>{liveFamilies?<p>Kontakte mit Marketing-Freigabe stehen in der Tabelle. Ein Versand ist nicht angebunden.</p>:(!staff||staff.capabilities.campaigns)&&<button className="button dark" onClick={()=>openCampaign("return")}>{(liveAudienceCount??47)+" Familien wieder einladen"}</button>}</div><span className="big-number">{liveFamilies?String(liveFamilies.length):"1.248"}<small>{liveFamilies?"Kontakte am Standort":"Familien im Demo-Club"}</small></span></div><Tabs value={familyFilter} onValueChange={setFamilyFilter}><TabsList><TabsTrigger value="all">Alle Familien</TabsTrigger><TabsTrigger value="return">Länger nicht da</TabsTrigger></TabsList><TabsContent value={familyFilter}><div className="section-head"><h2>Familien</h2><span className="pill">{familyRows.filter(f=>familyFilter==="all"||f.l).length.toLocaleString("de-DE")}</span></div><section className="surface table-surface"><DataTable rows={familyRows.filter(f=>familyFilter==="all"||f.l)} columns={familyColumns} rowKey={(row)=>row.n} initialSort={{id:"name", direction:"asc"}} empty={<div className="empty-state"><h3>Keine Familie in dieser Ansicht</h3><p>Ein anderer Filter oder ein späterer Besuchsnachweis füllt die Tabelle.</p></div>}/></section></TabsContent></Tabs><p className="fine-print">{liveFamilies?"Kontakte und Consent aus dem Domain-Service. Letzter Besuch bleibt leer, bis Besuchsnachweise angebunden sind.":"Auszug aus fiktiven Kundendaten. Nur Kontakte mit passender Freigabe werden für Kampagnen berücksichtigt."}</p></>;}
   if(view==="team"&&workspaceReady)return <><LiveTeamPanel team={liveTeam}/><section className="personal-live-demo" aria-label="Planungsdemo"><div className="section-head"><h2>Planungsdemo</h2><Pill>Beispieldaten</Pill></div><p className="fine-print">Getrennt von den Daten oben: Namen, Schichten und Zeiten sind fiktiv und werden nicht gespeichert.</p><PersonalWorkspace/></section></>;if(view==="team")return <PersonalWorkspace/>;
   if(view==="reports") return <PosDashboard/>;
   if(view==="it") return <ItWorkspace/>;
-  if(view==="campaigns")return <><div className="two-cards"><AgentCard kind="weather"/><AgentCard kind="return"/></div><section className="surface"><div className="section-head"><h2>Aktivität</h2><History size={18}/></div>{logs.length?logs.map((l,i)=><div className="log-row" key={i}><CircleCheck size={19}/><div><strong>{l.title}</strong><p>{l.detail}</p></div></div>):<div className="empty-state"><Mail size={30}/><h3>Noch keine Kampagne eingeplant</h3><p>Öffne einen Vorschlag und prüfe Zielgruppe, Nachricht und Versandzeit.</p></div>}</section></>;
+  if(view==="betrieb") return <section className="surface"><div className="empty-state"><ClipboardList size={26} strokeWidth={1.8}/><h3>Noch keine Checklisten</h3><p>Aufgaben und Instandhaltung sind in diesem Arbeitsplatz nicht angebunden. Es wird nichts angelegt oder abgeschlossen.</p></div></section>;
+  if(view==="campaigns")return <>{customerSections()}<div className="two-cards"><AgentCard kind="weather"/><AgentCard kind="return"/></div><section className="surface"><div className="section-head"><h2>Aktivität</h2><History size={18}/></div>{logs.length?logs.map((l,i)=><div className="log-row" key={i}><CircleCheck size={19}/><div><strong>{l.title}</strong><p>{l.detail}</p></div></div>):<div className="empty-state"><Mail size={30}/><h3>Noch keine Kampagne eingeplant</h3><p>Öffne einen Vorschlag und prüfe Zielgruppe, Nachricht und Versandzeit.</p></div>}</section></>;
   if(view==="tickets")return <div className="pos-grid"><section className="surface"><div className="section-head"><h2>Eintritt</h2><Pill>Demo-Kasse</Pill></div><div className="ticket-card"><IconTile icon={Ticket}/><div><h3>Kinderticket</h3><p>Tageseintritt · Demo-Preis</p></div><strong>12,00 €</strong><button className="button soft" onClick={()=>setCart(c=>c+1)} aria-label="Kinderticket hinzufügen"><Plus size={18}/></button></div><BookingTable short/></section><section className="surface cart"><h2>Warenkorb</h2><p>{cart} × Kinderticket</p><strong className="cart-total">{(cart*12).toFixed(2).replace(".",",")} €</strong><button className="button dark" disabled={cart===0} onClick={()=>{setSale(s=>s+cart*12);setCart(0);toast("Demo-Zahlung abgeschlossen",{description:"Es wurde kein Geld abgebucht."})}}><CreditCard size={18}/>Demo-Zahlung</button><button className="text-button" onClick={()=>setCart(0)}>Leeren</button>{sale>0&&<Pill tone="green">Heute simuliert: {sale} €</Pill>}</section></div>;
-  if(view==="bistro")return <section className="surface"><div className="section-head"><h2>Bestand im Blick</h2><Pill>Beispieldaten</Pill></div><Table><TableHeader><TableRow><TableHead>Artikel</TableHead><TableHead>Bestand</TableHead><TableHead>Status</TableHead></TableRow></TableHeader><TableBody>{[{n:"Kaffeebohnen",v:"6,2 kg",s:"Gut versorgt"},{n:"Apfelsaft",v:"28 Flaschen",s:"Gut versorgt"},{n:"Pommes",v:"4,5 kg",s:"Nachbestellen"}].map(x=><TableRow key={x.n}><TableCell>{x.n}</TableCell><TableCell>{x.v}</TableCell><TableCell><Pill tone={x.s==="Nachbestellen"?"amber":"green"}>{x.s}</Pill></TableCell></TableRow>)}</TableBody></Table><div className="callout amber"><Coffee size={22}/><div><strong>Vorrat für den Regentag prüfen</strong><p>Besuchsprognosen könnten künftig auch den Bistrobedarf vorbereiten.</p></div><button className="button soft" onClick={()=>{setReminder(!reminder);toast(reminder?"Demo-Erinnerung entfernt":"Erinnerung in dieser Demo vorgemerkt")}}>{reminder?"Vorgemerkt":"Erinnerung vormerken"}</button></div></section>;
+  if(view==="bistro")return <section className="surface"><div className="section-head"><h2>Bestände</h2><Pill>Beispieldaten</Pill></div><p className="fine-print">Bedarfsplanung und Einkauf sind nicht angebunden.</p><Table><TableHeader><TableRow><TableHead>Artikel</TableHead><TableHead>Bestand</TableHead><TableHead>Status</TableHead></TableRow></TableHeader><TableBody>{[{n:"Kaffeebohnen",v:"6,2 kg",s:"Gut versorgt"},{n:"Apfelsaft",v:"28 Flaschen",s:"Gut versorgt"},{n:"Pommes",v:"4,5 kg",s:"Nachbestellen"}].map(x=><TableRow key={x.n}><TableCell>{x.n}</TableCell><TableCell>{x.v}</TableCell><TableCell><Pill tone={x.s==="Nachbestellen"?"amber":"green"}>{x.s}</Pill></TableCell></TableRow>)}</TableBody></Table><div className="callout amber"><Coffee size={22}/><div><strong>Vorrat für den Regentag prüfen</strong><p>Besuchsprognosen könnten künftig auch den Bistrobedarf vorbereiten.</p></div><button className="button soft" onClick={()=>{setReminder(!reminder);toast(reminder?"Demo-Erinnerung entfernt":"Erinnerung in dieser Demo vorgemerkt")}}>{reminder?"Vorgemerkt":"Erinnerung vormerken"}</button></div></section>;
   return null
  }
  function Stat({icon:Icon,label,value,note,warning=false}:{icon:LucideIcon;label:string;value:string;note:string;warning?:boolean}){return <div className="stat"><div className="stat-label"><Icon size={16}/>{label}</div><div className="stat-value">{value}</div><div className={"stat-note "+(warning?"warning":"")}>{note}</div></div>}
 
- return <SidebarProvider style={{"--sidebar-width":"320px","--sidebar-width-icon":"72px"} as CSSProperties}><Navigation view={view} onNavigate={navigate} pending={pending} staff={staff}/><div className="main-shell"><header className="topbar"><div className="breadcrumb"><SidebarTrigger className="mobile-nav-trigger"/><SidebarShowButton/><h1 className="topbar-title">{title}<span className="orange-text">.</span></h1></div><div className="header-actions">{iconButton(Search,"Suchen",()=>setSearchOpen(true))}</div></header>
+ return <SidebarProvider style={{"--sidebar-width":"440px","--sidebar-width-icon":"72px"} as CSSProperties}><Navigation view={view} onNavigate={navigate} staff={staff}/><div className="main-shell"><header className="topbar"><div className="breadcrumb"><SidebarTrigger className="mobile-nav-trigger"/><SidebarShowButton/><h1 className="topbar-title">{title}<span className="orange-text">.</span></h1></div><div className="header-actions">{iconButton(Search,"Suchen",()=>setSearchOpen(true))}</div></header>
  <main className="main-content" id="main-content">
  {view==="today"?<>
   <div className="dashboard-header">
@@ -611,7 +625,7 @@ function Workspace(){
  </>}
  </main></div>
 
- <Dialog open={searchOpen} onOpenChange={setSearchOpen}><DialogContent className="search-dialog" showCloseButton={false}><DialogTitle className="sr-only">Masulino durchsuchen</DialogTitle><DialogDescription className="sr-only">Apps, Buchungen und Wissenskarten finden.</DialogDescription><Command><CommandInput value={query} onValueChange={setQuery} placeholder="Was möchtest du finden?"/><CommandList><CommandEmpty><p>Keine direkten Treffer.</p>{!staff&&<button className="button soft" onClick={()=>{setSearchOpen(false);ask(query)}}>Masu dazu fragen</button>}</CommandEmpty><CommandGroup heading="Apps">{apps.filter(a=>isSidebarDestination(a.id, staff?.capabilities??null)).map(a=><CommandItem key={a.id} value={a.name+" "+a.description} onSelect={()=>navigate(a.id)}><a.icon size={18}/><span>{a.name}</span><span className="command-meta">App öffnen</span></CommandItem>)}</CommandGroup><CommandGroup heading="Buchungen">{allBookings.map(b=><CommandItem key={b.id} value={b.name+" "+b.id} onSelect={()=>{setSearchOpen(false);setDetailBooking(b.id)}}><CalendarDays size={18}/>{b.name}<span className="command-meta">{b.time}</span></CommandItem>)}</CommandGroup><CommandGroup heading="Wissen">{knowledge.map((a,i)=><CommandItem key={a.title} value={a.title+" "+a.text} onSelect={()=>{setSearchOpen(false);setSelectedArticle(i)}}><BookOpen size={18}/>{a.title}</CommandItem>)}</CommandGroup></CommandList><div className="command-footer"><span>Mit ↑ ↓ wählen · Enter zum Öffnen</span><kbd>esc</kbd></div></Command></DialogContent></Dialog>
+ <Dialog open={searchOpen} onOpenChange={setSearchOpen}><DialogContent className="search-dialog" showCloseButton={false}><DialogTitle className="sr-only">Masulino durchsuchen</DialogTitle><DialogDescription className="sr-only">Apps, Buchungen und Wissenskarten finden.</DialogDescription><Command><CommandInput value={query} onValueChange={setQuery} placeholder="Was möchtest du finden?"/><CommandList><CommandEmpty><p>Keine direkten Treffer.</p>{!staff&&<button className="button soft" onClick={()=>{setSearchOpen(false);ask(query)}}>Masu dazu fragen</button>}</CommandEmpty><CommandGroup heading="Apps">{apps.filter(a=>appVisible(a.id, staff?.capabilities??null)).map(a=><CommandItem key={a.id} value={a.name+" "+a.description} onSelect={()=>navigate(a.id)}><a.icon size={18}/><span>{a.name}</span><span className="command-meta">App öffnen</span></CommandItem>)}{appVisible("bookings", staff?.capabilities??null)&&<CommandItem value="Tagesmappe Seiten für den Ausdruck" onSelect={()=>navigate("mappe")}><FolderOpen size={18}/><span>Tagesmappe</span><span className="command-meta">Aus Buchungen</span></CommandItem>}</CommandGroup><CommandGroup heading="Buchungen">{allBookings.map(b=><CommandItem key={b.id} value={b.name+" "+b.id} onSelect={()=>{setSearchOpen(false);setDetailBooking(b.id)}}><CalendarDays size={18}/>{b.name}<span className="command-meta">{b.time}</span></CommandItem>)}</CommandGroup><CommandGroup heading="Wissen">{knowledge.map((a,i)=><CommandItem key={a.title} value={a.title+" "+a.text} onSelect={()=>{setSearchOpen(false);setSelectedArticle(i)}}><BookOpen size={18}/>{a.title}</CommandItem>)}</CommandGroup></CommandList><div className="command-footer"><span>Mit ↑ ↓ wählen · Enter zum Öffnen</span><kbd>esc</kbd></div></Command></DialogContent></Dialog>
 
  <Sheet open={chatOpen} onOpenChange={setChatOpen}><SheetContent className="chat-sheet" showCloseButton={false}><header className="chat-header"><span className="masu-symbol"><Sparkles size={23}/></span><div><SheetTitle>Masu</SheetTitle><SheetDescription>Dein Assistent im Spielraum</SheetDescription></div><SheetClose className="icon-button" aria-label="Assistent schließen"><X size={20}/></SheetClose></header><div className="chat-demo-note"><Info size={14}/>Demo-Assistent · vorbereitete Antworten</div><div className="chat-messages">{messages.length===0?<div className="chat-welcome"><span className="chat-orbit"><Sparkles size={35}/></span><h2>Was machen wir<br/>heute möglich?</h2><p>Ich helfe dir, den Überblick zu behalten und den nächsten Schritt zu finden.</p><div className="chat-prompts">{["Wie wird morgen?","Welche Familien fehlen uns?","Was steht heute an?","Wie funktionieren Club-Punkte?"].map(q=><button key={q} onClick={()=>ask(q)}>{q}<Plus size={16}/></button>)}</div></div>:messages.map((m,i)=><div className={"chat-message "+m.role} key={i}>{m.role==="assistant"&&<div className="message-label"><Sparkles size={14}/>MASU</div>}<p>{m.text}</p>{m.kind&&m.kind!=="unknown"&&<div className="answer-card"><div className="answer-card-top">{m.kind==="weather"?<><d.icon size={21}/><strong>{d.temperature} · {d.occupancy} % Auslastung</strong></>:m.kind==="return"?<><Users size={21}/><strong>47 passende Familien</strong></>:m.kind==="team"?<><Users size={21}/><strong>{scenario==="full"?"Morgen · Check-in 09–12 Uhr":"Samstag · Check-in 13–15 Uhr"}</strong></>:m.kind==="bookings"?<><Cake size={21}/><strong>3 Geburtstage heute</strong></>:m.kind==="club"?<><Heart size={21}/><strong>100 Punkte = 5 € Vorteil</strong></>:<><CalendarCheck size={21}/><strong>Dein Tagesüberblick</strong></>}</div><span className="source-caption">Quelle: {m.kind==="weather"?"Demo-Wetter + Besuchsprognose · 09:40":m.kind==="return"?"Demo-CRM · Segment Wiederbesuch":m.kind==="team"?(scenario==="full"?"Demo-Schichtplan · Mittwoch":"Demo-Schichtplan · Samstag"):m.kind==="club"?"Wissenskarte: Club & Treuepunkte":"Demo-Buchungen · 29.09.2026"}</span><button className="button soft" onClick={()=>{setChatOpen(false);if(m.kind==="weather"){scenario==="full"?navigate("team"):openCampaign("weather")}else if(m.kind==="return")openCampaign("return");else if(m.kind==="team")openCampaign("team");else if(m.kind==="club")navigate("families");else navigate("bookings")}}>{m.kind==="weather"&&scenario!=="full"||m.kind==="return"?"Vorschlag gemeinsam prüfen":"Details öffnen"}</button></div>}</div>)}{thinking&&<div className="thinking"><span/><span/><span/>Masu schaut nach …</div>}<div ref={bottomRef}/></div><form className="chat-composer" onSubmit={e=>{e.preventDefault();ask(chatInput)}}><label className="sr-only" htmlFor="chat-question">Deine Frage</label><textarea id="chat-question" value={chatInput} onChange={e=>setChatInput(e.target.value)} placeholder="Frag Masu …" onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();ask(chatInput)}}}/><button className="send-button" disabled={!chatInput.trim()||thinking} aria-label="Frage senden"><Send size={19}/></button></form><div className="chat-footnote">Demo-Antworten sind keine Live-Auskunft.</div></SheetContent></Sheet>
 

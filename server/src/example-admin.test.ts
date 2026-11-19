@@ -49,6 +49,7 @@ describe("example admin", () => {
       campaigns: true,
       portal: true,
       it: true,
+      operations: true,
     });
   });
 });

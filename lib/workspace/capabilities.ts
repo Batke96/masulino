@@ -8,6 +8,7 @@ export type StaffCapabilities = {
   portal: boolean;
   agents: boolean;
   it: boolean;
+  operations: boolean;
 };
 
 const signedOutApps = new Set(["bookings", "mappe", "team", "reports"]);
@@ -20,6 +21,8 @@ export function appVisible(id: string, capabilities: StaffCapabilities | null): 
   if (id === "team") return capabilities.team;
   if (id === "reports") return capabilities.reports;
   if (id === "campaigns") return capabilities.campaigns;
+  if (id === "customers") return capabilities.families || capabilities.campaigns;
+  if (id === "betrieb") return capabilities.operations;
   if (id === "portal") return capabilities.portal;
   if (id === "tickets" || id === "bistro") {
     return capabilities.bookings && capabilities.team && capabilities.families && capabilities.it;

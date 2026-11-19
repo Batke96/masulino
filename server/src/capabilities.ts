@@ -11,6 +11,7 @@ export type StaffCapabilities = {
   portal: boolean;
   agents: boolean;
   it: boolean;
+  operations: boolean;
 };
 
 export function staffCapabilities(actor: ActorContext, locationId: string | null): StaffCapabilities {
@@ -31,5 +32,6 @@ export function staffCapabilities(actor: ActorContext, locationId: string | null
     // The agent inbox is still a fixture. Keep it out of a signed-in workplace.
     agents: false,
     it: has("core.users.invite") || has("core.records.manage"),
+    operations: has("operations.checklist.read"),
   };
 }
