@@ -53,10 +53,22 @@ export function feedbackConfig(env: NodeJS.ProcessEnv): { repo: string; token: s
 function feedbackToken(env: NodeJS.ProcessEnv): string {
   for (const key of TOKEN_KEYS) {
     const value = env[key];
-    const token = typeof value === "string" ? value.trim() : "";
+    const token = cleanToken(typeof value === "string" ? value : "");
     if (token.length >= 20) return token;
   }
   return "";
+}
+
+function cleanToken(value: string): string {
+  let token = value.trim();
+  if (
+    (token.startsWith('"') && token.endsWith('"')) ||
+    (token.startsWith("'") && token.endsWith("'"))
+  ) {
+    token = token.slice(1, -1).trim();
+  }
+  if (token.toLowerCase().startsWith("bearer ")) token = token.slice(7).trim();
+  return token;
 }
 
 export function feedbackRepo(value: string | undefined): string | null {

@@ -89,6 +89,9 @@ describe("feedbackConfig", () => {
       token: "github_pat_feedback_token",
     });
     expect(feedbackConfig({ GH_TOKEN: "github_pat_feedback_token" })?.token).toBe("github_pat_feedback_token");
+    expect(feedbackConfig({ GITHUB_FEEDBACK_TOKEN: '"github_pat_feedback_token"' })?.token).toBe(
+      "github_pat_feedback_token",
+    );
     expect(
       feedbackConfig({
         GITHUB_FEEDBACK_TOKEN: "github_pat_feedback_token",

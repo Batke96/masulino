@@ -1,6 +1,7 @@
 import { isAppError } from "@masulino/contracts";
 import { errorResponse, json } from "../errors";
 import {
+  FeedbackDeliveryError,
   createGithubIssue,
   feedbackConfig,
   feedbackIssue,
@@ -66,7 +67,8 @@ export async function handleFeedback(request: Request): Promise<Response> {
     const created = await createGithubIssue({ ...config, title: issue.title, body: issue.body });
     return json({ ok: true, number: created.number, url: created.url }, 201);
   } catch (error) {
-    console.error("feedback issue failed", error instanceof Error ? error.message : "unknown");
-    return json({ error: "feedback_failed" }, 502);
+    const githubStatus = error instanceof FeedbackDeliveryError ? error.status : 0;
+    console.error("feedback issue failed", githubStatus || "unknown");
+    return json({ error: "feedback_failed", githubStatus }, 502);
   }
 }
