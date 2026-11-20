@@ -33,6 +33,8 @@ Set these on the API, not in the browser bundle:
 - `CRON_SECRET`
 - `MASULINO_SITE_KEY` (website server only; the birthday form sends it as `Authorization: Bearer`)
 - `MASULINO_PUBLIC_VENUE_SLUG` (the published venue the form books)
+- `GITHUB_FEEDBACK_TOKEN` (a GitHub token that can open issues on this repository. The feedback button sends the note there and stores it nowhere else. Leave unset and the button answers that GitHub is not configured.)
+- `GITHUB_FEEDBACK_REPO` (optional `owner/name`. Defaults to `Batke96/masulino`.)
 - `NODE_ENV=production`
 
 Leave `MASULINO_DEV_SESSION` unset. Production refuses that bypass. Leave `DATABASE_URL_MIGRATE` off the runtime.

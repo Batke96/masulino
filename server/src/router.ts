@@ -27,6 +27,7 @@ import {
   handleSection,
   handleWorkspaceBootstrap,
 } from "./handlers/sections";
+import { handleFeedback } from "./handlers/feedback";
 import { handlePosReport } from "./handlers/pos";
 import { handleReservationSpan } from "./handlers/reservation-span";
 import { handleComposedOutbox } from "./outbox";
@@ -152,6 +153,10 @@ export async function route(request: Request): Promise<Response> {
 
   if (pathname === "/api/it/venue" && request.method === "POST") {
     return handleItVenue(request);
+  }
+
+  if (pathname === "/api/feedback" && request.method === "POST") {
+    return handleFeedback(request);
   }
 
   return json({ error: "not_found" }, 404);

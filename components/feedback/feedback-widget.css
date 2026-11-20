@@ -1,0 +1,121 @@
+.feedback-dock {
+  position: fixed;
+  right: var(--space-5);
+  bottom: max(var(--space-5), env(safe-area-inset-bottom));
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+  max-width: calc(100vw - var(--space-8));
+}
+
+.feedback-launcher {
+  box-shadow: var(--elevation-floating);
+}
+
+.feedback-panel {
+  width: min(360px, 100%);
+  max-height: min(480px, calc(100dvh - 96px));
+  overflow: auto;
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--background);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-surface);
+  box-shadow: var(--elevation-floating);
+}
+
+.feedback-panel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.feedback-panel h2 {
+  font-size: var(--text-body);
+  line-height: var(--leading-heading);
+}
+
+.feedback-panel form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.feedback-context,
+.feedback-note,
+.feedback-status,
+.feedback-sent p {
+  font-size: var(--text-meta);
+  line-height: var(--leading-body);
+  color: var(--text-secondary);
+}
+
+.feedback-field {
+  display: grid;
+  gap: var(--space-1);
+  font-size: var(--text-meta);
+  font-weight: var(--font-weight-heading);
+  color: var(--text-secondary);
+}
+
+.feedback-field textarea {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  border: var(--border-width) solid var(--input);
+  border-radius: var(--radius-control);
+  padding: var(--space-2) var(--space-3);
+  background: var(--background);
+  color: var(--text);
+  font-size: var(--text-label);
+  font-weight: var(--font-weight-body);
+  line-height: var(--leading-body);
+}
+
+.feedback-field textarea:focus-visible {
+  border-color: var(--ring);
+  outline: none;
+}
+
+.feedback-status {
+  color: var(--destructive);
+}
+
+.feedback-actions,
+.feedback-sent {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.feedback-actions .jelly-button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.feedback-sent {
+  align-items: flex-start;
+  flex-direction: column;
+}
+
+.feedback-sent a {
+  color: var(--primary);
+  font-size: var(--text-label);
+  font-weight: var(--font-weight-heading);
+  text-decoration: none;
+}
+
+.feedback-sent a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 767px) {
+  .feedback-dock {
+    right: var(--space-4);
+    bottom: max(var(--space-4), env(safe-area-inset-bottom));
+  }
+}
