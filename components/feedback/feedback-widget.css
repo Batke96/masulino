@@ -102,17 +102,6 @@
   flex-direction: column;
 }
 
-.feedback-sent a {
-  color: var(--primary);
-  font-size: var(--text-label);
-  font-weight: var(--font-weight-heading);
-  text-decoration: none;
-}
-
-.feedback-sent a:hover {
-  text-decoration: underline;
-}
-
 @media (max-width: 767px) {
   .feedback-dock {
     right: var(--space-4);
