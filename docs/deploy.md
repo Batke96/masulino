@@ -33,7 +33,7 @@ Set these on the API, not in the browser bundle:
 - `CRON_SECRET`
 - `MASULINO_SITE_KEY` (website server only; the birthday form sends it as `Authorization: Bearer`)
 - `MASULINO_PUBLIC_VENUE_SLUG` (the published venue the form books)
-- `GITHUB_FEEDBACK_TOKEN` (a GitHub token with Issues: Read and write on this repository. Senden creates the issue on the server and does not open GitHub. `GH_TOKEN` or `GITHUB_TOKEN` is used when this one is unset. With no token the request is refused.)
+- `GITHUB_FEEDBACK_TOKEN` (a GitHub token with Issues: Read and write on this repository. Senden creates the issue on the server and does not open GitHub. `GH_TOKEN` or `GITHUB_TOKEN` is used when this one is unset. With no token the request is refused. Vercel only applies a new value on the next Production deploy.)
 - `GITHUB_FEEDBACK_REPO` (optional `owner/name`. Defaults to `Batke96/masulino`.)
 - `NODE_ENV=production`
 
