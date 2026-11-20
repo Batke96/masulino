@@ -38,6 +38,11 @@ export class FeedbackDeliveryError extends Error {
 
 const TOKEN_KEYS = ["GITHUB_FEEDBACK_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"] as const;
 
+/** Live process environment. Kept dynamic so a deploy can see a token added in Vercel. */
+export function runtimeEnv(): NodeJS.ProcessEnv {
+  return globalThis.process.env;
+}
+
 export function feedbackConfig(env: NodeJS.ProcessEnv): { repo: string; token: string } | null {
   const token = feedbackToken(env);
   const repo = feedbackRepo(env.GITHUB_FEEDBACK_REPO);

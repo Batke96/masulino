@@ -157,8 +157,14 @@ describe("POST /api/feedback", () => {
   });
 
   it("reports that GitHub is not configured", async () => {
-    const previous = process.env.GITHUB_FEEDBACK_TOKEN;
+    const previous = {
+      GITHUB_FEEDBACK_TOKEN: process.env.GITHUB_FEEDBACK_TOKEN,
+      GH_TOKEN: process.env.GH_TOKEN,
+      GITHUB_TOKEN: process.env.GITHUB_TOKEN,
+    };
     delete process.env.GITHUB_FEEDBACK_TOKEN;
+    delete process.env.GH_TOKEN;
+    delete process.env.GITHUB_TOKEN;
     try {
       const response = await handleApiRequest(
         new Request("http://staff.test/api/feedback", {
@@ -170,8 +176,10 @@ describe("POST /api/feedback", () => {
       expect(response.status).toBe(503);
       expect(await response.json()).toEqual({ error: "feedback_unavailable" });
     } finally {
-      if (previous === undefined) delete process.env.GITHUB_FEEDBACK_TOKEN;
-      else process.env.GITHUB_FEEDBACK_TOKEN = previous;
+      for (const [key, value] of Object.entries(previous)) {
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      }
     }
   });
 });

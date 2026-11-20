@@ -5,6 +5,7 @@ import {
   feedbackConfig,
   feedbackIssue,
   parseFeedbackBody,
+  runtimeEnv,
   takeFeedbackSlot,
 } from "../feedback";
 import { describeRole, loadRequestActor, requireStaffSession } from "../session";
@@ -24,7 +25,7 @@ export async function handleFeedback(request: Request): Promise<Response> {
   const input = parseFeedbackBody(payload);
   if (!input) return json({ error: "validation" }, 400);
 
-  const config = feedbackConfig(process.env);
+  const config = feedbackConfig(runtimeEnv());
   if (!config) return json({ error: "feedback_unavailable" }, 503);
 
   let staff;
