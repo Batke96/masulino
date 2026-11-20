@@ -88,6 +88,13 @@ describe("feedbackConfig", () => {
       repo: "Batke96/masulino",
       token: "github_pat_feedback_token",
     });
+    expect(feedbackConfig({ GH_TOKEN: "github_pat_feedback_token" })?.token).toBe("github_pat_feedback_token");
+    expect(
+      feedbackConfig({
+        GITHUB_FEEDBACK_TOKEN: "github_pat_feedback_token",
+        GITHUB_FEEDBACK_REPO: "https://github.com/Batke96/masulino.git",
+      })?.repo,
+    ).toBe("Batke96/masulino");
     expect(
       feedbackConfig({
         GITHUB_FEEDBACK_TOKEN: "github_pat_feedback_token",

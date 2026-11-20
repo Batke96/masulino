@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, type FormEvent } from "react"
 import { MessageSquarePlus, X } from "lucide-react"
 import { JellyButton } from "@/components/ui/jelly-button"
 import { useStaffIdentity } from "@/app/staff-access"
+import { feedbackIssueFormUrl } from "@/lib/feedback/issue-form"
 
 import "./feedback-widget.css"
 
@@ -12,10 +13,9 @@ type FeedbackWidgetProps = {
   appName: string
 }
 
-type SentIssue = {
-  number: number
-  url: string
-}
+type SentIssue =
+  | { kind: "issue"; number: number; url: string }
+  | { kind: "form"; url: string; opened: boolean }
 
 export function FeedbackWidget({ appId, appName }: FeedbackWidgetProps) {
   const staff = useStaffIdentity()
@@ -64,6 +64,9 @@ export function FeedbackWidget({ appId, appName }: FeedbackWidgetProps) {
     event.preventDefault()
     const text = message.trim()
     if (!text || pending) return
+    const path = `${window.location.pathname}${window.location.search}${window.location.hash}`
+    const viewport = { width: window.innerWidth, height: window.innerHeight }
+    const popup = window.open("about:blank", "_blank")
     setPending(true)
     setError("")
     try {
@@ -71,22 +74,34 @@ export function FeedbackWidget({ appId, appName }: FeedbackWidgetProps) {
         method: "POST",
         credentials: "include",
         headers: { accept: "application/json", "content-type": "application/json" },
-        body: JSON.stringify({
+        body: JSON.stringify({ message: text, appId, appName, path, viewport }),
+      })
+      if (response.status === 503 || response.status === 502) {
+        const url = feedbackIssueFormUrl({
           message: text,
           appId,
           appName,
-          path: `${window.location.pathname}${window.location.search}${window.location.hash}`,
-          viewport: { width: window.innerWidth, height: window.innerHeight },
-        }),
-      })
+          path,
+          viewport,
+          person: staff ? `${staff.name} · ${staff.email}` : undefined,
+          roleLabel: staff?.roleLabel,
+          tenantName: staff?.tenantName,
+        })
+        const opened = revealForm(popup, url)
+        setMessage("")
+        setSent({ kind: "form", url, opened })
+        return
+      }
+      closePopup(popup)
       const data = (await response.json().catch(() => null)) as { url?: string; number?: number } | null
       if (!response.ok || !data?.url || typeof data.number !== "number") {
         setError(feedbackError(response.status))
         return
       }
       setMessage("")
-      setSent({ number: data.number, url: data.url })
+      setSent({ kind: "issue", number: data.number, url: data.url })
     } catch {
+      closePopup(popup)
       setError("Das Feedback konnte nicht gesendet werden.")
     } finally {
       setPending(false)
@@ -107,7 +122,27 @@ export function FeedbackWidget({ appId, appName }: FeedbackWidgetProps) {
               <X size={18} strokeWidth={1.8} aria-hidden="true" />
             </JellyButton>
           </header>
-          {sent ? (
+          {sent?.kind === "form" ? (
+            <div className="feedback-sent">
+              <p>
+                {sent.opened
+                  ? "Das Formular ist auf GitHub geöffnet. Dort „Submit new issue“ wählen, dann ist die Rückmeldung angelegt."
+                  : "Der Server legt das Issue nicht selbst an. Über den Link ist das Formular auf GitHub vorausgefüllt."}
+              </p>
+              <a href={sent.url} target="_blank" rel="noopener noreferrer">
+                Formular auf GitHub öffnen
+              </a>
+              <JellyButton
+                variant="soft"
+                onClick={() => {
+                  setSent(null)
+                  setError("")
+                }}
+              >
+                Weiteres Feedback
+              </JellyButton>
+            </div>
+          ) : sent ? (
             <div className="feedback-sent">
               <p>Danke. Das liegt jetzt als GitHub-Issue.</p>
               <a href={sent.url} target="_blank" rel="noopener noreferrer">
@@ -179,6 +214,17 @@ function feedbackError(status: number): string {
   if (status === 401) return "Bitte zuerst anmelden."
   if (status === 403) return "Für dieses Konto ist kein Feedback freigeschaltet."
   if (status === 429) return "Gerade zu viele Rückmeldungen. Bitte kurz warten."
-  if (status === 503) return "Der Server kann gerade kein GitHub-Issue anlegen."
   return "Das Feedback konnte nicht gesendet werden."
+}
+
+function revealForm(popup: Window | null, url: string): boolean {
+  if (!popup || popup.closed) return false
+  popup.location.replace(url)
+  popup.opener = null
+  return true
+}
+
+function closePopup(popup: Window | null) {
+  if (!popup || popup.closed) return
+  popup.close()
 }

@@ -36,12 +36,30 @@ export class FeedbackDeliveryError extends Error {
   }
 }
 
+const TOKEN_KEYS = ["GITHUB_FEEDBACK_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"] as const;
+
 export function feedbackConfig(env: NodeJS.ProcessEnv): { repo: string; token: string } | null {
-  const token = env.GITHUB_FEEDBACK_TOKEN?.trim() ?? "";
-  if (token.length < 20) return null;
-  const repo = env.GITHUB_FEEDBACK_REPO?.trim() || DEFAULT_REPO;
-  if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo)) return null;
+  const token = feedbackToken(env);
+  const repo = feedbackRepo(env.GITHUB_FEEDBACK_REPO);
+  if (!token || !repo) return null;
   return { repo, token };
+}
+
+function feedbackToken(env: NodeJS.ProcessEnv): string {
+  for (const key of TOKEN_KEYS) {
+    const value = env[key];
+    const token = typeof value === "string" ? value.trim() : "";
+    if (token.length >= 20) return token;
+  }
+  return "";
+}
+
+export function feedbackRepo(value: string | undefined): string | null {
+  const raw = (value?.trim() || DEFAULT_REPO).replace(/\.git$/i, "");
+  const fromUrl = raw.match(/github\.com[:/]([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)/i);
+  const repo = fromUrl ? `${fromUrl[1]}/${fromUrl[2]}` : raw;
+  if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo)) return null;
+  return repo;
 }
 
 export function parseFeedbackBody(value: unknown): FeedbackInput | null {
