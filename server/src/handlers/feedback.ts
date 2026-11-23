@@ -68,7 +68,8 @@ export async function handleFeedback(request: Request): Promise<Response> {
     return json({ ok: true, number: created.number, url: created.url }, 201);
   } catch (error) {
     const githubStatus = error instanceof FeedbackDeliveryError ? error.status : 0;
+    const githubMessage = error instanceof FeedbackDeliveryError ? error.detail : "";
     console.error("feedback issue failed", githubStatus || "unknown");
-    return json({ error: "feedback_failed", githubStatus }, 502);
+    return json({ error: "feedback_failed", githubStatus, githubMessage }, 502);
   }
 }

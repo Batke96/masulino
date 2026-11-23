@@ -28,11 +28,16 @@ export type FeedbackIssue = {
 
 export class FeedbackDeliveryError extends Error {
   readonly status: number;
+  readonly detail: string;
 
-  constructor(status: number) {
-    super(`GitHub responded with ${status}`);
+  constructor(status: number, detail = "") {
+    const safe = detail
+      .replace(/github_pat_[A-Za-z0-9_]+|ghp_[A-Za-z0-9_]+|gho_[A-Za-z0-9_]+|ghs_[A-Za-z0-9_]+/g, "[token]")
+      .slice(0, 180);
+    super(safe ? `GitHub responded with ${status}: ${safe}` : `GitHub responded with ${status}`);
     this.name = "FeedbackDeliveryError";
     this.status = status;
+    this.detail = safe;
   }
 }
 
@@ -166,14 +171,15 @@ export async function createGithubIssue(args: {
     body: JSON.stringify({ title: args.title, body: args.body }),
     signal: AbortSignal.timeout(8000),
   });
-  let payload: { html_url?: unknown; number?: unknown } = {};
+  let payload: { html_url?: unknown; number?: unknown; message?: unknown } = {};
   try {
-    payload = (await response.json()) as { html_url?: unknown; number?: unknown };
+    payload = (await response.json()) as { html_url?: unknown; number?: unknown; message?: unknown };
   } catch {
     payload = {};
   }
   if (!response.ok || typeof payload.html_url !== "string" || typeof payload.number !== "number") {
-    throw new FeedbackDeliveryError(response.status);
+    const detail = typeof payload.message === "string" ? payload.message : "";
+    throw new FeedbackDeliveryError(response.status, detail);
   }
   return { url: payload.html_url, number: payload.number };
 }

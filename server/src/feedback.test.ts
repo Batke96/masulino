@@ -141,7 +141,7 @@ describe("createGithubIssue", () => {
       fetchImpl,
     }).catch((caught: unknown) => caught);
     expect(error).toBeInstanceOf(FeedbackDeliveryError);
-    expect(error).toMatchObject({ status: 401 });
+    expect(error).toMatchObject({ status: 401, detail: "[token]" });
     expect((error as Error).message).not.toContain(token);
   });
 });
