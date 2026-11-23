@@ -78,9 +78,13 @@ export function FeedbackWidget({ appId, appName }: FeedbackWidgetProps) {
           viewport: { width: window.innerWidth, height: window.innerHeight },
         }),
       })
-      const data = (await response.json().catch(() => null)) as { url?: string; number?: number } | null
+      const data = (await response.json().catch(() => null)) as {
+        url?: string
+        number?: number
+        githubStatus?: number
+      } | null
       if (!response.ok || !data?.url || typeof data.number !== "number") {
-        setError(feedbackError(response.status))
+        setError(feedbackError(response.status, data?.githubStatus))
         return
       }
       setMessage("")
@@ -171,10 +175,13 @@ export function FeedbackWidget({ appId, appName }: FeedbackWidgetProps) {
   )
 }
 
-function feedbackError(status: number): string {
+function feedbackError(status: number, githubStatus?: number): string {
   if (status === 401) return "Bitte zuerst anmelden."
   if (status === 403) return "Für dieses Konto ist kein Feedback freigeschaltet."
   if (status === 429) return "Gerade zu viele Rückmeldungen. Bitte kurz warten."
+  if (status === 502 && githubStatus === 403) {
+    return "Das GitHub-Token darf in diesem Repository keine Issues anlegen. Unter Repository permissions muss Issues auf Read and write stehen, und der Zugriff nur auf Batke96/masulino."
+  }
   if (status === 503 || status === 502) return "Das Issue konnte gerade nicht angelegt werden."
   return "Das Feedback konnte nicht gesendet werden."
 }
