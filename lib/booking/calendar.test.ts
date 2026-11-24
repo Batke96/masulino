@@ -54,14 +54,19 @@ describe("venue windows", () => {
     expect(windowsFor("2026-12-24", "group")).toEqual([{ start: "09:00", end: "13:00" }]);
     expect(isPublicHoliday("2027-01-01")).toBe(true);
     expect(windowsFor("2027-01-01", "birthday")).toEqual([{ start: "12:00", end: "19:00" }]);
-    expect(windowsFor("2027-01-01", "group")).toEqual([]);
+    expect(windowsFor("2027-01-01", "group")).toEqual([{ start: "09:00", end: "13:00" }]);
   });
 
-  it("treats a weekday public holiday like the weekend", () => {
+  it("treats a weekday public holiday like the weekend for birthdays", () => {
     expect(isPublicHoliday("2026-12-25")).toBe(true);
     expect(windowsFor("2026-12-25", "birthday")).toHaveLength(3);
-    expect(windowsFor("2026-12-25", "group")).toEqual([]);
+    expect(windowsFor("2026-12-25", "group")).toEqual([{ start: "09:00", end: "13:00" }]);
     expect(isPublicHoliday(wednesday)).toBe(false);
+  });
+
+  it("uses the vacation window on a movable school-free day and the regular window outside the published holidays", () => {
+    expect(windowsFor("2027-02-08", "birthday")).toEqual([{ start: "12:00", end: "19:00" }]);
+    expect(windowsFor("2026-07-06", "birthday")).toEqual([{ start: "14:30", end: "19:00" }]);
   });
 
   it("counts a start inside a window, including the overlapping morning slots", () => {

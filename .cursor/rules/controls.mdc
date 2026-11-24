@@ -5,6 +5,6 @@ alwaysApply: true
 
 # Controls
 
-- Aktionen nur als `JellyButton`: `dark` für führend, `soft` für sekundär/umkehrbar, `icon` für Icon-only. Keine neuen Legacy-`.button`-Klassen.
-- 2–5 Optionen auf einer Zeile: `JellyRadio`. Mehr Optionen, lange Labels oder Phone unter 768px: `GlideSelect`. Kein drittes Select-/Tabs-Muster für dieselbe Aufgabe.
+- Aktionen nur als `JellyButton`: `dark` für führend, `soft` für sekundär/umkehrbar, `icon` für Icon-only. Ton und Lunte kommen aus `lib/ui/actions.ts`. Keine neuen Legacy-`.button`-Klassen. Der Blockrahmen und die drei Arbeitsweisen stehen in `blocks.mdc`.
+- Filter mit 2–5 Werten in der Blocksteuerung sind `PillSelect` und teilen Höhe und Abstand der Buchungen-Zeile. `JellyRadio` bleibt, wo die offene Wahl selbst der Inhalt ist. Mehr Optionen oder lange Labels sind `GlideSelect`. Kein weiteres Select-/Tabs-Muster für dieselbe Aufgabe.
 - Übersichts-Sektionen trennen nur mit `border-top: 1px solid var(--border)` und Padding; Titelzeile auf `--inset-line`. Kein Schatten, keine zweite Karte, kein dekorativer Divider.

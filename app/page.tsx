@@ -3,10 +3,13 @@
 import { useState, useEffect, useRef, type CSSProperties, type ReactElement } from "react";
 import { LayoutGrid, Sparkles, BookOpen, CalendarDays, Users, Ticket, Cake, ChartLine, Coffee, Globe, CloudRain, Sun, CloudSun, Cloud, Bell, Search, ChevronDown, Plus, Settings2, Clock3, Check, CheckCheck, CircleHelp, X, Send, ShieldCheck, CircleCheck, History, Pause, Play, RotateCcw, MapPin, ExternalLink, ScanLine, CreditCard, Heart, Menu, SlidersHorizontal, CalendarCheck, Info, Mail, Smartphone, Target, TrendingUp, Pencil, Command as CommandIcon, PanelLeftClose, PanelLeftOpen, LogOut, FolderOpen, ClipboardList, Package, Settings, type LucideIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
+import { Block } from "@/components/ui/block";
 import { JellyButton } from "@/components/ui/jelly-button";
+import { ActionButton, RowAction } from "@/components/ui/row-action";
 import { Sheet, SheetContent, SheetTitle, SheetDescription, SheetClose } from "@/components/ui/sheet";
 import { Sidebar, SidebarProvider, SidebarContent, SidebarHeader, SidebarFooter, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { BookingKindFilter, type BookingKind } from "@/components/booking-kind-filter";
 import { PeriodToggle } from "@/components/period-toggle";
 import { GlideSelect } from "@/components/ui/glide-select";
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
@@ -49,7 +52,7 @@ import { KpiCard } from "@/components/ui/kpi-card";
 import { BookingSchedule, type ScheduleRow } from "@/app/booking-lists";
 import { DataTable, type DataColumn } from "@/components/data-table";
 import { visitSortKey } from "@/lib/tables/sort";
-import { addDays, browserLocalDate, formatDayLabel, periodDates, periodDatesUnion, periodLabel, type BookingPeriod } from "@/lib/booking/period";
+import { addDays, browserLocalDate, formatDayLabel, periodDates, periodLabel, type BookingPeriod } from "@/lib/booking/period";
 import { deltaAgainstPrevious, historyCaption, historyDates, seriesForDates } from "@/lib/booking/kpi-series";
 
 type Scenario = "rain" | "sun" | "full";
@@ -184,18 +187,13 @@ function SidebarTip({label,enabled,children}:{label:string;enabled:boolean;child
   if(!enabled) return children;
   return <Tooltip><TooltipTrigger asChild>{children}</TooltipTrigger><TooltipContent side="right" sideOffset={8}>{label}</TooltipContent></Tooltip>;
 }
-function SidebarShowButton(){
-  const {mode,isMobile,showSidebar}=useSidebar();
-  if(mode!=="hidden"||isMobile) return null;
-  return <Tooltip><TooltipTrigger asChild><button id="sidebar-show" type="button" className="icon-button sidebar-show" aria-label="Navigation einblenden" onClick={showSidebar}><PanelLeftOpen size={20} strokeWidth={1.8}/></button></TooltipTrigger><TooltipContent side="bottom" sideOffset={8}>Navigation einblenden</TooltipContent></Tooltip>;
-}
 function sectionActive(id: AppId | "today", view: View): boolean {
   if (id === "customers") return view === "families" || view === "campaigns" || view === "customers";
   return view === id;
 }
 
 function Navigation({view,onNavigate,staff}:{view:View;onNavigate:(view:View)=>void;staff:StaffIdentity|null}){
-  const {setOpenMobile,mode,isMobile,hideSidebar} = useSidebar();
+  const {setOpenMobile,mode,isMobile,toggleSidebar} = useSidebar();
   const iconMode=mode==="icon";
   const capabilities=staff?.capabilities??null;
   const go=(v:View)=>{onNavigate(v);setOpenMobile(false)};
@@ -220,7 +218,7 @@ function Navigation({view,onNavigate,staff}:{view:View;onNavigate:(view:View)=>v
     const label=item.phase?`${item.name}, ${item.description}, ${item.phase}`:`${item.name}, ${item.description}`;
     return <SidebarTip key={item.id} label={item.name} enabled={iconMode}><button type="button" className={"nav-item nav-entry"+(active?" active":"")} aria-label={label} aria-current={active?"page":undefined} onClick={()=>openSection(item.id)}><Icon size={18} strokeWidth={1.8} aria-hidden="true"/><span className="nav-copy"><span className="nav-title">{item.name}</span><span className="nav-desc">{item.description}</span></span>{item.phase&&<span className={"nav-phase"+(item.phase==="MVP"?" mvp":"")}>{item.phase}</span>}</button></SidebarTip>;
   }
-  return <Sidebar className="side-navigation"><SidebarHeader className="brand-area"><button className="brand" onClick={()=>go("today")} aria-label="Masulino Startseite"><span className="brand-mark">m</span><span className="brand-word">masulino<span className="brand-dot">.</span></span></button>{!isMobile&&<Tooltip><TooltipTrigger asChild><button id="sidebar-hide" type="button" className="icon-button sidebar-hide" aria-label="Navigation ausblenden" onClick={hideSidebar}><PanelLeftClose size={19} strokeWidth={1.8}/></button></TooltipTrigger><TooltipContent side="right" sideOffset={8}>Navigation ausblenden</TooltipContent></Tooltip>}</SidebarHeader>
+  return <Sidebar className="side-navigation"><SidebarHeader className="brand-area"><button className="brand" onClick={()=>go("today")} aria-label="Masulino Startseite"><span className="brand-mark">m</span><span className="brand-word">masulino<span className="brand-dot">.</span></span></button>{!isMobile&&<Tooltip><TooltipTrigger asChild><button type="button" className="icon-button sidebar-toggle" aria-expanded={!iconMode} aria-label={iconMode?"Leiste ausklappen":"Leiste reduzieren"} onClick={toggleSidebar}>{iconMode?<PanelLeftOpen size={19} strokeWidth={1.8}/>:<PanelLeftClose size={19} strokeWidth={1.8}/>}</button></TooltipTrigger><TooltipContent side="right" sideOffset={8}>{iconMode?"Leiste ausklappen":"Leiste reduzieren"}</TooltipContent></Tooltip>}</SidebarHeader>
     <SidebarContent>
       {viewVisible("today", capabilities)&&<><div className="nav-label">ARBEITSRAUM</div><nav aria-label="Hauptnavigation">{entry(workspace)}</nav></>}
       {menuApps.length>0&&<><div className="nav-label second">MEINE APPS</div><nav id="meine-apps" aria-label="Meine Apps">{menuApps.map((app)=>entry(app))}</nav></>}
@@ -228,30 +226,6 @@ function Navigation({view,onNavigate,staff}:{view:View;onNavigate:(view:View)=>v
     </SidebarContent>
     <SidebarFooter className="side-footer"><SidebarTip label={`${profileName}. ${profileRole}`} enabled={iconMode}><div className="profile"><span className="avatar">{profileName.trim().charAt(0).toUpperCase()||"P"}</span><div><strong>{profileName}</strong><small>{profileRole}</small></div></div></SidebarTip><SidebarTip label={`${locationName}, ${tenantName}`} enabled={iconMode}><div className="workspace-name"><span className="workspace-icon"><MapPin size={17} strokeWidth={1.8}/></span><div>{locationName}<small>{tenantName}</small></div></div></SidebarTip>{staff&&<SidebarTip label="Abmelden" enabled={iconMode}><button className="nav-item" type="button" aria-label="Abmelden" onClick={staff.signOut}><LogOut className="nav-icon-only" size={18} strokeWidth={1.8}/><span>Abmelden</span></button></SidebarTip>}</SidebarFooter>
   </Sidebar>
-}
-
-function minuteLabel(value: number): string {
-  const hours = Math.floor(value / 60);
-  const minutes = value % 60;
-  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
-}
-
-const weekdayShort = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
-
-function LiveTeamPanel({ team }: { team: TeamLive | null | undefined }) {
-  if (team === undefined) return <div className="empty-state surface"><h3>Dienstplan wird geladen.</h3></div>;
-  if (!team) return <div className="empty-state surface"><h3>Dienstplan ist nicht erreichbar.</h3><p>Beispielnamen werden in der angemeldeten Ansicht nicht gezeigt.</p></div>;
-  const shifts = team.week?.published?.shifts ?? [];
-  const warnings = team.week?.published?.warnings ?? [];
-  return <>
-    <div className="section-head"><h2>Dienstplan</h2><Pill>{team.week?.published ? "Veröffentlicht" : "Kein veröffentlichter Plan"}</Pill></div>
-    {shifts.length === 0 ? <div className="empty-state surface"><h3>Keine veröffentlichten Schichten</h3><p>Woche ab {team.weekStartsOn}. Ein Vorschlag ist keine Zusage und keine Nachricht.</p></div> : <div className="team-grid">{shifts.map((shift) => <article className="surface team-person" key={shift.id}><span className="avatar blue">{(shift.displayName ?? "?").slice(0, 1)}</span><h3>{shift.displayName ?? "Ohne Namen"}</h3><p>{shift.localDate}</p><Pill>{minuteLabel(shift.startMinute)}–{minuteLabel(shift.endMinute)}</Pill></article>)}</div>}
-    {team.availability.length > 0 && <section className="surface"><div className="section-head"><h2>Verfügbarkeit</h2><Pill>{team.availabilityScope === "self" ? "Nur eigene Zeiten" : "Betrieb"}</Pill></div>{team.availability.map((person, index) => <p key={index}><strong>{person.displayName ?? "Ohne Namen"}</strong>{" "}{person.windows.map((window) => `${weekdayShort[window.weekday] ?? ""} ${minuteLabel(window.startMinute)}–${minuteLabel(window.endMinute)}`).join(" · ") || "Keine Fenster"}</p>)}</section>}
-    {team.punches.length > 0 && <section className="surface"><h2>Zeitbuchungen</h2>{team.punches.map((punch) => <p key={punch.id}>{punch.displayName ?? "Ohne Namen"} · {punch.localDate} {punch.localTime} · {punch.kind === "in" ? "Kommen" : "Gehen"}</p>)}</section>}
-    {warnings.length > 0 && <div className="callout amber"><div><strong>Hinweise aus den Fixture-Regeln</strong><p>Das ist keine Aussage zum Arbeitszeitgesetz und keine Schichtzusage.</p></div></div>}
-    {(team.week?.draftCount ?? 0) > 0 && <p className="fine-print">Es liegt ein Entwurf mit {team.week?.draftCount} Schichten. Er ist nicht veröffentlicht.</p>}
-    <p className="fine-print">Das Demo-Postfach ändert diesen Plan nicht.</p>
-  </>;
 }
 
 function Workspace(){
@@ -268,6 +242,7 @@ function Workspace(){
  const [sendTime,setSendTime]=useState("today");
  const [review,setReview]=useState(false);
  const [searchOpen,setSearchOpen]=useState(false);
+ const [folderOpen,setFolderOpen]=useState(false);
  const [query,setQuery]=useState("");
  const [chatOpen,setChatOpen]=useState(false);
  const [chatInput,setChatInput]=useState("");
@@ -275,10 +250,10 @@ function Workspace(){
  const [thinking,setThinking]=useState(false);
  const [checkedIn,setCheckedIn]=useState<string[]>([]);
  const [hiddenBookings,setHiddenBookings]=useState<string[]>([]);
- const [birthdayPeriod,setBirthdayPeriod]=useState<BookingPeriod>("today");
+ const [bookingPeriod,setBookingPeriod]=useState<BookingPeriod>("today");
+ const [bookingKind,setBookingKind]=useState<BookingKind>("all");
  const [spanBookings,setSpanBookings]=useState<SpanBooking[]|null>(null);
  const [occupancyState,setOccupancyState]=useState<"loading"|"ready"|"failed">("loading");
- const [visitPeriod,setVisitPeriod]=useState<BookingPeriod>("today");
  const [browserDate,setBrowserDate]=useState<string|null>(null);
  const [rangeBookings,setRangeBookings]=useState<Array<BookingViewModel&{date:string}>|null>(null);
  const [rangeFailed,setRangeFailed]=useState(false);
@@ -341,7 +316,8 @@ function Workspace(){
   :occupancyFallback(dashboardBookings, anchorDate??"");
  const bookingDayLabel=liveMode?"Heute":"Dienstag, 29. September";
  const agentTitles={weather:d.agentTitle,return:"Zeit für ein Wiedersehen.",team:scenario==="full"?"Morgen braucht Verstärkung.":"Samstag wird’s lebhaft."};
- function navigate(next:View){const target=next==="customers"?(appVisible("families", staff?.capabilities??null)?"families":"campaigns"):next;setView(target);setSearchOpen(false);if(typeof window!=="undefined"){const url=new URL(window.location.href);if(target==="it")url.hash="it";else if(url.hash==="#it"||url.searchParams.get("app")==="it"){url.hash="";url.searchParams.delete("app");}window.history.replaceState(null,"",`${url.pathname}${url.search}${url.hash}`);}window.scrollTo({top:0,behavior:"instant"});}
+ useEffect(()=>{if(view!=="mappe")return;setFolderOpen(true);setView("bookings");},[view]);
+ function navigate(next:View){if(next==="mappe"){setFolderOpen(true);setSearchOpen(false);return;}const target=next==="customers"?(appVisible("families", staff?.capabilities??null)?"families":"campaigns"):next;setView(target);setSearchOpen(false);if(typeof window!=="undefined"){const url=new URL(window.location.href);if(target==="it")url.hash="it";else if(url.hash==="#it"||url.searchParams.get("app")==="it"){url.hash="";url.searchParams.delete("app");}window.history.replaceState(null,"",`${url.pathname}${url.search}${url.hash}`);}window.scrollTo({top:0,behavior:"instant"});}
  function changeScenario(next:Scenario){setScenario(next);setStates(s=>({...s,weather:"pending",team:"pending"}));toast("Szenario: "+scenarios[next].label,{description:"Wetter, Auslastung und Empfehlungen wurden neu simuliert."})}
  function openCampaign(kind:Suggestion){setCampaign(kind);setReview(false);setChannel("email");setOffer(kind==="return"?"points":"coffee");setSendTime("today");setSubject(kind==="return"?"Lange nicht gespielt? Wir vermissen euch!":d.campaign);setMessage(kind==="return"?"Es ist eine Weile her! Wir würden uns freuen, euch wieder bei Masulino zu sehen. Sucht euch einen ruhigen Spieltermin aus und sammelt bei eurem nächsten Besuch doppelte Club-Punkte.":scenario==="sun"?"Lust auf einen entspannten Spielnachmittag? Morgen ab 16 Uhr ist viel Platz zum Toben. Zu eurem gebuchten Kinderticket laden wir eine Begleitperson auf einen Kaffee ein.":"Morgen regnet es? Bei uns regnet’s nur Spielideen. Kommt zwischen 9 und 12 Uhr vorbei. Zu eurem gebuchten Kinderticket laden wir eine Begleitperson auf einen Kaffee ein.")}
  function snooze(kind:Suggestion){setStates(s=>({...s,[kind]:"snoozed"}));setLogs(l=>[{title:agentTitles[kind]+" · zurückgestellt",detail:"Erinnerung für morgen, 09:00 · nur in dieser Demo"},...l]);toast("Für morgen zurückgestellt",{action:{label:"Rückgängig",onClick:()=>setStates(s=>({...s,[kind]:"pending"}))}})}
@@ -361,7 +337,7 @@ function Workspace(){
  useEffect(()=>{setBrowserDate(browserLocalDate())},[]);
  useEffect(()=>{
   if(!workspaceReady||!anchorDate||view!=="bookings") return;
-  const dates=periodDatesUnion(anchorDate, [birthdayPeriod, visitPeriod]);
+  const dates=periodDates(anchorDate, bookingPeriod);
   let cancelled=false;
   setRangeFailed(false);
   void (async()=>{
@@ -371,7 +347,7 @@ function Workspace(){
     setRangeBookings(lists.flatMap((list, index)=>list!.map((row)=>({...row, date:dates[index]!}))));
   })();
   return()=>{cancelled=true};
- },[workspaceReady, anchorDate, view, birthdayPeriod, visitPeriod, bookingRevision]);
+ },[workspaceReady, anchorDate, view, bookingPeriod, bookingRevision]);
  useEffect(()=>{bottomRef.current?.scrollIntoView({behavior:"smooth"})},[messages,thinking]);
  useEffect(()=>{
   enableWorkspaceFromEnv();
@@ -533,17 +509,13 @@ function Workspace(){
  }
  function appContent(){
   if(staff&&!viewVisible(view, staff.capabilities))return <div className="empty-state surface"><ShieldCheck size={28}/><h3>Kein Zugriff.</h3><p>{staff.roleLabel} darf diesen Bereich nicht öffnen.</p></div>;
-  if(view==="mappe") return <TagesmappeApp live={workspaceReady} anchorDate={anchorDate}/>;
   if(view==="bookings"){
-    const dates=anchorDate?periodDatesUnion(anchorDate, [birthdayPeriod, visitPeriod]):[];
-    const birthdayDates=new Set(anchorDate?periodDates(anchorDate, birthdayPeriod):[]);
-    const visitDates=new Set(anchorDate?periodDates(anchorDate, visitPeriod):[]);
+    const dates=anchorDate?periodDates(anchorDate, bookingPeriod):[];
     const allowed=new Set(dates);
     const fixtureRows=fixtureBookings.map((row)=>({...row, date:anchorDate??"", tables:[] as string[], status:"confirmed"}));
     const source=liveMode?(rangeBookings??[]):fixtureRows;
     const ranged=source.filter((row)=>allowed.has(row.date)&&row.status!=="cancelled"&&!hiddenBookings.includes(row.id));
-    const birthdays=ranged.filter((row)=>birthdayDates.has(row.date)&&row.type==="Geburtstag");
-    const visits=ranged.filter((row)=>visitDates.has(row.date)&&row.type!=="Geburtstag");
+    const listed=ranged.filter((row)=>bookingKind==="all"||(bookingKind==="geburtstag"?row.type==="Geburtstag":row.type!=="Geburtstag"));
     const loadingRange=liveMode&&rangeBookings===null;
     const canRemove=!staff||staff.capabilities.createBooking;
     async function removeBooking(row: ScheduleRow){
@@ -564,33 +536,32 @@ function Workspace(){
       toast(checkedIn.includes(id)?"Markierung entfernt":"Nur in dieser Ansicht markiert. Der Check-in wird nicht gespeichert.");
     }
     const defaultDay=anchorDate&&allowed.has(anchorDate)?anchorDate:(dates[0]??"");
-    const periodTools = (
-      <div className="toolbar-end">
-        <PeriodToggle value={birthdayPeriod} onChange={setBirthdayPeriod} label="Zeitraum Geburtstage" />
-        <JellyButton variant="soft" onClick={()=>navigate("mappe")}><FolderOpen size={17} strokeWidth={1.8}/>Tagesmappe</JellyButton>
-        {(!staff||staff.capabilities.createBooking)&&<JellyButton onClick={()=>setNewBooking(true)}><Plus size={17} strokeWidth={1.8}/>Buchung anlegen</JellyButton>}
-      </div>
-    );
-    const visitTools = (
-      <div className="toolbar-end">
-        <PeriodToggle value={visitPeriod} onChange={setVisitPeriod} label="Zeitraum Kita" />
-      </div>
-    );
+    const occupancyBlock=liveMode&&occupancyState==="loading"
+      ? <Block className="booking-occupancy" title="Tischauslastung"><div className="empty-state" aria-live="polite"><h3>Die Buchungen werden geladen.</h3></div></Block>
+      : liveMode&&occupancyState==="failed"
+      ? <Block className="booking-occupancy" title="Tischauslastung"><div className="empty-state"><h3 role="alert">Die Buchungen sind gerade nicht erreichbar.</h3><p>Es wurde nichts neu berechnet.</p></div></Block>
+      : anchorDate
+      ? <OccupancyPanel className="booking-occupancy" rows={occupancyRows} anchorDate={anchorDate} dates={dates}/>
+      : null;
+    const bookingTools = <BookingKindFilter value={bookingKind} onChange={setBookingKind} />;
+    const createBookingAction = (!staff||staff.capabilities.createBooking)
+      ? <ActionButton action="add" variant="dark" label="Buchung anlegen" onClick={()=>setNewBooking(true)} />
+      : null;
     return <>
       {rangeFailed&&<div className="callout amber"><Info size={22}/><div><strong>Buchungen nicht geladen</strong><p>Der Zeitraum ist gerade nicht erreichbar.</p></div></div>}
       <div className="booking-groups">
-        {loadingRange?<><div className="list-block"><div className="section-head"><div className="section-title"><h2>{"Geburtstage · "+periodLabel(birthdayPeriod)}</h2></div>{periodTools}</div><section className="surface"><div className="empty-state"><h3>Buchungen werden geladen.</h3></div></section></div><div className="list-block"><div className="section-head"><div className="section-title"><h2>{"Kita- und Schulbesuche · "+periodLabel(visitPeriod)}</h2></div>{visitTools}</div><section className="surface"><div className="empty-state"><h3>Buchungen werden geladen.</h3></div></section></div></>:<>
-          <BookingSchedule title={"Geburtstage · "+periodLabel(birthdayPeriod)} rows={birthdays.map((row)=>scheduleFrom(row, checkedIn.includes(row.id)))} canRemove={canRemove} tools={periodTools} onOpen={setDetailBooking} onCheckIn={toggleCheckIn} onRemove={removeBooking}/>
-          <BookingSchedule title={"Kita- und Schulbesuche · "+periodLabel(visitPeriod)} rows={visits.map((row)=>scheduleFrom(row, checkedIn.includes(row.id)))} canRemove={canRemove} tools={visitTools} onOpen={setDetailBooking} onCheckIn={toggleCheckIn} onRemove={removeBooking}/>
-        </>}
+        {loadingRange
+          ? <Block title="Buchungen" actions={createBookingAction} controls={bookingTools}><div className="empty-state"><h3>Buchungen werden geladen.</h3></div></Block>
+          : <BookingSchedule title="Buchungen" rows={listed.map((row)=>scheduleFrom(row, checkedIn.includes(row.id)))} canRemove={canRemove} actions={createBookingAction} tools={bookingTools} onOpen={setDetailBooking} onCheckIn={toggleCheckIn} onRemove={removeBooking}/>}
       </div>
+      {occupancyBlock}
       {!loadingRange&&defaultDay&&<TableFloor dates={dates} defaultDay={defaultDay} bookings={ranged}/>}
       <div className="info-inline"><Info size={17}/>{liveMode?"Buchungen aus dem Buchungsservice für den gewählten Zeitraum. Check-in bleibt lokal.":"Alle gezeigten Personen und Buchungen sind fiktiv."}</div>
     </>;
   }
   if(view==="families"&&liveMode&&!liveFamilies)return <>{customerSections()}<section className="surface"><div className="empty-state"><Users size={26}/><h3>Keine Familien aus dem Betrieb</h3><p>Diese Anmeldung hat hier keine Kontaktliste.</p></div></section></>;if(view==="families"){const familyRows=liveFamilies?liveFamilies.map(f=>({n:f.name,t:f.lastVisit,p:f.points,s:f.consent,l:f.longAbsent})) : [{n:"Familie Keller",t:"vor 74 Tagen",p:86,s:true,l:true},{n:"Familie Sommer",t:"vor 63 Tagen",p:142,s:true,l:true},{n:"Familie Braun",t:"vor 3 Tagen",p:54,s:true,l:false},{n:"Familie Richter",t:"vor 92 Tagen",p:28,s:false,l:true}];
   return <>{customerSections()}<div className="family-summary"><div><span className="eyebrow">MASULINO CLUB</span><h2>Eine Verbindung, die bleibt.</h2><p>Besuche, Lieblingsmomente und ein guter Grund, wiederzukommen.</p>{liveFamilies?<p>Kontakte mit Marketing-Freigabe stehen in der Tabelle. Ein Versand ist nicht angebunden.</p>:(!staff||staff.capabilities.campaigns)&&<button className="button dark" onClick={()=>openCampaign("return")}>{(liveAudienceCount??47)+" Familien wieder einladen"}</button>}</div><span className="big-number">{liveFamilies?String(liveFamilies.length):"1.248"}<small>{liveFamilies?"Kontakte am Standort":"Familien im Demo-Club"}</small></span></div><Tabs value={familyFilter} onValueChange={setFamilyFilter}><TabsList><TabsTrigger value="all">Alle Familien</TabsTrigger><TabsTrigger value="return">Länger nicht da</TabsTrigger></TabsList><TabsContent value={familyFilter}><div className="section-head"><h2>Familien</h2><span className="pill">{familyRows.filter(f=>familyFilter==="all"||f.l).length.toLocaleString("de-DE")}</span></div><section className="surface table-surface"><DataTable rows={familyRows.filter(f=>familyFilter==="all"||f.l)} columns={familyColumns} rowKey={(row)=>row.n} initialSort={{id:"name", direction:"asc"}} empty={<div className="empty-state"><h3>Keine Familie in dieser Ansicht</h3><p>Ein anderer Filter oder ein späterer Besuchsnachweis füllt die Tabelle.</p></div>}/></section></TabsContent></Tabs><p className="fine-print">{liveFamilies?"Kontakte und Consent aus dem Domain-Service. Letzter Besuch bleibt leer, bis Besuchsnachweise angebunden sind.":"Auszug aus fiktiven Kundendaten. Nur Kontakte mit passender Freigabe werden für Kampagnen berücksichtigt."}</p></>;}
-  if(view==="team"&&workspaceReady)return <><LiveTeamPanel team={liveTeam}/><section className="personal-live-demo" aria-label="Planungsdemo"><div className="section-head"><h2>Planungsdemo</h2><Pill>Beispieldaten</Pill></div><p className="fine-print">Getrennt von den Daten oben: Namen, Schichten und Zeiten sind fiktiv und werden nicht gespeichert.</p><PersonalWorkspace/></section></>;if(view==="team")return <PersonalWorkspace/>;
+  if(view==="team")return <PersonalWorkspace/>;
   if(view==="reports") return <PosDashboard/>;
   if(view==="it") return <ItWorkspace/>;
   if(view==="betrieb") return <section className="surface"><div className="empty-state"><ClipboardList size={26} strokeWidth={1.8}/><h3>Noch keine Checklisten</h3><p>Aufgaben und Instandhaltung sind in diesem Arbeitsplatz nicht angebunden. Es wird nichts angelegt oder abgeschlossen.</p></div></section>;
@@ -601,7 +572,7 @@ function Workspace(){
  }
  function Stat({icon:Icon,label,value,note,warning=false}:{icon:LucideIcon;label:string;value:string;note:string;warning?:boolean}){return <div className="stat"><div className="stat-label"><Icon size={16}/>{label}</div><div className="stat-value">{value}</div><div className={"stat-note "+(warning?"warning":"")}>{note}</div></div>}
 
- return <SidebarProvider style={{"--sidebar-width":"440px","--sidebar-width-icon":"72px"} as CSSProperties}><Navigation view={view} onNavigate={navigate} staff={staff}/><div className="main-shell"><header className="topbar"><div className="breadcrumb"><SidebarTrigger className="mobile-nav-trigger"/><SidebarShowButton/><h1 className="topbar-title">{title}<span className="orange-text">.</span></h1></div><div className="header-actions">{iconButton(Search,"Suchen",()=>setSearchOpen(true))}</div></header>
+ return <SidebarProvider style={{"--sidebar-width":"440px","--sidebar-width-icon":"72px"} as CSSProperties}><Navigation view={view} onNavigate={navigate} staff={staff}/><div className="main-shell"><header className={view==="team"?"topbar has-area-nav":"topbar"}><div className="breadcrumb"><SidebarTrigger className="mobile-nav-trigger"/><h1 className="topbar-title">{title}<span className="orange-text">.</span></h1></div><div className="header-actions">{view==="team"?<div id="personal-area-slot" className="personal-area-slot"/>:null}{view==="bookings"&&(!staff||viewVisible(view, staff.capabilities))&&<PeriodToggle value={bookingPeriod} onChange={setBookingPeriod} label="Zeitraum" align="right" />}{view==="bookings"&&(!staff||viewVisible(view, staff.capabilities))&&<ActionButton action="folder" variant="soft" onClick={()=>navigate("mappe")} />}{iconButton(Search,"Suchen",()=>setSearchOpen(true))}</div></header>
  <main className="main-content" id="main-content">
  {view==="today"?<>
   <div className="dashboard-header">
@@ -617,13 +588,13 @@ function Workspace(){
   <div className="dashboard-grid"><div className="dashboard-primary">
     {false && <section className={"weather-card "+scenario}><div className="weather-topline"><span><CloudRain size={17}/>WETTER TRIFFT SPIELRAUM</span><Choice label="Wetterszenario" value={scenario} onChange={v=>changeScenario(v as Scenario)} items={[{value:"rain",label:"Szenario: Regen"},{value:"sun",label:"Szenario: Sonne"},{value:"full",label:"Szenario: Volles Haus"}]}/></div><div className="weather-main"><div><h2>{d.title.split("\n").map((line,i)=><span key={i}>{line}</span>)}</h2><p>{d.description}</p><button className="button weather-button" onClick={()=>scenario==="full"?ask("Wie wird morgen?"):openCampaign("weather")}>{scenario==="full"?"Besetzung prüfen":"Kampagne prüfen"}</button></div><div className="weather-visual"><d.icon size={63} strokeWidth={1.25}/><strong>{d.temperature}</strong><span>Morgen · {d.rain} Regen</span></div></div><div className="forecast-strip">{["Heute","Morgen","Do","Fr"].map((day,i)=>{const WeatherIcon=scenario==="sun"?Sun:[CloudSun,CloudRain,Cloud,CloudSun][i];return <div key={day} className={i===1?"tomorrow":""}><span>{day}</span><WeatherIcon size={20}/><strong>{d.forecast[i]}°</strong></div>})}<div className="forecast-insight"><span>{scenario==="full"?"Erwartete Auslastung":"Auslastung im Aktionsfenster"}</span><strong>{d.occupancy} % <span>{scenario==="full"?"keine Aktion": "Platz für mehr"}</span></strong></div></div></section>}
     <section className="apps-section"><div className="section-head"><h2>Deine Apps</h2><div className="pin-actions">{editingPins?<><JellyButton variant="soft" onClick={cancelPinEdit}>Abbrechen</JellyButton><JellyButton onClick={savePinEdit}>Fertig</JellyButton></>:<JellyButton variant="icon" aria-label="Fixierte Apps bearbeiten" aria-pressed="false" onClick={startPinEdit}><Pencil size={18} strokeWidth={1.8}/></JellyButton>}</div></div><PinnedApps/></section>
-    <section className="dashboard-section">{!canSeeBookings?<><div className="section-head"><h2>Tischauslastung</h2></div><div className="surface"><p className="fine-print">Für diese Rolle nicht freigegeben.</p></div></>:liveMode&&occupancyState==="loading"?<><div className="section-head"><h2>Tischauslastung</h2></div><div className="surface"><p className="fine-print" aria-live="polite">Die Buchungen werden geladen.</p></div></>:liveMode&&occupancyState==="failed"?<><div className="section-head"><h2>Tischauslastung</h2></div><div className="surface"><p className="fine-print" role="alert">Die Buchungen sind gerade nicht erreichbar. Es wurde nichts neu berechnet.</p></div></>:anchorDate?<OccupancyPanel rows={occupancyRows} anchorDate={anchorDate}/>:null}</section>
-    {(!staff || staff.capabilities.bookings) && <section className="dashboard-section"><div className="section-head"><h2>Heutige Buchungen</h2><JellyButton onClick={()=>navigate("bookings")}>Buchungen öffnen</JellyButton></div><div className="surface day-section"><BookingTable short/></div></section>}
   </div>{false && <aside className="agent-column"><div className="section-head agent-heading"><h2><Sparkles size={19}/>Für dich vorausgedacht</h2><span className="count-bubble">{pending}</span></div><div className="agent-card-stack">{(Object.keys(states) as Suggestion[]).filter(k=>enabled[k]&&states[k]==="pending").map(k=><AgentCard key={k} kind={k} compact/>)}{pending===0&&<div className="empty-state surface"><CircleCheck size={28}/><h3>Alles im Blick.</h3><p>Alle Hinweise sind bearbeitet oder pausiert.</p><button className="text-button" onClick={()=>navigate("agents")}>Aktivität ansehen</button></div>}</div><div className="assistant-card"><span className="masu-symbol"><Sparkles size={24}/></span><div><h3>Frag einfach Masu.</h3><p>Dein Wissen. Deine Apps.<br/>Eine Antwort entfernt.</p></div><button className="assistant-input" onClick={()=>setChatOpen(true)}><span>Was möchtest du wissen?</span><Plus size={19}/></button></div><p className="side-footnote">* Illustratives Potenzial, keine Zusage.<br/>Alle Daten und Agenten sind simuliert.</p></aside>}</div>
  </>:<>{view==="agents"&&!staff&&<div className="section-head end"><button type="button" className="button soft" onClick={()=>setRulesOpen(true)}><Settings2 size={17}/>Agentenregeln</button></div>}
  {false?<><div className="agent-summary"><div><span className="tiny-label">ZULETZT SIMULIERT</span><strong>Heute, 09:40</strong></div><div><span className="tiny-label">DEINE FREIGABE</span><strong>Immer vor einer Aktion</strong></div><div><span className="tiny-label">AKTIVE AGENTEN</span><strong>{Object.values(enabled).filter(Boolean).length} von 3</strong></div></div><Tabs value={agentFilter} onValueChange={setAgentFilter}><TabsList><TabsTrigger value="pending">Zur Prüfung · {pending}</TabsTrigger><TabsTrigger value="history">Aktivität</TabsTrigger><TabsTrigger value="all">Alle Agenten</TabsTrigger></TabsList><TabsContent value="pending"><div className="agents-grid">{(Object.keys(states) as Suggestion[]).filter(k=>states[k]==="pending"&&enabled[k]).map(k=><AgentCard key={k} kind={k}/>)}{pending===0&&<div className="empty-state surface"><CheckCheck size={30}/><h3>Alles erledigt.</h3><p>Unter Aktivität findest du deine Entscheidungen.</p></div>}</div></TabsContent><TabsContent value="history"><section className="surface">{logs.length?logs.map((l,i)=><div className="log-row" key={i}><History size={18}/><div><strong>{l.title}</strong><p>{l.detail}</p></div></div>):<div className="empty-state"><History size={28}/><h3>Noch keine Entscheidungen</h3><p>Hier erscheint, was du freigibst oder zurückstellst.</p></div>}</section><div className="agents-grid">{(Object.keys(states) as Suggestion[]).filter(k=>states[k]!=="pending").map(k=><AgentCard key={k} kind={k}/>)}</div></TabsContent><TabsContent value="all"><div className="agents-grid">{(Object.keys(states) as Suggestion[]).map(k=><div key={k}><div className="agent-toggle"><span>{enabled[k]?"Hinweise aktiv":"Hinweise pausiert"}</span><Switch checked={enabled[k]} onCheckedChange={v=>setEnabled(e=>({...e,[k]:v}))} aria-label={(k==="weather"?"Wetter":k==="return"?"Familien":"Betrieb")+"-Hinweise aktiv"}/></div><AgentCard kind={k}/></div>)}</div></TabsContent></Tabs></>:false?<><button className="knowledge-search" onClick={()=>setSearchOpen(true)}><Search size={22}/><span>Wissen, Regeln und Abläufe finden …</span><kbd>⌘ K</kbd></button><div className="knowledge-grid">{knowledge.map((a,i)=><button className="surface knowledge-card" key={a.title} onClick={()=>setSelectedArticle(i)}><IconTile icon={a.icon} color={["violet","pink","blue","green"][i]}/><h2>{a.title}</h2><p>{a.text}</p><span className="text-button">Wissenskarte öffnen</span></button>)}</div><div className="info-inline"><BookOpen size={17}/>Beispielwissen für diesen Prototyp; eure echten Betriebsregeln werden später angebunden.</div></>:false?<Concept/>:appContent()}
  </>}
  </main></div>
+
+ <Dialog open={folderOpen} onOpenChange={setFolderOpen}><DialogContent className="tagesmappe-dialog" showCloseButton={false}><div className="tagesmappe-dialog-head"><DialogTitle>Tagesmappe</DialogTitle><DialogClose asChild><JellyButton variant="icon" aria-label="Schließen"><X size={16} strokeWidth={1.8} aria-hidden="true"/></JellyButton></DialogClose></div><DialogDescription className="sr-only">Vorschau der Seiten aus den Buchungen. Der PDF-Download enthält die Seiten für den Ausdruck oder den Versand.</DialogDescription><div className="tagesmappe-dialog-body"><TagesmappeApp live={workspaceReady} anchorDate={anchorDate}/></div></DialogContent></Dialog>
 
  <Dialog open={searchOpen} onOpenChange={setSearchOpen}><DialogContent className="search-dialog" showCloseButton={false}><DialogTitle className="sr-only">Masulino durchsuchen</DialogTitle><DialogDescription className="sr-only">Apps, Buchungen und Wissenskarten finden.</DialogDescription><Command><CommandInput value={query} onValueChange={setQuery} placeholder="Was möchtest du finden?"/><CommandList><CommandEmpty><p>Keine direkten Treffer.</p>{!staff&&<button className="button soft" onClick={()=>{setSearchOpen(false);ask(query)}}>Masu dazu fragen</button>}</CommandEmpty><CommandGroup heading="Apps">{apps.filter(a=>appVisible(a.id, staff?.capabilities??null)).map(a=><CommandItem key={a.id} value={a.name+" "+a.description} onSelect={()=>navigate(a.id)}><a.icon size={18}/><span>{a.name}</span><span className="command-meta">App öffnen</span></CommandItem>)}{appVisible("bookings", staff?.capabilities??null)&&<CommandItem value="Tagesmappe Seiten für den Ausdruck" onSelect={()=>navigate("mappe")}><FolderOpen size={18}/><span>Tagesmappe</span><span className="command-meta">Aus Buchungen</span></CommandItem>}</CommandGroup><CommandGroup heading="Buchungen">{allBookings.map(b=><CommandItem key={b.id} value={b.name+" "+b.id} onSelect={()=>{setSearchOpen(false);setDetailBooking(b.id)}}><CalendarDays size={18}/>{b.name}<span className="command-meta">{b.time}</span></CommandItem>)}</CommandGroup><CommandGroup heading="Wissen">{knowledge.map((a,i)=><CommandItem key={a.title} value={a.title+" "+a.text} onSelect={()=>{setSearchOpen(false);setSelectedArticle(i)}}><BookOpen size={18}/>{a.title}</CommandItem>)}</CommandGroup></CommandList><div className="command-footer"><span>Mit ↑ ↓ wählen · Enter zum Öffnen</span><kbd>esc</kbd></div></Command></DialogContent></Dialog>
 
@@ -638,8 +609,8 @@ function Workspace(){
 
  <Dialog open={rulesOpen} onOpenChange={setRulesOpen}><DialogContent className="rules-dialog" showCloseButton={false}><CloseDialog/><DialogTitle>Deine Agenten. Deine Regeln.</DialogTitle><DialogDescription>Für diese Demo gilt: Vorschläge vorbereiten, Freigabe abwarten.</DialogDescription>{(Object.keys(enabled) as Suggestion[]).map(k=><div className="rule-row" key={k}><div><strong>{k==="weather"?"Wetter-Agent":k==="return"?"Familien-Agent":"Betriebs-Agent"}</strong><p>{k==="weather"?"Ab 60 % Regenchance oder unter 40 % Auslastung":k==="return"?"Nach 60 Tagen ohne Besuch":"Bei einer Lücke im Schichtbedarf"}</p></div><Switch aria-label={(k==="weather"?"Wetter":k==="return"?"Familien":"Betrieb")+"-Hinweise"} checked={enabled[k]} onCheckedChange={v=>setEnabled(x=>({...x,[k]:v}))}/></div>)}<div className="rule-principles"><p><ShieldCheck size={17}/>Freigabe vor jeder externen Aktion</p><p><Clock3 size={17}/>Mindestens 14 Tage zwischen Kampagnen</p><p><Users size={17}/>Keine Einladungen ab 85 % erwarteter Auslastung</p><p><Mail size={17}/>Nur Kontakte mit passender Freigabe</p></div><button className="button dark" onClick={()=>setRulesOpen(false)}>Fertig</button></DialogContent></Dialog>
  <Dialog open={selectedArticle!==null} onOpenChange={v=>{if(!v)setSelectedArticle(null)}}><DialogContent className="article-dialog" showCloseButton={false}><CloseDialog/><Pill>DEMO-WISSEN</Pill><DialogTitle>{selectedArticle!==null?knowledge[selectedArticle].title:""}</DialogTitle><DialogDescription>Wissenskarte · Stand 29. September 2026</DialogDescription><p>{selectedArticle!==null?knowledge[selectedArticle].text:""}</p><div className="callout blue"><Info size={20}/><p>Diese Regeln illustrieren die Benutzeroberfläche. Sie sind noch keine bestätigten Masulino-Betriebsregeln.</p></div><button className="button dark" onClick={()=>{const t=knowledge[selectedArticle!].title;setSelectedArticle(null);ask(t)}}><Sparkles size={17}/>Masu dazu fragen</button></DialogContent></Dialog>
- <Dialog open={detailBooking!==null} onOpenChange={v=>{if(!v)setDetailBooking(null)}}><DialogContent showCloseButton={false} className="article-dialog"><CloseDialog/>{(()=>{const b=allBookings.find(r=>r.id===detailBooking);return <><Pill>{b?.id}</Pill><DialogTitle>{b?.name}</DialogTitle><DialogDescription>{b?.detail}</DialogDescription><div className="booking-detail"><p><CalendarDays size={18}/>{liveBookings?bookingDayLabel:"Dienstag, 29. September 2026"}</p><p><Clock3 size={18}/>{b?.time} Uhr</p><p><ShieldCheck size={18}/>{liveBookings&&b&&"reference" in b?`${String((b as BookingViewModel).reference)} · ${String((b as BookingViewModel).status)}. Check-in wird nicht gespeichert.`:"Reservierung bestätigt · Demo"}</p></div><JellyButton variant={checkedIn.includes(detailBooking||"")?"soft":"dark"} onClick={()=>{if(detailBooking){setCheckedIn(c=>c.includes(detailBooking)?c.filter(x=>x!==detailBooking):[...c,detailBooking]);setDetailBooking(null)}}}>{checkedIn.includes(detailBooking||"")?"Markierung zurücknehmen":"In dieser Ansicht einchecken"}</JellyButton></>})()}</DialogContent></Dialog>
- <Dialog open={newBooking} onOpenChange={setNewBooking}><DialogContent showCloseButton={false} className="article-dialog"><CloseDialog/><DialogTitle>Eine neue Spielzeit</DialogTitle><DialogDescription>{workspaceReady?"Buchung über den Domain-Service.":"Beispielbuchung für heute, 16 Uhr."}</DialogDescription><form onSubmit={async e=>{e.preventDefault();if(!newName.trim()||bookingBusy)return;if(workspaceReady&&(!newEmail.trim()||!newPhone.trim())){toast("E-Mail und Telefon sind erforderlich.");return;}if(workspaceReady&&livePackages&&livePackages.length>0){setBookingBusy(true);const result=await createBooking({idempotencyKey:idempotencyKey||newIdempotencyKey(),organizerName:newName.trim(),childrenCount:Number(newCount)||1,adultCount:2,packageId:selectedPackageId||livePackages[0]!.id,localTime:"16:00",organizerEmail:newEmail.trim(),organizerPhone:newPhone.trim()});setBookingBusy(false);if(!result.ok){setBookingAlternatives(result.alternatives??[]);toast(result.error==="conflict"?"Kein freier Tisch":result.error==="forbidden"?"Keine Berechtigung":"Buchung fehlgeschlagen",{description:result.alternatives?.join(" · ")});return;}const refreshed=await fetchSectionBookings("bookings");if(refreshed) setLiveBookings(refreshed);setBookingRevision((value)=>value+1);setNewBooking(false);setNewName("");setBookingAlternatives([]);toast("Buchung bestätigt",{description:result.reference});return;}setExtraBookings(b=>[...b,{id:"M-DEMO-"+(b.length+1),time:"16:00",name:newName.trim(),detail:"Familienbesuch · "+newCount+" Gäste",type:"Familie",color:"blue"}]);setNewBooking(false);setNewName("");toast("Demo-Buchung angelegt")}}><label className="field-label">Buchungsname<input required maxLength={60} value={newName} onChange={e=>setNewName(e.target.value)} placeholder="z. B. Familie Beispiel"/></label><label className="field-label">Anzahl Gäste<input type="number" min="1" max="12" required value={newCount} onChange={e=>setNewCount(e.target.value)}/></label>{workspaceReady&&<><label className="field-label">E-Mail<input type="email" required autoComplete="email" value={newEmail} onChange={e=>setNewEmail(e.target.value)}/></label><label className="field-label">Telefon<input required autoComplete="tel" value={newPhone} onChange={e=>setNewPhone(e.target.value)} minLength={3}/></label></>}{workspaceReady&&livePackages&&livePackages.length>0&&<label className="field-label">Paket<select value={selectedPackageId||livePackages[0]!.id} onChange={e=>setSelectedPackageId(e.target.value)}>{livePackages.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>}{bookingAlternatives.length>0&&<div className="callout amber"><Info size={18}/><p>Alternativen: {bookingAlternatives.join(" · ")}</p></div>}<JellyButton className="full-width" type="submit" disabled={bookingBusy}>{bookingBusy?"Wird gespeichert …":workspaceReady?"Buchung anlegen":"Demo-Buchung anlegen"}</JellyButton></form></DialogContent></Dialog>
+ <Dialog open={detailBooking!==null} onOpenChange={v=>{if(!v)setDetailBooking(null)}}><DialogContent showCloseButton={false} className="article-dialog"><CloseDialog/>{(()=>{const b=allBookings.find(r=>r.id===detailBooking);return <><Pill>{b?.id}</Pill><DialogTitle>{b?.name}</DialogTitle><DialogDescription>{b?.detail}</DialogDescription><div className="booking-detail"><p><CalendarDays size={18}/>{liveBookings?bookingDayLabel:"Dienstag, 29. September 2026"}</p><p><Clock3 size={18}/>{b?.time} Uhr</p><p><ShieldCheck size={18}/>{liveBookings&&b&&"reference" in b?`${String((b as BookingViewModel).reference)} · ${String((b as BookingViewModel).status)}. Check-in wird nicht gespeichert.`:"Reservierung bestätigt · Demo"}</p></div><RowAction action="checkIn" rowName={b?.name??"Buchung"} pressed={checkedIn.includes(detailBooking||"")} onClick={()=>{if(!detailBooking)return;const marked=checkedIn.includes(detailBooking);setCheckedIn(c=>marked?c.filter(x=>x!==detailBooking):[...c,detailBooking]);toast(marked?"Markierung entfernt":"Nur in dieser Ansicht markiert. Der Check-in wird nicht gespeichert.");setDetailBooking(null)}} /></>})()}</DialogContent></Dialog>
+ <Dialog open={newBooking} onOpenChange={setNewBooking}><DialogContent showCloseButton={false} className="article-dialog"><CloseDialog/><DialogTitle>Eine neue Spielzeit</DialogTitle><DialogDescription>{workspaceReady?"Buchung über den Domain-Service.":"Beispielbuchung für heute, 16 Uhr."}</DialogDescription><form onSubmit={async e=>{e.preventDefault();if(!newName.trim()||bookingBusy)return;if(workspaceReady&&(!newEmail.trim()||!newPhone.trim())){toast("E-Mail und Telefon sind erforderlich.");return;}if(workspaceReady&&livePackages&&livePackages.length>0){setBookingBusy(true);const result=await createBooking({idempotencyKey:idempotencyKey||newIdempotencyKey(),organizerName:newName.trim(),childrenCount:Number(newCount)||1,adultCount:2,packageId:selectedPackageId||livePackages[0]!.id,localTime:"16:00",organizerEmail:newEmail.trim(),organizerPhone:newPhone.trim()});setBookingBusy(false);if(!result.ok){setBookingAlternatives(result.alternatives??[]);toast(result.error==="conflict"?"Kein freier Tisch":result.error==="forbidden"?"Keine Berechtigung":"Buchung fehlgeschlagen",{description:result.alternatives?.join(" · ")});return;}const refreshed=await fetchSectionBookings("bookings");if(refreshed) setLiveBookings(refreshed);setBookingRevision((value)=>value+1);setNewBooking(false);setNewName("");setBookingAlternatives([]);toast("Buchung bestätigt",{description:result.reference});return;}setExtraBookings(b=>[...b,{id:"M-DEMO-"+(b.length+1),time:"16:00",name:newName.trim(),detail:"Familienbesuch · "+newCount+" Gäste",type:"Familie",color:"blue"}]);setNewBooking(false);setNewName("");toast("Demo-Buchung angelegt")}}><label className="field-label">Buchungsname<input required maxLength={60} value={newName} onChange={e=>setNewName(e.target.value)} placeholder="z. B. Familie Beispiel"/></label><label className="field-label">Anzahl Gäste<input type="number" min="1" max="12" required value={newCount} onChange={e=>setNewCount(e.target.value)}/></label>{workspaceReady&&<><label className="field-label">E-Mail<input type="email" required autoComplete="email" value={newEmail} onChange={e=>setNewEmail(e.target.value)}/></label><label className="field-label">Telefon<input required autoComplete="tel" value={newPhone} onChange={e=>setNewPhone(e.target.value)} minLength={3}/></label></>}{workspaceReady&&livePackages&&livePackages.length>0&&<label className="field-label">Paket<GlideSelect options={livePackages.map(p=>({value:p.id,label:p.name}))} value={selectedPackageId||livePackages[0]!.id} onChange={setSelectedPackageId} showTags={false} size="md" placement="top" ariaLabel="Paket"/></label>}{bookingAlternatives.length>0&&<div className="callout amber"><Info size={18}/><p>Alternativen: {bookingAlternatives.join(" · ")}</p></div>}<JellyButton className="full-width" type="submit" disabled={bookingBusy}>{bookingBusy?"Wird gespeichert …":workspaceReady?"Buchung anlegen":"Demo-Buchung anlegen"}</JellyButton></form></DialogContent></Dialog>
  <Toaster position="bottom-center" richColors/>
  </SidebarProvider>
 }

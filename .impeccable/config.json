@@ -27,6 +27,12 @@
         "value": "sfmono-regular",
         "createdAt": "2026-11-14T13:52:25.779Z",
         "reason": "Existing Masulino visual baseline in globals.css; AGENTS.md requires preserving the current type. This sidebar task does not change fonts."
+      },
+      {
+        "rule": "design-system-font",
+        "value": "inherit\",",
+        "createdAt": "2026-11-19T18:17:52.668Z",
+        "reason": "Measurement probe inherits the page font so the closed label matches the button; it does not introduce a typeface."
       }
     ]
   }

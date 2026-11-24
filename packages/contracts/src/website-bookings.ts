@@ -1,16 +1,7 @@
 import { z } from "zod";
+import { birthdaySlotLabels, birthdayTimeWindows, kitaTimeWindow } from "./schedule";
 
-const enDash = "\u2013";
-
-export const birthdayTimeWindows = [
-  `14:30${enDash}19:00 Uhr`,
-  `12:00${enDash}19:00 Uhr`,
-  `10:00${enDash}13:30 Uhr`,
-  `11:00${enDash}14:30 Uhr`,
-  `15:30${enDash}19:00 Uhr`,
-] as const;
-
-export const kitaTimeWindow = `09:00${enDash}13:00 Uhr` as const;
+export { birthdayTimeWindows, kitaTimeWindow };
 
 export const birthdaySources = [
   "",
@@ -20,7 +11,8 @@ export const birthdaySources = [
   "Freunde & Bekannte",
   "Schule / Kita",
   "Wir waren schon einmal bei Masulino",
-  "Flyer / Plakat",
+  "Flyer",
+  "Plakat",
   "Vorbeigefahren / vor Ort gesehen",
   "Sonstiges",
 ] as const;
@@ -45,8 +37,14 @@ const previewCents = z.number().int().nonnegative().max(2_147_483_647);
 const message = z.string().max(2000);
 const personName = z.string().min(1).max(120);
 const reservationEmail = z.email();
+const salutation = z.enum(["Frau", "Herr", "keine Angabe"]);
+const street = z.string().trim().min(1).max(120);
+const postalCode = z.string().regex(/^[0-9]{5}$/);
 
 const shared = {
+  anrede: salutation,
+  adresse: street,
+  plz: postalCode,
   email: z.string().min(1).max(254),
   telefon: phone,
   nachricht: message,
@@ -150,6 +148,7 @@ export function parseWebsiteBooking(
     const parsed = websiteBirthdaySchema.safeParse(payload);
     if (!parsed.success) return { ok: false };
     if (!isCalendarDate(parsed.data.datum) || parsed.data.datum < today) return { ok: false };
+    if (!birthdaySlotLabels(parsed.data.datum).includes(parsed.data.zeitfenster)) return { ok: false };
     return { ok: true, kind: "booking", booking: parsed.data };
   }
   if (buchung === "kita") {

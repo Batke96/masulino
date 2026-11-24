@@ -1,0 +1,26 @@
+---
+description: Blockrahmen, Aktionsliste und die drei Arbeitsweisen für Flächen.
+alwaysApply: true
+---
+
+# Blöcke
+
+Vor einer neuen oder geänderten Fläche zuerst `lib/ui/actions.ts` und `components/ui/block.tsx` lesen. Die Aktionsliste ist die Quelle für Verb, Icon, Name, Ton und Lunte. Der Blockrahmen ist die Quelle für die Plätze.
+
+## Entscheidung
+
+1. Eine Frage ist ein Block. Zwei Fragen sind zwei Blöcke. Zwei Lesarten derselben Frage sind ein Block mit zwei Inhaltsspalten.
+2. Das Verb in `lib/ui/actions.ts` suchen. Icon, Name, Ton und Lunte kommen aus dem Eintrag. `LogIn` bleibt der Zeiterfassung vorbehalten.
+3. Die Reichweite bestimmt den Platz. Die Seite steht über dem ersten Block. Die Überschrift steht allein links, mit dem Zähler. Die Steuerung darunter trägt die Filter links und höchstens zwei kurze Aktionen rechts. Ein Eintrag steht in der Zeile über `RowAction`.
+4. Filter mit zwei bis fünf Werten in der Steuerung sind `PillSelect`: eine Pill mit Icon und dem gewählten Namen, die übrigen Werte öffnen sich nach unten als Pills. Die Steuerungszeile von Buchungen ist der Maßstab für Höhe und Abstand, auch am Saalplan. `JellyRadio` bleibt, wo die offene Wahl selbst der Inhalt ist. Mehr Optionen oder lange Labels sind `GlideSelect`. Ein Knopf ist `JellyButton`. Öffnen, Check-in und Entfernen in der Zeile sind Icon-Buttons. Der Name steht im Overlay, rechts am Knopf, wenn der Zeiger dort verweilt. Check-in und Entfernen tragen die Lunte. Andere konkrete Knöpfe tragen ab 768 px Icon und Text.
+5. Fehlt das Verb, kommt es zuerst in die Aktionsliste und in `lib/ui/actions.test.ts`. Danach darf die Fläche es nutzen.
+
+## Arbeitsweisen
+
+Der Ablauf steht in `.cursor/skills/bloecke/SKILL.md`.
+
+1. Block erstellen. Frage benennen, Plätze füllen, Verben nur aus der Liste. Ein neues Control entsteht erst, wenn `JellyButton`, `JellyRadio`, `GlideSelect` oder `DataTable` die Aufgabe nicht können.
+2. Mockup-Inhalt übernehmen. Die App-Kachel bleibt der Einstieg. Der Inhalt wird in Blöcke zerlegt, eine Frage pro Block. Demo- und Fixture-Sätze bleiben als Fußnote sichtbar. Pro Auftrag eine App, in der Reihenfolge Tagesmappe, Personal, Auswertungen, Kunden, Betrieb, Gastro, Kasse, Kampagnen.
+3. Vorhandenen Block prüfen. Titel gegen Steuerung, Seitenaktion gegen Blockaktion, Eintragsaktion gegen Leseschlüssel. Die Abweichung in den Rahmen heben. Dafür keinen zweiten Knopf und keine neue Farbe anlegen.
+
+Eine Lunte ist `undo="fuse"` am `JellyButton`. Der Dienst wird erst gerufen, wenn sie durch ist. Ein Abbruch oder das Verlassen der Fläche schreibt nichts.

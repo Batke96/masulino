@@ -1,0 +1,72 @@
+.pill-select {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.pill-select-trigger,
+.pill-select-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-2);
+  min-height: var(--space-9);
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--ink) 14%, var(--background));
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-label);
+  font-weight: var(--font-weight-heading);
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pill-select-trigger:hover {
+  background: color-mix(in srgb, var(--ink) 22%, var(--background));
+}
+
+.pill-select-menu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-radius: 22px;
+  background: var(--popover);
+  box-shadow: var(--elevation-floating);
+  animation: pill-select-in var(--motion-duration-standard) var(--motion-easing-standard);
+}
+
+.pill-select-menu.is-end {
+  right: 0;
+  left: auto;
+  align-items: flex-end;
+}
+
+.pill-select-option.is-hot {
+  background: var(--ink);
+  color: var(--primary-foreground);
+}
+
+@keyframes pill-select-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--space-1) * -1));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pill-select-menu {
+    animation: none;
+  }
+}

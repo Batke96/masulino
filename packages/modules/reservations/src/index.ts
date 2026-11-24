@@ -3,6 +3,7 @@ export {
   acceptWebsiteRequest,
   listWebsiteRequests,
   rejectWebsiteRequest,
+  resolveIntakeLocation,
   reviewWebsiteRequest,
   storeWebsiteRequest,
 } from "./website-requests";

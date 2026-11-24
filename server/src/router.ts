@@ -28,6 +28,7 @@ import {
   handleWorkspaceBootstrap,
 } from "./handlers/sections";
 import { handlePosReport } from "./handlers/pos";
+import { handleListWebsiteRequests, handleWebsiteDecision, handleWebsiteIntake } from "./handlers/buchungen";
 import { handleReservationSpan } from "./handlers/reservation-span";
 import { handleComposedOutbox } from "./outbox";
 import { bearerMatches } from "./security";
@@ -92,6 +93,26 @@ export async function route(request: Request): Promise<Response> {
 
   if (pathname === "/api/packages" && request.method === "GET") {
     return handlePackages(request);
+  }
+
+  if (pathname === "/api/buchungen" && request.method === "POST") {
+    return handleWebsiteIntake(request);
+  }
+
+  if (pathname === "/api/buchungen" && request.method === "GET") {
+    return handleListWebsiteRequests(request);
+  }
+
+  if (pathname === "/api/buchungen/bearbeitet" && request.method === "POST") {
+    return handleWebsiteDecision(request, "bearbeitet");
+  }
+
+  if (pathname === "/api/buchungen/ablehnen" && request.method === "POST") {
+    return handleWebsiteDecision(request, "ablehnen");
+  }
+
+  if (pathname === "/api/buchungen/annehmen" && request.method === "POST") {
+    return handleWebsiteDecision(request, "annehmen");
   }
 
   if (pathname === "/api/bookings" && request.method === "POST") {

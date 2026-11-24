@@ -12,6 +12,7 @@ This is a local source export of an interactive UI prototype. Preserve the Germa
 - Install with `pnpm install --frozen-lockfile`; develop with `pnpm dev`.
 - The clean checkout selects the portable runtime automatically. Do not recreate managed-host directories or depend on the original workspace paths.
 - Reuse the existing UI primitives in `components/ui` and visual tokens in `app/globals.css`.
+- Before creating or revising a surface, read `lib/ui/actions.ts` and `components/ui/block.tsx`, then follow `.cursor/skills/bloecke/SKILL.md`. Verbs, icons, tones and the fuse come from the action catalog. A block fills the frame. One app per change when moving mock content into blocks.
 - Refactor feature by feature. Keep state shared where a scenario, approval or check-in appears in more than one surface.
 - Treat the current CSS as the visual baseline. Consolidate duplicate rules incrementally only after comparing screenshots at relevant viewport sizes.
 - Validate changed flows and run `pnpm exec tsc --noEmit` and `pnpm build`. Initial browser QA is still needed; see the handoff.

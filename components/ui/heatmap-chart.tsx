@@ -245,7 +245,7 @@ function HeatmapChart({
                     onClick={onCellClick ? () => onCellClick(datum) : undefined}
                     data-selected={selectedColumn === c}
                     className={cn(
-                      "inset-ring-foreground/6 aspect-square min-w-0 w-full rounded-sm outline-none inset-ring transition-[box-shadow] duration-[var(--motion-duration-fast)]",
+                      "inset-ring-foreground/6 min-w-0 w-full rounded-sm outline-none inset-ring transition-[box-shadow] duration-[var(--motion-duration-fast)]",
                       "data-[active=true]:inset-ring-foreground/45 data-[active=true]:inset-ring-2",
                       "data-[selected=true]:inset-ring-primary data-[selected=true]:inset-ring-2",
                       onCellClick ? "cursor-pointer" : "cursor-default"

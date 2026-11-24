@@ -4,7 +4,7 @@ import { parseWebsiteBooking } from "./website-bookings";
 const birthday = {
   buchung: "geburtstag",
   datum: "2026-11-07",
-  zeitfenster: "14:30\u201319:00 Uhr",
+  zeitfenster: "10:00\u201313:30 Uhr",
   paket: "deluxe",
   kind_name: "Lea",
   kind_alter: "7",
@@ -15,6 +15,9 @@ const birthday = {
   summeVorschau: 21760,
   vorname: "Anna",
   nachname: "Beispiel",
+  anrede: "Frau",
+  adresse: "Äppelallee 1",
+  plz: "65203",
   email: "anna@example.com",
   telefon: "015100000000",
   nachricht: "",
@@ -34,6 +37,9 @@ const kita = {
   einrichtung: "Kita Sonnenschein",
   art: "Kita",
   ansprechpartner: "Mia Beispiel",
+  anrede: "Herr",
+  adresse: "Schulstraße 4",
+  plz: "65203",
   email: "kita@example.com",
   telefon: "061100000",
   nachricht: "",
@@ -53,6 +59,16 @@ describe("website booking intake", () => {
     expect(parseWebsiteBooking({ ...kita, wunschtermin: "2026-11-14" }, "2026-11-07").ok).toBe(false);
     expect(parseWebsiteBooking({ ...birthday, zeitfenster: "14:30-19:00 Uhr" }, "2026-11-07").ok).toBe(false);
     expect(parseWebsiteBooking({ ...birthday, buchung: "bewerbung" }, "2026-11-07").ok).toBe(false);
+  });
+
+  it("accepts only the window the date offers", () => {
+    expect(parseWebsiteBooking({ ...birthday, datum: "2026-11-10", zeitfenster: "14:30\u201319:00 Uhr" }, "2026-11-07").ok).toBe(true);
+    expect(parseWebsiteBooking({ ...birthday, zeitfenster: "14:30\u201319:00 Uhr" }, "2026-11-07").ok).toBe(false);
+    expect(parseWebsiteBooking({ ...birthday, datum: "2026-12-24", zeitfenster: "12:00\u201317:00 Uhr" }, "2026-11-07").ok).toBe(true);
+    expect(parseWebsiteBooking({ ...birthday, datum: "2026-12-24", zeitfenster: "14:30\u201319:00 Uhr" }, "2026-11-07").ok).toBe(false);
+    expect(parseWebsiteBooking({ ...birthday, quelle: "Flyer" }, "2026-11-07").ok).toBe(true);
+    expect(parseWebsiteBooking({ ...birthday, quelle: "Flyer / Plakat" }, "2026-11-07").ok).toBe(false);
+    expect(parseWebsiteBooking({ ...birthday, plz: "6520" }, "2026-11-07").ok).toBe(false);
   });
 
   it("rejects an adult extra outside deluxe and a non-empty honeypot without treating it as invalid", () => {

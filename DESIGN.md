@@ -229,11 +229,21 @@ Die Formensprache folgt vier Rollen: 4px für kompakte Statuspills, 8px für Ste
 Komponenten teilen dieselben Farb-, Typografie-, Zustands-, Elevations- und Bewegungsrollen, unabhängig davon, ob sie als Workspace-Klasse oder Primitive aus `components/ui` umgesetzt sind.
 
 ### Buttons
-- **Canonical:** Neue und geänderte Aktionen verwenden `JellyButton` aus `components/ui/jelly-button`. Legacy-Klassen `.button`, `.button.soft` und `.button.dark` werden nicht für neue UI genutzt.
-- **Dark:** Führende oder verbindliche Aktion (`Fertig`, `Buchungen öffnen`, aktiv markierter Check-in).
-- **Soft:** Sekundäre oder umkehrbare Aktion (`Abbrechen`, ruhender Check-in, Katalog hinzufügen).
-- **Icon:** Nur Icon ohne Label (Stift, Entfernen-X); gleiche Fokus- und Disabled-Verträge.
+- **Canonical:** Neue und geänderte Aktionen verwenden `JellyButton` aus `components/ui/jelly-button`. Legacy-Klassen `.button`, `.button.soft` und `.button.dark` werden nicht für neue UI genutzt. Verb, Icon, Name und Ton kommen aus `lib/ui/actions.ts`.
+- **Dark:** Führende oder verbindliche Aktion (`Fertig`, `Buchung anlegen`).
+- **Soft:** Sekundäre oder umkehrbare Aktion (`Abbrechen`, `Öffnen`, Katalog hinzufügen).
+- **Icon:** Nur das Icon, wenn der Eintrag eindeutig ist und die Breite unter 768 px liegt, oder die Aktion allein schon klar ist (Zurück, Vor, Schließen, Bearbeiten). Der zugängliche Name nennt das Objekt.
+- **Tones:** Ein Knopf ist eine Fläche ohne Rand. `neutral` bleibt auf der Variante: führend `--ink` mit hellem Icon, sekundär eine dunklere Mischung aus `--ink` und der Fläche mit dunklem Icon. `present` füllt `--success`, `danger` füllt `--destructive`. Das Icon ist `--primary-foreground`. Gedrückt oder unter dem Zeiger wird die Fläche dunkler, nicht umrandet.
+- **Fuse:** `undo="fuse"` zeigt nach dem Druck „Rückgängig“ für `--undo-window`. Die Lunte ist ein heller Strich auf der gefüllten Fläche, `--fuse-thickness` stark. Check-in bleibt `--success`, Entfernen `--destructive`, eine noch nicht geschriebene Annahme `--warning`. Der Dienst wird erst nach der Lunte gerufen. Abbruch und Verlassen schreiben nichts. Unter `prefers-reduced-motion` bleibt der Knopf stehen, ohne umlaufenden Strich.
 - **States:** Fokus, Hover und Disabled folgen den gemeinsamen State-/Motion-Rollen; deaktiviert bedeutet Opazität 0.5 und keine Interaktion.
+
+### Blocks
+- **Frame:** `components/ui/block.tsx` hat Titel und Zähler allein links. Die Steuerung darunter trägt Filter links und höchstens zwei Aktionen rechts, dazu Fenster, Leseschlüssel und Fußnote. Ein leerer Platz wird nicht gerendert.
+- **Page actions:** Aktionen der ganzen Seite stehen einmal über dem ersten Block.
+- **Scope:** Die Filter in der Steuerung sind `PillSelect`, auch an der Tischauslastung: eine Pill mit Icon und dem gewählten Namen. Die übrigen Werte öffnen sich nach unten als Pills. Höhe und Abstand folgen der Buchungen-Zeile. `JellyRadio` bleibt, wo die offene Wahl selbst der Inhalt ist.
+- **Rows:** Eintragsaktionen kommen aus `RowAction`, in der Reihenfolge der Liste. Ab 768 px Icon und Text, darunter das Icon, wenn es eindeutig ist.
+- **Legend:** Ein Leseschlüssel steht oben im Fenster und erklärt Farbe, die sonst stumm wäre.
+- **Columns:** Zwei Lesarten derselben Frage teilen sich ein Fenster. Zwei Fragen sind zwei Blöcke.
 
 ### Selection Controls
 - **Toggle pills:** 2–5 Optionen auf einer Zeile verwenden `JellyRadio` (Auslastungs-Tabs, Periodenwahl am Desktop).
@@ -255,7 +265,7 @@ Komponenten teilen dieselben Farb-, Typografie-, Zustands-, Elevations- und Bewe
 - **Alignment:** Label, Wert, Verlauf und Vergleich bleiben innerhalb derselben Inhaltsachse; das responsive Raster ändert Spalten, nicht den Kartenvertrag.
 
 ### Section Bars, Separators & Occupancy Controls
-- **Section Bars:** Titel und rechte Aktion liegen auf derselben Grundzeile und verwenden auf der Übersicht `--inset-line`.
+- **Section Bars:** Auf der Übersicht teilen Titel und eine kurze Aktion die Grundzeile und verwenden `--inset-line`. In einem Block bleibt die Titelzeile beim Namen, dem Zähler und höchstens zwei kurzen Blockaktionen. Die Steuerung steht in der Zeile darunter.
 - **Section Separators:** Abschnitte der Übersicht trennt ausschließlich `border-top: 1px solid var(--border)` plus oberer Innenabstand. Keine zweite Karte, kein Schatten und kein dekorativer Divider.
 - **Desktop / Tablet:** Zeitraum und Informationstiefe erscheinen ab 768px als zwei `JellyRadio`-Gruppen auf einer Zeile.
 - **Phone:** Unter 768px ersetzen zwei `GlideSelect`s die Toggle-Pills.
@@ -288,6 +298,7 @@ Komponenten teilen dieselben Farb-, Typografie-, Zustands-, Elevations- und Bewe
 - **Do** UI-Icons ausschließlich aus `lucide-react` mit Strichstärke 1.8 und passender Nachbargröße verwenden.
 - **Do** Sortierung mit `ArrowUp` oder `ArrowDown`, `aria-hidden` am Icon und `aria-sort` an der Spalte ausdrücken.
 - **Do** Aktionen als `JellyButton`, kompakte Auswahl als `JellyRadio` und Dropdowns als `GlideSelect` umsetzen.
+- **Do** eine Fläche aus `components/ui/block.tsx` und `lib/ui/actions.ts` setzen.
 - **Do** Übersichtsabschnitte nur mit der Haarlinien-Trennung und `--inset-line` gliedern.
 
 ### Don't:

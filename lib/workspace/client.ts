@@ -360,6 +360,9 @@ export type WebsiteBirthdayPayload = {
   summeVorschau: number;
   vorname: string;
   nachname: string;
+  anrede: string;
+  adresse: string;
+  plz: string;
   email: string;
   telefon: string;
   nachricht: string;
@@ -379,6 +382,9 @@ export type WebsiteKitaPayload = {
   einrichtung: string;
   art: string;
   ansprechpartner: string;
+  anrede: string;
+  adresse: string;
+  plz: string;
   email: string;
   telefon: string;
   nachricht: string;

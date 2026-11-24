@@ -5,6 +5,7 @@ import { Cake, Info, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import { DataTable, type DataColumn } from "@/components/data-table";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { ActionButton } from "@/components/ui/row-action";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { PeriodToggle } from "@/components/period-toggle";
 import { formatDayLabel, periodDates, type BookingPeriod } from "@/lib/booking/period";
@@ -191,6 +192,9 @@ function birthdayFields(payload: WebsiteBirthdayPayload): Array<{ label: string;
     { label: "Vorschau", value: euro(payload.summeVorschau) },
     { label: "Vorname", value: payload.vorname },
     { label: "Nachname", value: payload.nachname },
+    { label: "Anrede", value: payload.anrede },
+    { label: "Adresse", value: payload.adresse },
+    { label: "PLZ", value: payload.plz },
     { label: "E-Mail", value: payload.email },
     { label: "Telefon", value: payload.telefon },
     { label: "Nachricht", value: textOrDash(payload.nachricht) },
@@ -210,6 +214,9 @@ function kitaFields(payload: WebsiteKitaPayload): Array<{ label: string; value: 
     { label: "Einrichtung", value: payload.einrichtung },
     { label: "Einrichtungsart", value: payload.art },
     { label: "Ansprechpartner", value: payload.ansprechpartner },
+    { label: "Anrede", value: payload.anrede },
+    { label: "Adresse", value: payload.adresse },
+    { label: "PLZ", value: payload.plz },
     { label: "E-Mail", value: payload.email },
     { label: "Telefon", value: payload.telefon },
     { label: "Nachricht", value: textOrDash(payload.nachricht) },
@@ -246,6 +253,7 @@ export function BookingRequests({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
+  const [holdingAccept, setHoldingAccept] = useState(false);
   const [actionError, setActionError] = useState("");
 
   const load = useCallback(async () => {
@@ -393,7 +401,7 @@ export function BookingRequests({
           />
         )}
       </section>
-      <Dialog open={selected !== null} onOpenChange={(openDialog) => { if (!openDialog) { setSelectedId(null); setActionError(""); } }}>
+      <Dialog open={selected !== null} onOpenChange={(openDialog) => { if (!openDialog) { setSelectedId(null); setActionError(""); setHoldingAccept(false); } }}>
         <DialogContent showCloseButton={false} className="request-dialog sm:max-w-none">
           <DialogClose className="icon-button modal-close" aria-label="Schließen"><X size={20} /></DialogClose>
           {selected ? (
@@ -412,9 +420,9 @@ export function BookingRequests({
                       </label>
                     ) : null}
                     <div className="request-actions">
-                      {canDecide ? <button type="button" className="button soft" disabled={busy} onClick={() => void run("bearbeitet")}>Bearbeitet</button> : null}
-                      {canDecide ? <button type="button" className="button soft" disabled={busy} onClick={() => void run("ablehnen")}>Ablehnen</button> : null}
-                      {canAccept ? <button type="button" className="button dark" disabled={busy} onClick={() => void run("annehmen")}>Annehmen</button> : null}
+                      {canDecide ? <button type="button" className="button soft" disabled={busy || holdingAccept} onClick={() => void run("bearbeitet")}>Bearbeitet</button> : null}
+                      {canDecide ? <button type="button" className="button soft" disabled={busy || holdingAccept} onClick={() => void run("ablehnen")}>Ablehnen</button> : null}
+                      {canAccept ? <ActionButton action="accept" variant="dark" disabled={busy} onFuseStart={() => setHoldingAccept(true)} onFuseCancel={() => setHoldingAccept(false)} onClick={() => { setHoldingAccept(false); void run("annehmen"); }} /> : null}
                     </div>
                   </div>
                 ) : null}
