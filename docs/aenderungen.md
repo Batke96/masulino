@@ -15,6 +15,29 @@ Zwischen Export und `6c1386d` liegt auf `main`:
 
 ## Diese Lieferung
 
+Arbeitsstand gegen `9c9fcec` („Merge remote-tracking branch 'origin/main' into cursor/sidebar-sections-d36a“). `main` hat danach den Feedback-Knopf, der eine GitHub-Meldung anlegt (`da6a7ac`). Diese Lieferung lässt ihn stehen. Der Abschnitt „Stand bis 9c9fcec“ beschreibt den Stand davor.
+
+### Oberfläche
+
+- Blockrahmen in `components/ui/block.tsx`. Verben, Icons, Ton und Lunte stehen in `lib/ui/actions.ts`. Zeilenaktionen liegen in `components/ui/row-action.tsx`. Eine Lunte am `JellyButton` ruft den Dienst erst, wenn sie durch ist.
+- Buchungen haben einen Zeitraum und die Artwahl in `components/booking-kind-filter.tsx`: Alle, Geburtstage, Kita. Die Tischauslastung sitzt im Block. Der Saalplan-Block heißt „Tischauslastung mit Plan“.
+- Die Seitenleiste klappt über einen Schalter ein und aus. Die Tagesmappe öffnet sich als Dialog über den Buchungen.
+
+### Personal
+
+- Der Dienstplan ist drei Blöcke: Wochenübersicht, Stundenplan, Schichtzuweisung. Überschrift „Dienstplan“ und die Woche stehen darüber.
+- Im Stundenplan sind Schichten breite Spalten in der Rollenfarbe: Leitung rot, Schichtleiter bernsteinfarben, Mitarbeiter grün, Putzkraft blau. Das Fenster wächst mit dem Inhalt und scrollt nicht in sich.
+- Der Reiter Verfügbarkeit ist weg. Verfügbarkeit öffnet sich als Dialog aus der Mitarbeiterzeile. Der Planvorschlag bleibt eine Rechenregel, öffnet den Dialog und schreibt nichts, bevor er übernommen wird.
+- Veröffentlichen, Stempeln und Korrekturen bleiben Simulationen im Browser. Es wird nichts gesendet, gespeichert oder abgerechnet.
+
+### Website-Anfragen
+
+- Migration `packages/database/migrations/0012_website_booking_requests.sql` legt `website_booking_requests` wieder an, nachdem `0011_slim.sql` die Tabelle entfernt hat. Status `angefragt` ist keine bestätigte Reservierung. `angenommen` verlangt eine Reservierung.
+- `POST /api/buchungen` nimmt eine Anfrage entgegen. `GET /api/buchungen` listet sie für die angemeldete Sitzung. `POST /api/buchungen/bearbeitet`, `/api/buchungen/ablehnen` und `/api/buchungen/annehmen` setzen den Status. Annehmen legt die Reservierung an.
+- `app/booking-requests.tsx` ruft diese Routen auf. Die Fläche ist in `app/page.tsx` nicht eingehängt.
+
+## Stand bis 9c9fcec
+
 Arbeitsstand gegen `6c1386d`.
 
 ### Buchungen
@@ -61,9 +84,9 @@ Arbeitsstand gegen `6c1386d`.
 
 Diese Lieferung schließt sie nicht.
 
-- `app/booking-requests.tsx` ist nicht in `app/page.tsx` eingebunden. Der Client ruft `/api/buchungen` auf. Der Router hat diese Route nicht.
+- `app/booking-requests.tsx` ist nicht in `app/page.tsx` eingehängt. Die Routen unter `/api/buchungen` sind verdrahtet.
 - Der Personalbereich arbeitet nur mit Beispieldaten im Browser. Es gibt keine Schreib-API für Dienstplan, Verfügbarkeit, Regeln oder Korrekturen. Die Wiederkehrenden Reinigungsdienste (Regeln, Punkt 4) sind eine Annahme der Demo. Die Karte „Schicht prüfen“ auf der Übersicht nutzt weiter eigene Beispielnamen.
-- Migration `0009_website_booking_requests.sql` legt `website_booking_requests` an. Migration `0011_slim.sql` löscht die Tabelle wieder.
+- Eine Datenbank, die bei `0011_slim.sql` stehen bleibt, hat `website_booking_requests` nicht. Migration `0012_website_booking_requests.sql` legt die Tabelle wieder an.
 
 ## Nicht in diesem Commit
 

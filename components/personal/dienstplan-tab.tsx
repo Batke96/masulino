@@ -1,9 +1,10 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, type ReactNode } from "react"
 import {
+  Baby,
   Cake,
-  CircleCheck,
+  CircleAlert,
   Cloud,
   CloudDrizzle,
   CloudRain,
@@ -11,54 +12,46 @@ import {
   Flag,
   Info,
   Luggage,
-  Pencil,
-  Plus,
   School,
-  Sparkles,
   Sun,
-  Trash2,
-  TriangleAlert,
-  UsersRound,
+  User,
+  Users,
   type LucideIcon,
 } from "lucide-react"
 
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { JellyButton } from "@/components/ui/jelly-button"
-import { KpiCard } from "@/components/ui/kpi-card"
+import { Block } from "@/components/ui/block"
+import { ActionButton, RowAction } from "@/components/ui/row-action"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   bookingWindows,
   checkAvailability,
+  laneKind,
+  openingOf,
+  preferredEmployee,
+  staffDay,
+  weekdayKeyOf,
   dayKeyFor,
-  dayNames,
-  dayPersons,
   durationLabel,
   evaluateWeek,
-  formatFullDate,
   formatRange,
   formatShortDate,
-  formatWeekRange,
   formatWeekdayLong,
   formatWeekdayShort,
   hoursLabel,
-  peakGuests,
-  planWeeks,
   roleLabels,
-  ruleSummary,
-  shiftsOn,
   specialOpeningOf,
-  walkInEstimate,
-  weekStats,
   formatTime,
   type PlanDay,
   type PlanIssue,
   type Shift,
+  type ShiftLane,
   type WeatherSymbol,
 } from "@/lib/personal"
 import { usePersonal } from "./personal-context"
 import { PersonAvatar, Pill } from "./personal-ui"
-import { ProposalDialog, PublishDialog } from "./plan-dialogs"
-import { SegmentNav } from "./segment-nav"
+import { ProposalDialog } from "./plan-dialogs"
 import { ShiftDialog, type ShiftDraft } from "./shift-dialog"
+import { WeekTimeline } from "./week-timeline"
 
 const weatherIcons: Record<WeatherSymbol, LucideIcon> = {
   sonne: Sun,
@@ -68,48 +61,14 @@ const weatherIcons: Record<WeatherSymbol, LucideIcon> = {
   schauer: CloudDrizzle,
 }
 
-const weatherLabels: Record<WeatherSymbol, string> = {
-  sonne: "Sonnig",
-  wolken: "Bewölkt",
-  teilweise: "Teils bewölkt",
-  regen: "Regen",
-  schauer: "Schauer",
-}
-
-function fixLabel(issue: PlanIssue): string | null {
-  if (!issue.fix) return null
-  if (issue.fix.type === "addShift") return issue.code === "reinigungsdienst" ? "Reinigung eintragen" : "Schicht hinzufügen"
-  if (issue.fix.type === "openRules") return "Regeln prüfen"
-  return "Verfügbarkeit prüfen"
-}
-
 export function DienstplanTab() {
-  const { state, week, weekId, setWeekId, date, setDate, commit, setTab, openAvailability } = usePersonal()
+  const { state, week, weekId, date, setDate, commit } = usePersonal()
   const plan = state.plans[weekId] ?? { shifts: [], status: "entwurf" as const }
   const issues = useMemo(() => evaluateWeek(week, plan.shifts, state), [week, plan.shifts, state])
-  const blockers = issues.filter((issue) => issue.severity === "blocker")
-  const hints = issues.filter((issue) => issue.severity === "hinweis")
-  const stats = useMemo(() => weekStats(week, plan.shifts, state.rules), [week, plan.shifts, state.rules])
   const day = week.days.find((item) => item.date === date) ?? week.days[0]!
   const [shiftDraft, setShiftDraft] = useState<ShiftDraft | null>(null)
   const [proposalOpen, setProposalOpen] = useState(false)
-  const [publishOpen, setPublishOpen] = useState(false)
-  const published = plan.status === "veroeffentlicht"
   const employeeName = (id: string) => state.employees.find((item) => item.id === id)?.name ?? "Unbekannt"
-  const targetMinutes = state.employees.reduce((sum, employee) => sum + employee.targetHours * 60, 0)
-
-  function runFix(issue: PlanIssue) {
-    const fix = issue.fix
-    if (!fix) return
-    setDate(issue.date)
-    if (fix.type === "addShift") {
-      setShiftDraft({ date: fix.date, start: fix.start, end: fix.end, kind: issue.code === "reinigungsdienst" ? "cleaning" : "service" })
-    } else if (fix.type === "openRules") {
-      setTab("regeln")
-    } else {
-      openAvailability(fix.employeeId)
-    }
-  }
 
   function saveShift(shift: ShiftDraft & { employeeId: string }) {
     const isNew = !shift.id
@@ -131,79 +90,40 @@ export function DienstplanTab() {
 
   return (
     <div className="personal-tab">
-      <div className="personal-toolbar">
-        <SegmentNav
-          label="Woche"
-          value={weekId}
-          onChange={setWeekId}
-          items={planWeeks.map((item) => ({ value: item.id, label: formatWeekRange(item.start, item.end) }))}
-        />
-        <div className="personal-toolbar-actions">
-          <JellyButton variant="soft" onClick={() => setProposalOpen(true)}>
-            <Sparkles size={16} strokeWidth={1.8} aria-hidden="true" />
-            Planvorschlag
-          </JellyButton>
-          {published ? (
-            <JellyButton variant="soft" onClick={() => commit({ type: "setPlanStatus", weekId, status: "entwurf" }, "Plan wieder im Entwurf", { description: "Die Demo-Veröffentlichung wurde zurückgenommen." })}>
-              Zurück in den Entwurf
-            </JellyButton>
-          ) : (
-            <JellyButton disabled={blockers.length > 0} aria-describedby={blockers.length > 0 ? "publish-reason" : undefined} onClick={() => setPublishOpen(true)}>
-              Veröffentlichen
-            </JellyButton>
-          )}
-        </div>
-      </div>
-      {!published && blockers.length > 0 ? (
-        <p className="fine-print personal-publish-reason" id="publish-reason">
-          Veröffentlichen ist gesperrt, bis {blockers.length === 1 ? "der offene Punkt" : `die ${blockers.length} offenen Punkte`} geklärt {blockers.length === 1 ? "ist" : "sind"}.
-        </p>
-      ) : null}
-      {published ? (
-        <p className="fine-print personal-publish-reason">
-          Als Demo veröffentlicht. Mitarbeitende wurden nicht benachrichtigt. Jede Änderung setzt den Plan wieder in den Entwurf.
-        </p>
-      ) : null}
-
-      <section className="kpi-row personal-kpis" aria-label="Kennzahlen der Woche">
-        <KpiCard label="Geburtstage" value={stats.birthdays} deltaLabel="Buchungen in dieser Woche" icon={<Cake aria-hidden="true" strokeWidth={1.8} />} />
-        <KpiCard
-          label="Kita- und Schulbesuche"
-          value={stats.kitaVisits}
-          deltaLabel={stats.specialOpenings > 0 ? `${stats.specialOpenings} Sonderöffnung vor 10:00` : "Keine Sonderöffnung"}
-          icon={<School aria-hidden="true" strokeWidth={1.8} />}
-        />
-        <KpiCard label="Schichten" value={stats.shifts} deltaLabel={`von ${new Set(plan.shifts.map((shift) => shift.employeeId)).size} Mitarbeitenden`} icon={<UsersRound aria-hidden="true" strokeWidth={1.8} />} />
-        <KpiCard
-          label="Geplante Stunden"
-          value={hoursLabel(stats.minutes)}
-          deltaLabel={`Soll des Teams: ${hoursLabel(targetMinutes)}`}
-          icon={<Sparkles aria-hidden="true" strokeWidth={1.8} />}
-        />
-      </section>
-
-      <IssueList blockers={blockers} hints={hints} onFix={runFix} onPickDay={setDate} />
-
-      <section className="personal-section" aria-label="Wochenübersicht">
-        <div className="section-head">
-          <h2>Tage der Woche</h2>
+      <Block
+        className="personal-week-block"
+        title="Wochenübersicht"
+        legend={
           <span className="personal-legend" aria-label="Legende">
+            <span><span className="personal-legend-swatch" data-state="ok" aria-hidden="true" />In Ordnung</span>
+            <span><span className="personal-legend-swatch" data-state="offen" aria-hidden="true" />Anpassen</span>
             <span><Luggage size={14} strokeWidth={1.8} aria-hidden="true" />Ferien</span>
             <span><Flag size={14} strokeWidth={1.8} aria-hidden="true" />Feiertag</span>
-            <span><UsersRound size={14} strokeWidth={1.8} aria-hidden="true" />Gruppenbuchung</span>
+            <span><Cake size={14} strokeWidth={1.8} aria-hidden="true" />Geburtstag</span>
+            <span><School size={14} strokeWidth={1.8} aria-hidden="true" />Kita</span>
           </span>
-        </div>
+        }
+      >
         <div className="personal-days" role="group" aria-label="Tag auswählen">
           {week.days.map((item) => (
             <DayButton key={item.date} day={item} selected={item.date === day.date} issues={issues.filter((issue) => issue.date === item.date)} onSelect={() => setDate(item.date)} />
           ))}
         </div>
-      </section>
+      </Block>
+
+      <WeekTimeline week={week} shifts={plan.shifts} />
 
       <DayDetail
         day={day}
         shifts={plan.shifts}
-        onAdd={() => setShiftDraft({ date: day.date, start: 10 * 60, end: 14 * 60, kind: "service" })}
+        onAdd={(lane) => {
+          const opening = openingOf(day.date)
+          const cleaning = state.rules.cleaning.find((item) => item.enabled && item.days.includes(weekdayKeyOf(day.date)))
+          const start = lane === "putzkraft" ? (cleaning?.start ?? 8 * 60 + 30) : (opening?.start ?? 10 * 60)
+          const end = lane === "putzkraft" ? (cleaning?.end ?? 10 * 60) : (opening?.end ?? 19 * 60)
+          const employeeId = preferredEmployee(state.employees, state.availability, state.exceptions, lane, day.date, start, end) ?? undefined
+          setShiftDraft({ date: day.date, start, end, kind: laneKind(lane), lane, employeeId })
+        }}
         onEdit={(shift) => setShiftDraft({ id: shift.id, employeeId: shift.employeeId, date: shift.date, start: shift.start, end: shift.end, kind: shift.kind })}
         onRemove={removeShift}
         onProposal={() => setProposalOpen(true)}
@@ -221,98 +141,66 @@ export function DienstplanTab() {
           setProposalOpen(false)
         }}
       />
-      <PublishDialog
-        open={publishOpen}
-        week={week}
-        hints={hints}
-        onClose={() => setPublishOpen(false)}
-        onConfirm={() => {
-          commit({ type: "setPlanStatus", weekId, status: "veroeffentlicht" }, "Dienstplan als Demo veröffentlicht", { description: "Es wurde nichts an Mitarbeitende gesendet." })
-          setPublishOpen(false)
-        }}
-      />
     </div>
   )
 }
 
-function IssueList({
-  blockers,
-  hints,
-  onFix,
-  onPickDay,
-}: {
-  blockers: PlanIssue[]
-  hints: PlanIssue[]
-  onFix: (issue: PlanIssue) => void
-  onPickDay: (date: string) => void
-}) {
-  if (blockers.length === 0 && hints.length === 0) {
-    return (
-      <div className="callout green personal-issues" role="status">
-        <CircleCheck size={22} strokeWidth={1.8} aria-hidden="true" />
-        <div>
-          <strong>Keine offenen Punkte</strong>
-          <p>Besetzung, Verfügbarkeit und Regeln passen zusammen. Der Plan kann veröffentlicht werden.</p>
-        </div>
-      </div>
-    )
-  }
-  const group = (items: PlanIssue[], tone: "amber" | "blue", title: string, Icon: LucideIcon) =>
-    items.length > 0 ? (
-      <div className={`callout ${tone} personal-issues`}>
-        <Icon size={22} strokeWidth={1.8} aria-hidden="true" />
-        <div>
-          <strong>{title}</strong>
-          <ul className="personal-issue-list">
-            {items.map((issue) => {
-              const label = fixLabel(issue)
-              return (
-                <li key={issue.id}>
-                  <button type="button" className="personal-issue-text" onClick={() => onPickDay(issue.date)}>
-                    {issue.message}
-                  </button>
-                  {label ? (
-                    <JellyButton variant="soft" onClick={() => onFix(issue)}>
-                      {label}
-                    </JellyButton>
-                  ) : null}
-                </li>
-              )
-            })}
-          </ul>
-        </div>
-      </div>
-    ) : null
-  return (
-    <>
-      {group(blockers, "amber", blockers.length === 1 ? "1 offener Punkt vor dem Veröffentlichen" : `${blockers.length} offene Punkte vor dem Veröffentlichen`, TriangleAlert)}
-      {group(hints, "blue", hints.length === 1 ? "1 Hinweis" : `${hints.length} Hinweise`, Info)}
-    </>
-  )
+function countPhrase(count: number, singular: string, plural: string): string {
+  return `${count} ${count === 1 ? singular : plural}`
 }
 
 function DayButton({ day, selected, issues, onSelect }: { day: PlanDay; selected: boolean; issues: PlanIssue[]; onSelect: () => void }) {
   const Weather = weatherIcons[day.weather.symbol]
-  const hasGroup = day.bookings.some((booking) => booking.kind === "kita")
+  const birthdays = day.bookings.filter((booking) => booking.kind === "geburtstag").length
+  const kita = day.bookings.filter((booking) => booking.kind === "kita").length
   const blocked = issues.some((issue) => issue.severity === "blocker")
-  const label = `${formatWeekdayLong(day.date)}, ${formatShortDate(day.date)}`
+  const needsWork = issues.length > 0
+  const notes = [day.ferien ? "Ferien" : null, day.holiday ?? null, needsWork ? "Schichtplan fehlt oder muss angepasst werden" : "Schichtplan in Ordnung"].filter(Boolean)
+  const label = `${formatWeekdayLong(day.date)}, ${formatShortDate(day.date)}, ${day.weather.temperature} Grad, ${countPhrase(birthdays, "Geburtstag", "Geburtstage")}, ${countPhrase(kita, "Kita-Besuch", "Kita-Besuche")}`
   return (
-    <button type="button" className="personal-day" data-selected={selected} data-state={blocked ? "blocked" : issues.length > 0 ? "hint" : "ok"} aria-pressed={selected} aria-label={`${label}, ${day.bookings.length} Buchungen${blocked ? ", offener Punkt" : ""}`} onClick={onSelect}>
-      <span className="personal-day-name">{formatWeekdayShort(day.date)}</span>
-      <span className="personal-day-date">{formatShortDate(day.date)}</span>
+    <button type="button" className="personal-day" data-selected={selected} data-state={blocked ? "blocked" : issues.length > 0 ? "hint" : "ok"} aria-pressed={selected} aria-label={notes.length > 0 ? `${label}, ${notes.join(", ")}` : label} onClick={onSelect}>
+      <span className="personal-day-identity">
+        <span className="personal-day-name">{formatWeekdayShort(day.date)}</span>
+        <span className="personal-day-date">{formatShortDate(day.date)}</span>
+      </span>
       <span className="personal-day-weather">
-        <Weather size={16} strokeWidth={1.8} aria-hidden="true" />
-        {day.weather.temperature}°
+        <Weather strokeWidth={1.8} aria-hidden="true" />
+        <span className="personal-day-temp">{day.weather.temperature}°</span>
       </span>
-      <span className="personal-day-count">{day.bookings.length === 1 ? "1 Buchung" : `${day.bookings.length} Buchungen`}</span>
-      <span className="personal-day-marks">
-        {day.ferien ? <Luggage size={14} strokeWidth={1.8} aria-label="Ferien" role="img" /> : null}
-        {day.holiday ? <Flag size={14} strokeWidth={1.8} aria-label="Feiertag" role="img" /> : null}
-        {hasGroup ? <UsersRound size={14} strokeWidth={1.8} aria-label="Gruppenbuchung" role="img" /> : null}
+      <span className="personal-day-bookings">
+        <span className="personal-day-booking">
+          <Cake strokeWidth={1.8} aria-hidden="true" />
+          {birthdays}
+        </span>
+        <span className="personal-day-booking">
+          <School strokeWidth={1.8} aria-hidden="true" />
+          {kita}
+        </span>
       </span>
-      {blocked ? <span className="personal-day-flag" aria-hidden="true" /> : null}
+      {day.ferien || day.holiday ? (
+        <span className="personal-day-marks">
+          {day.ferien ? <Luggage strokeWidth={1.8} aria-hidden="true" /> : null}
+          {day.holiday ? <Flag strokeWidth={1.8} aria-hidden="true" /> : null}
+        </span>
+      ) : null}
     </button>
   )
+}
+
+function CountMark({ icon: Icon, count, label }: { icon: LucideIcon; count: number; label: string }) {
+  return (
+    <span className="personal-count" role="img" aria-label={label}>
+      <Icon size={16} strokeWidth={1.8} aria-hidden="true" />
+      <span aria-hidden="true">{count}</span>
+    </span>
+  )
+}
+
+function shiftSpan(bar: { start: number; end: number; shifts: Shift[] }): string {
+  const ordered = [...bar.shifts].sort((a, b) => a.start - b.start)
+  const broken = ordered.some((shift, index) => index > 0 && shift.start > ordered[index - 1]!.end)
+  if (!broken) return formatRange(bar.start, bar.end)
+  return ordered.map((shift) => formatRange(shift.start, shift.end)).join(", ")
 }
 
 function DayDetail({
@@ -325,7 +213,7 @@ function DayDetail({
 }: {
   day: PlanDay
   shifts: readonly Shift[]
-  onAdd: () => void
+  onAdd: (lane: ShiftLane) => void
   onEdit: (shift: Shift) => void
   onRemove: (shift: Shift) => void
   onProposal: () => void
@@ -333,166 +221,130 @@ function DayDetail({
   const { state } = usePersonal()
   const { rules } = state
   const key = dayKeyFor(day, rules)
-  const rule = rules.days[key]
   const special = specialOpeningOf(day, rules)
   const windows = useMemo(() => bookingWindows(day, shifts, rules), [day, shifts, rules])
-  const dayShifts = shiftsOn(shifts, day.date)
-  const minutes = dayShifts.reduce((sum, shift) => sum + shift.end - shift.start, 0)
-  const Weather = weatherIcons[day.weather.symbol]
+  const roster = useMemo(() => staffDay(day, shifts, state.employees, rules), [day, shifts, state.employees, rules])
   const lookup = new Map(state.employees.map((employee, index) => [employee.id, { employee, index }]))
-  const walkIns = walkInEstimate(day, key)
+  const hasService = roster.lead !== null || roster.staff.length > 0
+
+  function renderBar(bar: { employeeId: string; start: number; end: number; shifts: Shift[]; primary: Shift }) {
+    const entry = lookup.get(bar.employeeId)
+    const name = entry?.employee.name ?? "Unbekannt"
+    const fit = checkAvailability(state.availability[bar.employeeId], state.exceptions, bar.employeeId, day.date, bar.primary.start, bar.primary.end)
+    return (
+      <li key={bar.employeeId}>
+        <PersonAvatar name={name} index={entry?.index} />
+        <span className="personal-shift-text">
+          <strong>{name}</strong>
+          <small>{entry ? roleLabels[entry.employee.role] : ""}</small>
+        </span>
+        <span className="personal-shift-time">
+          <strong>{shiftSpan(bar)}</strong>
+          <small>{durationLabel(bar.end - bar.start)}</small>
+        </span>
+        <span className="personal-shift-tags">
+          {!fit.ok ? <small>beginnt {formatTime(bar.primary.start)}, {fit.reason}</small> : null}
+        </span>
+        <span className="personal-shift-actions">
+          <RowAction action="edit" rowName={name} onClick={() => onEdit(bar.primary)} />
+          <RowAction action="remove" rowName={name} onClick={() => onRemove(bar.primary)} />
+        </span>
+      </li>
+    )
+  }
 
   return (
-    <section className="personal-section personal-day-detail" aria-label={`${formatWeekdayLong(day.date)}, ${formatFullDate(day.date)}`}>
-      <div className="section-head">
-        <h2>
-          {formatWeekdayLong(day.date)}, {formatFullDate(day.date)}
-        </h2>
+    <Block
+      className="personal-day-block"
+      title="Schichtzuweisung"
+      columns={2}
+      actions={hasService ? undefined : <ActionButton action="propose" onClick={onProposal} />}
+    >
+      <div className="personal-day-status">
         <div className="personal-pills">
           {day.holiday ? <Pill tone="orange">{day.holiday}</Pill> : null}
           {day.ferien ? <Pill tone="blue">Ferien</Pill> : null}
           {special ? <Pill tone="amber">Sonderöffnung {formatTime(special.openAt)}</Pill> : null}
-          <Pill>{dayNames[key]}: {ruleSummary(rule)}</Pill>
+          {roster.proposal ? <Pill tone="blue">Vorschlag</Pill> : null}
         </div>
       </div>
-      <div className="personal-detail-grid">
-        <div className="personal-detail-main">
-          <h3 className="personal-subhead">Buchungen und Besetzung</h3>
-          {windows.length === 0 ? (
-            <div className="empty-state personal-empty">
-              <h3>Keine Buchungen an diesem Tag</h3>
-              <p>Es gilt die Grundbesetzung von {ruleSummary(rule)}.</p>
-            </div>
-          ) : (
-            <Accordion key={day.date} type="multiple" defaultValue={windows.filter((item) => item.short).map((item) => item.key)} className="personal-windows">
-              {windows.map((window) => (
-                <AccordionItem key={window.key} value={window.key} className="personal-window">
-                  <AccordionTrigger className="personal-window-trigger">
-                    <span className="personal-window-title">
-                      <strong>{formatRange(window.start, window.end)}</strong>
-                      <span>
-                        {[window.birthdays > 0 ? (window.birthdays === 1 ? "1 Geburtstag" : `${window.birthdays} Geburtstage`) : null, window.kita > 0 ? (window.kita === 1 ? "1 Gruppenbesuch" : `${window.kita} Gruppenbesuche`) : null].filter(Boolean).join(" · ")}
-                        {" · "}
-                        {window.persons} Personen
-                      </span>
-                    </span>
-                    <Pill tone={window.short ? "amber" : "green"}>
-                      {window.short ? `Personal fehlt · ${window.overlapStaff} von ${window.required}` : `${window.overlapStaff} im Dienst · Soll ${window.required}`}
-                    </Pill>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <ul className="personal-booking-list">
-                      {window.bookings.map((booking) => {
-                        const Icon = booking.kind === "geburtstag" ? Cake : School
-                        return (
-                          <li key={booking.id}>
-                            <Icon size={16} strokeWidth={1.8} aria-hidden="true" />
-                            <span>
-                              <strong>{booking.name}</strong>
-                              <small>{booking.kind === "geburtstag" ? "Geburtstag" : "Kita- oder Schulbesuch"}</small>
-                            </span>
-                            <span>
-                              {booking.children} Kinder · {booking.adults} Erwachsene
-                            </span>
-                          </li>
-                        )
-                      })}
-                    </ul>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          )}
+      <div>
+        <h3 className="personal-subhead">Buchungen</h3>
+        {windows.length === 0 ? (
+          <p className="fine-print">Keine Buchungen an diesem Tag.</p>
+        ) : (
+          <ul className="personal-booking-rows">
+            {windows.map((window) => (
+              <li key={window.key} className="personal-booking-row">
+                <strong>{formatRange(window.start, window.end)}</strong>
+                <span className="personal-counts">
+                  <CountMark icon={Cake} count={window.birthdays} label={countPhrase(window.birthdays, "Geburtstag", "Geburtstage")} />
+                  <CountMark icon={School} count={window.kita} label={countPhrase(window.kita, "Kita-Buchung", "Kita-Buchungen")} />
+                  <CountMark icon={Users} count={window.persons} label={countPhrase(window.persons, "Person", "Personen")} />
+                </span>
+                <span className="personal-counts">
+                  <CountMark icon={Cake} count={window.birthdays} label={countPhrase(window.birthdays, "Geburtstag", "Geburtstage")} />
+                  <CountMark icon={Baby} count={window.children} label={countPhrase(window.children, "Kind", "Kinder")} />
+                  <CountMark icon={User} count={window.adults} label={countPhrase(window.adults, "Erwachsener", "Erwachsene")} />
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      <div>
+        <h3 className="personal-subhead">Schichten</h3>
+        <div className="personal-role-windows">
+          <RoleWindow title="Schichtleiter" hint="Pflicht" lane="schichtleiter" empty="Schichtleitung fehlt" bars={roster.lead ? [roster.lead] : []} onAdd={onAdd} renderBar={renderBar} />
+          <RoleWindow title="Mitarbeiter" hint="mindestens eine Person" lane="mitarbeiter" empty="Mindestens eine Person" bars={roster.staff} onAdd={onAdd} renderBar={renderBar} />
+          <RoleWindow title="Putzkraft" hint="optional" lane="putzkraft" bars={roster.cleaning} onAdd={onAdd} renderBar={renderBar} />
         </div>
+        {roster.people > 0 ? (
+          <p className="fine-print">{countPhrase(roster.people, "Person", "Personen")} · {hoursLabel(roster.minutes)} an diesem Tag</p>
+        ) : null}
+      </div>
+    </Block>
+  )
+}
 
-        <div className="personal-detail-side">
-          <div className="personal-side-head">
-            <h3 className="personal-subhead">Schichten</h3>
-            <JellyButton variant="soft" onClick={onAdd}>
-              <Plus size={16} strokeWidth={1.8} aria-hidden="true" />
-              Schicht hinzufügen
-            </JellyButton>
-          </div>
-          {dayShifts.length === 0 ? (
-            <div className="empty-state personal-empty">
-              <h3>Noch keine Schichten</h3>
-              <p>Trage eine Schicht ein oder lass dir einen Planvorschlag berechnen.</p>
-              <JellyButton variant="soft" onClick={onProposal}>
-                <Sparkles size={16} strokeWidth={1.8} aria-hidden="true" />
-                Planvorschlag ansehen
-              </JellyButton>
-            </div>
-          ) : (
-            <>
-              <ul className="personal-shift-list">
-                {dayShifts.map((shift) => {
-                  const entry = lookup.get(shift.employeeId)
-                  const name = entry?.employee.name ?? "Unbekannt"
-                  const fit = checkAvailability(state.availability[shift.employeeId], state.exceptions, shift.employeeId, shift.date, shift.start, shift.end)
-                  return (
-                    <li key={shift.id}>
-                      <PersonAvatar name={name} index={entry?.index} />
-                      <span className="personal-shift-text">
-                        <strong>{name}</strong>
-                        <small>
-                          {entry ? roleLabels[entry.employee.role] : ""}
-                          {shift.kind === "cleaning" ? " · Reinigung" : ""}
-                        </small>
-                      </span>
-                      <span className="personal-shift-time">
-                        <strong>{formatRange(shift.start, shift.end)}</strong>
-                        <small>{durationLabel(shift.end - shift.start)}</small>
-                      </span>
-                      <span className="personal-shift-tags">
-                        {shift.origin === "vorschlag" ? <Pill tone="blue">Vorschlag</Pill> : null}
-                        {shift.origin === "vorlage" ? <Pill>Vorlage</Pill> : null}
-                        {shift.kind === "cleaning" ? <Pill tone="blue">Reinigung</Pill> : null}
-                        {!fit.ok ? <Pill tone="amber">Verfügbarkeit</Pill> : null}
-                      </span>
-                      <span className="personal-shift-actions">
-                        <JellyButton variant="icon" className="personal-icon-button" aria-label={`Schicht von ${name} bearbeiten`} onClick={() => onEdit(shift)}>
-                          <Pencil size={16} strokeWidth={1.8} aria-hidden="true" />
-                        </JellyButton>
-                        <JellyButton variant="icon" className="personal-icon-button" aria-label={`Schicht von ${name} entfernen`} onClick={() => onRemove(shift)}>
-                          <Trash2 size={16} strokeWidth={1.8} aria-hidden="true" />
-                        </JellyButton>
-                      </span>
-                    </li>
-                  )
-                })}
-              </ul>
-              <p className="fine-print">
-                {dayShifts.length} Schichten · {hoursLabel(minutes)} an diesem Tag
-              </p>
-            </>
-          )}
+function RoleWindow({
+  title,
+  hint,
+  lane,
+  empty,
+  bars,
+  onAdd,
+  renderBar,
+}: {
+  title: string
+  hint: string
+  lane: ShiftLane
+  empty?: string
+  bars: { employeeId: string; start: number; end: number; shifts: Shift[]; primary: Shift }[]
+  onAdd: (lane: ShiftLane) => void
+  renderBar: (bar: { employeeId: string; start: number; end: number; shifts: Shift[]; primary: Shift }) => ReactNode
+}) {
+  const missing = bars.length === 0 && Boolean(empty)
+  return (
+    <section className="personal-role-window" aria-label={title}>
+      <header className="personal-role-head">
+        <div className="personal-role-title">
+          <TooltipProvider delayDuration={400}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button type="button" className="personal-role-info" aria-label={hint}>
+                  <Info size={16} strokeWidth={1.8} aria-hidden="true" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" align="start" sideOffset={8}>{hint}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <h3 className="personal-subhead">{title}</h3>
+          {missing ? <CircleAlert className="personal-role-missing" size={16} strokeWidth={1.8} role="img" aria-label={empty} /> : null}
         </div>
-        <div className="personal-forecast">
-          <h3 className="personal-subhead">Wetter und Erwartung</h3>
-          <dl>
-            <div>
-              <dt>Wetter</dt>
-              <dd>
-                <Weather size={16} strokeWidth={1.8} aria-hidden="true" />
-                {day.weather.temperature}° · {weatherLabels[day.weather.symbol]}
-              </dd>
-            </div>
-            <div>
-              <dt>Regenwahrscheinlichkeit</dt>
-              <dd>{day.weather.rainPercent} %</dd>
-            </div>
-            <div>
-              <dt>Gebuchte Personen</dt>
-              <dd>{dayPersons(day)}</dd>
-            </div>
-            <div>
-              <dt>Spitze erwarteter Gäste</dt>
-              <dd>{peakGuests(day, key)}</dd>
-            </div>
-          </dl>
-          <p className="fine-print">Spontanbesuche sind mit {walkIns} Personen angenommen (Demo-Annahme nach Wochentag und Regen, keine Prognose).</p>
-        </div>
-      </div>
+        <ActionButton action="add" variant="icon" label={`${title} hinzufügen`} onClick={() => onAdd(lane)} />
+      </header>
+      {bars.length > 0 ? <ul className="personal-shift-list">{bars.map(renderBar)}</ul> : null}
     </section>
   )
 }

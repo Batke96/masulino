@@ -1,8 +1,10 @@
+import { publicSpan } from "../booking/slots";
 import { weekdayIndex } from "./time";
 import type { DayKey, DayRule, LeadRole, LoadCondition, PlanDay, Rules, WeekdayKey } from "./types";
 
-export const OPEN_FROM = 10 * 60;
-export const OPEN_TO = 19 * 60;
+export function openingOf(date: string): { start: number; end: number } | null {
+  return publicSpan(date);
+}
 
 const weekdayByIndex: WeekdayKey[] = ["so", "mo", "di", "mi", "do", "fr", "sa"];
 
@@ -103,7 +105,8 @@ export function bookedGuestsAt(day: PlanDay, minute: number): number {
 }
 
 export function expectedGuestsAt(day: PlanDay, key: DayKey, minute: number): number {
-  const regular = minute >= OPEN_FROM && minute < OPEN_TO;
+  const opening = openingOf(day.date);
+  const regular = opening !== null && minute >= opening.start && minute < opening.end;
   return bookedGuestsAt(day, minute) + (regular ? walkInEstimate(day, key) : 0);
 }
 

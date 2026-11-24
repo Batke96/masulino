@@ -22,6 +22,8 @@ export function DataTable<Row>({
   empty,
   emptyFiltered = "Keine Zeile passt zur Suche.",
   initialSort,
+  query: controlledQuery,
+  onQueryChange,
 }: {
   rows: Row[];
   columns: DataColumn<Row>[];
@@ -31,9 +33,16 @@ export function DataTable<Row>({
   empty: ReactNode;
   emptyFiltered?: ReactNode;
   initialSort?: { id: string; direction: SortDirection };
+  query?: string;
+  onQueryChange?: (query: string) => void;
 }) {
   const [sort, setSort] = useState<{ id: string; direction: SortDirection } | null>(initialSort ?? null);
-  const [query, setQuery] = useState("");
+  const [localQuery, setLocalQuery] = useState("");
+  const query = onQueryChange ? (controlledQuery ?? "") : localQuery;
+  function setQuery(value: string) {
+    if (onQueryChange) onQueryChange(value);
+    else setLocalQuery(value);
+  }
   const filtered = useMemo(() => {
     const matched = rows.filter((row) => matchesAnyColumn(query, columns.map((column) => column.text(row))));
     if (!sort) return matched;
@@ -55,15 +64,17 @@ export function DataTable<Row>({
 
   return (
     <div className="data-table-block">
-      <label className="table-search">
-        <span className="sr-only">In der Liste suchen</span>
-        <input
-          type="search"
-          value={query}
-          placeholder="Suchen"
-          onChange={(event) => setQuery(event.target.value)}
-        />
-      </label>
+      {onQueryChange ? null : (
+        <label className="table-search">
+          <span className="sr-only">In der Liste suchen</span>
+          <input
+            type="search"
+            value={query}
+            placeholder="Suchen"
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </label>
+      )}
       <div className="data-table-wrap">
       <table className="data-table">
         <thead>

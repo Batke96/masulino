@@ -126,6 +126,16 @@ export type {
   OccupancyInterval,
 } from "./allocation";
 export {
+  birthdaySlotLabels,
+  birthdayWindows,
+  groupWindows,
+  isPublicHoliday,
+  isSchoolVacation,
+  publicOpening,
+  publicSpan,
+} from "./schedule";
+export type { ClockWindow, PublicOpening } from "./schedule";
+export {
   isCalendarDate,
   isMondayToFriday,
   isReservationEmail,

@@ -1,27 +1,30 @@
 "use client"
 
-import type { ReactNode } from "react"
-import { CalendarCheck, CalendarDays, Info, Settings2, Timer, Users, UsersRound } from "lucide-react"
+import { useLayoutEffect, useState } from "react"
+import { createPortal } from "react-dom"
+
+import { ActionButton } from "@/components/ui/row-action"
+import { GlideSelect } from "@/components/ui/glide-select"
+import { formatWeekRange, planningWeekTag } from "@/lib/personal"
 
 import "./personal.css"
+import { AvailabilityDialog } from "./availability-dialog"
 import { DienstplanTab } from "./dienstplan-tab"
 import { MitarbeiterTab } from "./mitarbeiter-tab"
 import { PersonalProvider, usePersonal, type PersonalTab } from "./personal-context"
-import { Pill } from "./personal-ui"
 import { RegelnTab } from "./regeln-tab"
-import { SegmentNav } from "./segment-nav"
-import { VerfuegbarkeitTab } from "./verfuegbarkeit-tab"
 import { ZeiterfassungTab } from "./zeiterfassung-tab"
 
-const icon = { size: 16, strokeWidth: 1.8, "aria-hidden": true } as const
-
-const tabs: { value: PersonalTab; label: string; icon: ReactNode }[] = [
-  { value: "dienstplan", label: "Dienstplan", icon: <CalendarDays {...icon} /> },
-  { value: "mitarbeiter", label: "Mitarbeiter", icon: <UsersRound {...icon} /> },
-  { value: "verfuegbarkeit", label: "Verfügbarkeit", icon: <CalendarCheck {...icon} /> },
-  { value: "zeiterfassung", label: "Zeiterfassung", icon: <Timer {...icon} /> },
-  { value: "regeln", label: "Regeln", icon: <Settings2 {...icon} /> },
+const areas: { value: PersonalTab; label: string }[] = [
+  { value: "dienstplan", label: "Dienstplan" },
+  { value: "mitarbeiter", label: "Mitarbeiter" },
+  { value: "zeiterfassung", label: "Zeiterfassung" },
+  { value: "regeln", label: "Regeln" },
 ]
+
+function isArea(value: string): value is PersonalTab {
+  return areas.some((item) => item.value === value)
+}
 
 export function PersonalWorkspace() {
   return (
@@ -32,32 +35,62 @@ export function PersonalWorkspace() {
 }
 
 function PersonalShell() {
-  const { tab, setTab, state, weekId } = usePersonal()
-  const published = state.plans[weekId]?.status === "veroeffentlicht"
+  const { tab, setTab, weeks, weekId, setWeekId, startNewEmployee } = usePersonal()
+  const [slot, setSlot] = useState<HTMLElement | null>(null)
+  useLayoutEffect(() => {
+    setSlot(document.getElementById("personal-area-slot"))
+  }, [])
+  const label = areas.find((item) => item.value === tab)?.label ?? "Dienstplan"
+  const areaSelect = (
+    <GlideSelect
+      ariaLabel="Bereich im Personalbereich"
+      variant="button"
+      align="right"
+      showTags={false}
+      size="md"
+      value={tab}
+      onChange={(next) => {
+        if (isArea(next)) setTab(next)
+      }}
+      options={areas.map((item) => ({ value: item.value, label: item.label }))}
+    />
+  )
   return (
     <div className="personal">
-      <header className="personal-header">
-        <span className="icon-tile orange" aria-hidden="true">
-          <Users size={23} strokeWidth={1.8} />
-        </span>
-        <div>
-          <h2>Personal</h2>
-          <p>Masulino Wiesbaden · Interaktive Demo</p>
-        </div>
-        <Pill tone={published ? "green" : "amber"}>{published ? "Veröffentlicht (Demo)" : "Entwurf"}</Pill>
-      </header>
-      <SegmentNav label="Bereich im Personalbereich" items={tabs} value={tab} onChange={setTab} className="personal-nav" />
+      {slot ? createPortal(areaSelect, slot) : null}
+      <div className="personal-head">
+        <h2 className="personal-title">{label}</h2>
+        {tab === "dienstplan" ? (
+          <div className="personal-week">
+            <GlideSelect
+              ariaLabel="Woche"
+              variant="button"
+              align="right"
+              size="md"
+              value={weekId}
+              onChange={setWeekId}
+              options={weeks.map((item, index) => {
+                const tag = planningWeekTag(index)
+                const range = formatWeekRange(item.start, item.end)
+                return tag ? { value: item.id, label: range, tag } : { value: item.id, label: range }
+              })}
+            />
+          </div>
+        ) : null}
+        {tab === "mitarbeiter" ? (
+          <div className="personal-head-action">
+            <ActionButton action="add" variant="icon" label="Mitarbeiter hinzufügen" onClick={startNewEmployee} />
+          </div>
+        ) : null}
+      </div>
       <div className="personal-panel" key={tab}>
         {tab === "dienstplan" ? <DienstplanTab /> : null}
         {tab === "mitarbeiter" ? <MitarbeiterTab /> : null}
-        {tab === "verfuegbarkeit" ? <VerfuegbarkeitTab /> : null}
         {tab === "zeiterfassung" ? <ZeiterfassungTab /> : null}
         {tab === "regeln" ? <RegelnTab /> : null}
       </div>
-      <p className="info-inline personal-demo-note">
-        <Info size={17} strokeWidth={1.8} aria-hidden="true" />
-        Interaktive Demo mit Beispieldaten. Pläne, Zeiten und Korrekturen bleiben in diesem Browser; es wird nichts gesendet, gespeichert oder abgerechnet.
-      </p>
+      <AvailabilityDialog />
     </div>
   )
 }
+

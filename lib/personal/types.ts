@@ -221,6 +221,7 @@ export type PlanIssue = {
     | "leitung"
     | "reinigung"
     | "sonderoeffnung"
+    | "vorlauf"
     | "reinigungsdienst"
     | "ueberschneidung"
     | "verfuegbarkeit"

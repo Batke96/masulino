@@ -13,7 +13,7 @@ import {
   type WebsiteKita,
 } from "@masulino/contracts";
 import { insertAudit, requirePermission, type ActorContext } from "@masulino/core";
-import { pgCode, rows, withTenant, type Tx } from "@masulino/database";
+import { pgCode, rows, withPublic, withTenant, type Tx } from "@masulino/database";
 import { sql } from "drizzle-orm";
 import { DateTime } from "luxon";
 import { createStaffBooking } from "./booking";
@@ -118,6 +118,15 @@ async function readRow(tx: Tx, locationId: string, requestId: string): Promise<R
     `,
   );
   return found[0] ?? null;
+}
+
+export async function resolveIntakeLocation(): Promise<{ tenantId: string; locationId: string } | null> {
+  const found = await withPublic((tx) =>
+    rows<{ tenant_id: string; location_id: string }>(tx, sql`select * from app.lookup_intake_location()`),
+  );
+  const row = found[0];
+  if (!row) return null;
+  return { tenantId: row.tenant_id, locationId: row.location_id };
 }
 
 export async function storeWebsiteRequest(args: {

@@ -5,7 +5,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { PanelLeftIcon } from "lucide-react"
 import { Slot } from "radix-ui"
 
-import { useIsCompactSidebar, useIsMobile } from "@/hooks/use-mobile"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -32,15 +32,13 @@ const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "3rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
-type SidebarMode = "expanded" | "icon" | "hidden"
+type SidebarMode = "expanded" | "icon"
 
 type SidebarContextProps = {
   state: "expanded" | "collapsed"
   open: boolean
   setOpen: (open: boolean) => void
   mode: SidebarMode
-  hideSidebar: () => void
-  showSidebar: () => void
   openMobile: boolean
   setOpenMobile: (open: boolean) => void
   isMobile: boolean
@@ -59,7 +57,7 @@ function useSidebar() {
 }
 
 function SidebarProvider({
-  defaultOpen = true,
+  defaultOpen = false,
   open: openProp,
   onOpenChange: setOpenProp,
   className,
@@ -72,43 +70,32 @@ function SidebarProvider({
   onOpenChange?: (open: boolean) => void
 }) {
   const isMobile = useIsMobile()
-  const isCompact = useIsCompactSidebar()
   const [openMobile, setOpenMobile] = React.useState(false)
-  const [hiddenState, setHiddenState] = React.useState(!defaultOpen)
-  const hidden = openProp === undefined ? hiddenState : !openProp
-  const hiddenRef = React.useRef(hidden)
-  hiddenRef.current = hidden
-  const focusAfter = React.useRef<"sidebar-show" | "sidebar-hide" | null>(null)
+  const [choice, setChoice] = React.useState<SidebarMode>(defaultOpen ? "expanded" : "icon")
 
-  const applyHidden = React.useCallback(
-    (nextHidden: boolean, focus: "sidebar-show" | "sidebar-hide" | null) => {
-      if (focus) focusAfter.current = focus
-      if (setOpenProp) setOpenProp(!nextHidden)
-      if (openProp === undefined) setHiddenState(nextHidden)
-      document.cookie = `${SIDEBAR_COOKIE_NAME}=${!nextHidden}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
-    },
-    [openProp, setOpenProp]
-  )
+  // The rail starts reduced. A click keeps that choice.
+  const mode: SidebarMode = openProp !== undefined ? (openProp ? "expanded" : "icon") : choice
+  const open = mode === "expanded"
+  const openRef = React.useRef(open)
+  openRef.current = open
 
   const setOpen = React.useCallback(
     (value: boolean | ((value: boolean) => boolean)) => {
-      const openState = typeof value === "function" ? value(!hiddenRef.current) : value
-      applyHidden(!openState, null)
+      const next = typeof value === "function" ? value(openRef.current) : value
+      if (setOpenProp) setOpenProp(next)
+      if (openProp === undefined) setChoice(next ? "expanded" : "icon")
+      document.cookie = `${SIDEBAR_COOKIE_NAME}=${next}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
     },
-    [applyHidden]
+    [openProp, setOpenProp]
   )
-
-  const hideSidebar = React.useCallback(() => applyHidden(true, "sidebar-show"), [applyHidden])
-  const showSidebar = React.useCallback(() => applyHidden(false, "sidebar-hide"), [applyHidden])
 
   const toggleSidebar = React.useCallback(() => {
     if (isMobile) {
       setOpenMobile((current) => !current)
       return
     }
-    if (hiddenRef.current) showSidebar()
-    else hideSidebar()
-  }, [hideSidebar, isMobile, showSidebar])
+    setOpen((current) => !current)
+  }, [isMobile, setOpen])
 
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -125,21 +112,7 @@ function SidebarProvider({
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [toggleSidebar])
 
-  React.useEffect(() => {
-    const target = focusAfter.current
-    if (!target) return
-    const timer = window.setTimeout(() => {
-      document.getElementById(target)?.focus()
-      if (focusAfter.current === target) focusAfter.current = null
-    }, 0)
-    return () => window.clearTimeout(timer)
-  }, [hidden])
-
-  // Icon and hidden are both collapsed for the existing width styles.
-  // Compact widths choose the icon rail unless the user hid the sidebar.
-  const mode: SidebarMode = hidden ? "hidden" : isCompact ? "icon" : "expanded"
-  const state = mode === "expanded" ? "expanded" : "collapsed"
-  const open = !hidden
+  const state = open ? "expanded" : "collapsed"
 
   const contextValue = React.useMemo<SidebarContextProps>(
     () => ({
@@ -147,14 +120,12 @@ function SidebarProvider({
       open,
       setOpen,
       mode,
-      hideSidebar,
-      showSidebar,
       isMobile,
       openMobile,
       setOpenMobile,
       toggleSidebar,
     }),
-    [state, open, setOpen, mode, hideSidebar, showSidebar, isMobile, openMobile, setOpenMobile, toggleSidebar]
+    [state, open, setOpen, mode, isMobile, openMobile, setOpenMobile, toggleSidebar]
   )
 
   return (
@@ -240,7 +211,7 @@ function Sidebar({
     <div
       className="group peer hidden text-sidebar-foreground md:block"
       data-state={state}
-      data-collapsible={mode === "hidden" ? "offcanvas" : mode === "icon" ? "icon" : ""}
+      data-collapsible={mode === "icon" ? "icon" : ""}
       data-variant={variant}
       data-side={side}
       data-slot="sidebar"
@@ -271,8 +242,6 @@ function Sidebar({
           className
         )}
         {...props}
-        inert={mode === "hidden"}
-        aria-hidden={mode === "hidden" || undefined}
       >
         <div
           data-sidebar="sidebar"

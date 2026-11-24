@@ -50,6 +50,19 @@ export function addDays(iso: string, days: number): string {
   return date.toISOString().slice(0, 10);
 }
 
+export function localIsoDate(now = new Date()): string {
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+export function mondayOf(iso: string): string {
+  const day = weekdayIndex(iso);
+  const diff = day === 0 ? -6 : 1 - day;
+  return addDays(iso, diff);
+}
+
 export function weekdayIndex(iso: string): number {
   const [year, month, day] = iso.split("-").map(Number);
   return new Date(Date.UTC(year!, month! - 1, day!)).getUTCDay();

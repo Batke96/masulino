@@ -1,6 +1,9 @@
+import { birthdayPackages } from "../../packages/contracts/src/reservations";
+import { toMinute, windowsFor } from "../booking/slots";
 import { makeAvailability } from "./availability";
 import { proposeWeek } from "./plan";
 import { defaultRules } from "./rules";
+import { addDays, mondayOf } from "./time";
 import type {
   Employee,
   PersonalState,
@@ -55,6 +58,29 @@ function booking(kind: PlanBooking["kind"], name: string, start: number, end: nu
 const birthday = (name: string, start: number, end: number, children: number, adults: number) =>
   booking("geburtstag", `Geburtstag · ${name}`, start, end, children, adults);
 
+const partyMinutes = birthdayPackages[0].durationMinutes;
+if (birthdayPackages.some((item) => item.durationMinutes !== partyMinutes)) {
+  throw new Error("Comfort und Deluxe haben unterschiedliche Dauern.");
+}
+
+function party(date: string, slot: number, name: string, children: number, adults: number): PlanBooking {
+  const window = windowsFor(date, "birthday")[slot];
+  const start = window ? toMinute(window.start) : null;
+  const windowEnd = window ? toMinute(window.end) : null;
+  if (start === null || windowEnd === null || start + partyMinutes > windowEnd) {
+    throw new Error(`Geburtstag ${name} passt am ${date} in kein Reservierungsfenster.`);
+  }
+  return birthday(name, start, start + partyMinutes, children, adults);
+}
+
+function kitaVisit(date: string, name: string, children: number, adults: number): PlanBooking {
+  const window = windowsFor(date, "group")[0];
+  const start = window ? toMinute(window.start) : null;
+  const end = window ? toMinute(window.end) : null;
+  if (start === null || end === null) throw new Error(`Kita-Besuch ${name} hat am ${date} kein Fenster.`);
+  return booking("kita", name, start, end, children, adults);
+}
+
 function day(
   date: string,
   temperature: number,
@@ -66,11 +92,6 @@ function day(
   return { date, weather: { temperature, rainPercent, symbol }, bookings, ...extra };
 }
 
-const MORNING: [number, number] = [h(10), h(13, 30)];
-const MIDDAY: [number, number] = [h(11), h(14, 30)];
-const AFTERNOON: [number, number] = [h(14), h(17, 30)];
-const LATE_AFTERNOON: [number, number] = [h(15, 30), h(19)];
-
 export function buildWeeks(): PlanWeek[] {
   bookingCounter = 0;
   const november: PlanWeek = {
@@ -78,28 +99,28 @@ export function buildWeeks(): PlanWeek[] {
     start: "2026-11-02",
     end: "2026-11-08",
     days: [
-      day("2026-11-02", 13, 20, "wolken", [birthday("Familie Keller", ...AFTERNOON, 9, 4)]),
+      day("2026-11-02", 13, 20, "wolken", [party("2026-11-02", 0, "Familie Keller", 9, 4)]),
       day("2026-11-03", 12, 10, "sonne", []),
       day("2026-11-04", 11, 75, "regen", [
-        birthday("Familie Braun", ...AFTERNOON, 11, 5),
-        birthday("Familie Richter", ...LATE_AFTERNOON, 10, 4),
+        party("2026-11-04", 0, "Familie Braun", 11, 5),
+        party("2026-11-04", 0, "Familie Richter", 10, 4),
       ]),
-      day("2026-11-05", 11, 45, "wolken", [birthday("Familie Sommer", h(15), h(18, 30), 11, 5)]),
-      day("2026-11-06", 10, 85, "schauer", [booking("kita", "Kita Sonnenschein", h(9), h(12, 30), 52, 14)]),
+      day("2026-11-05", 11, 45, "wolken", [party("2026-11-05", 0, "Familie Sommer", 11, 5)]),
+      day("2026-11-06", 10, 85, "schauer", [kitaVisit("2026-11-06", "Kita Sonnenschein", 52, 14)]),
       day("2026-11-07", 12, 80, "schauer", [
-        birthday("Familie Weber", ...MORNING, 9, 5),
-        birthday("Familie Yilmaz", ...MORNING, 9, 5),
-        birthday("Familie Fischer", ...MIDDAY, 11, 6),
-        birthday("Familie Schmitt", ...LATE_AFTERNOON, 10, 5),
-        birthday("Familie Hoffmann", ...LATE_AFTERNOON, 10, 5),
-        birthday("Familie Wagner", ...LATE_AFTERNOON, 9, 6),
+        party("2026-11-07", 0, "Familie Weber", 9, 5),
+        party("2026-11-07", 0, "Familie Yilmaz", 9, 5),
+        party("2026-11-07", 1, "Familie Fischer", 11, 6),
+        party("2026-11-07", 2, "Familie Schmitt", 10, 5),
+        party("2026-11-07", 2, "Familie Hoffmann", 10, 5),
+        party("2026-11-07", 2, "Familie Wagner", 9, 6),
       ]),
       day("2026-11-08", 13, 35, "teilweise", [
-        birthday("Familie Becker", ...MORNING, 10, 5),
-        birthday("Familie Koch", ...MORNING, 10, 5),
-        birthday("Familie Bauer", ...MIDDAY, 9, 5),
-        birthday("Familie Klein", ...LATE_AFTERNOON, 11, 6),
-        birthday("Familie Wolf", ...LATE_AFTERNOON, 11, 6),
+        party("2026-11-08", 0, "Familie Becker", 10, 5),
+        party("2026-11-08", 0, "Familie Koch", 10, 5),
+        party("2026-11-08", 1, "Familie Bauer", 9, 5),
+        party("2026-11-08", 2, "Familie Klein", 11, 6),
+        party("2026-11-08", 2, "Familie Wolf", 11, 6),
       ]),
     ],
   };
@@ -108,37 +129,37 @@ export function buildWeeks(): PlanWeek[] {
     start: "2026-12-21",
     end: "2026-12-27",
     days: [
-      day("2026-12-21", 4, 30, "wolken", [birthday("Familie Lang", ...AFTERNOON, 8, 4)]),
+      day("2026-12-21", 4, 30, "wolken", [party("2026-12-21", 0, "Familie Lang", 8, 4)]),
       day("2026-12-22", 3, 60, "schauer", [
-        birthday("Familie Vogel", ...AFTERNOON, 10, 4),
-        birthday("Familie Roth", ...LATE_AFTERNOON, 9, 5),
+        party("2026-12-22", 0, "Familie Vogel", 10, 4),
+        party("2026-12-22", 0, "Familie Roth", 9, 5),
       ]),
       day("2026-12-23", 2, 70, "regen", [
-        birthday("Familie Krüger", ...MORNING, 9, 5),
-        birthday("Familie Berger", ...AFTERNOON, 10, 5),
-        birthday("Familie Frank", ...LATE_AFTERNOON, 9, 4),
+        party("2026-12-23", 0, "Familie Krüger", 9, 5),
+        party("2026-12-23", 0, "Familie Berger", 10, 5),
+        party("2026-12-23", 0, "Familie Frank", 9, 4),
       ], { ferien: true }),
-      day("2026-12-24", 1, 20, "sonne", [birthday("Familie Simon", ...MORNING, 8, 4)], { ferien: true }),
+      day("2026-12-24", 1, 20, "sonne", [party("2026-12-24", 0, "Familie Simon", 8, 4)], { ferien: true }),
       day("2026-12-25", 0, 10, "sonne", [
-        birthday("Familie Arnold", ...MORNING, 10, 5),
-        birthday("Familie Möller", ...MIDDAY, 9, 5),
-        birthday("Familie Busch", ...AFTERNOON, 10, 5),
-        birthday("Familie Graf", ...LATE_AFTERNOON, 9, 4),
+        party("2026-12-25", 0, "Familie Arnold", 10, 5),
+        party("2026-12-25", 1, "Familie Möller", 9, 5),
+        party("2026-12-25", 2, "Familie Busch", 10, 5),
+        party("2026-12-25", 2, "Familie Graf", 9, 4),
       ], { holiday: "1. Weihnachtstag", ferien: true }),
       day("2026-12-26", 2, 50, "wolken", [
-        birthday("Familie Heinz", ...MORNING, 10, 5),
-        birthday("Familie Albrecht", ...MORNING, 9, 5),
-        birthday("Familie Lorenz", ...MIDDAY, 11, 5),
-        birthday("Familie Franke", ...AFTERNOON, 9, 5),
-        birthday("Familie Seidel", ...LATE_AFTERNOON, 10, 5),
-        birthday("Familie Ziegler", ...LATE_AFTERNOON, 10, 5),
+        party("2026-12-26", 0, "Familie Heinz", 10, 5),
+        party("2026-12-26", 0, "Familie Albrecht", 9, 5),
+        party("2026-12-26", 1, "Familie Lorenz", 11, 5),
+        party("2026-12-26", 2, "Familie Franke", 9, 5),
+        party("2026-12-26", 2, "Familie Seidel", 10, 5),
+        party("2026-12-26", 2, "Familie Ziegler", 10, 5),
       ], { holiday: "2. Weihnachtstag", ferien: true }),
       day("2026-12-27", 3, 65, "regen", [
-        birthday("Familie Pohl", ...MORNING, 10, 5),
-        birthday("Familie Engel", ...MIDDAY, 9, 5),
-        birthday("Familie Barth", ...AFTERNOON, 10, 5),
-        birthday("Familie Voigt", ...LATE_AFTERNOON, 10, 5),
-        birthday("Familie Kraft", ...LATE_AFTERNOON, 9, 5),
+        party("2026-12-27", 0, "Familie Pohl", 10, 5),
+        party("2026-12-27", 1, "Familie Engel", 9, 5),
+        party("2026-12-27", 2, "Familie Barth", 10, 5),
+        party("2026-12-27", 2, "Familie Voigt", 10, 5),
+        party("2026-12-27", 2, "Familie Kraft", 9, 5),
       ], { ferien: true }),
     ],
   };
@@ -146,6 +167,38 @@ export function buildWeeks(): PlanWeek[] {
 }
 
 export const planWeeks: PlanWeek[] = buildWeeks();
+
+export const PLANNING_WEEK_COUNT = 6;
+
+const quietWeather: PlanDay["weather"] = { temperature: 6, rainPercent: 30, symbol: "wolken" };
+
+function blankWeek(start: string): PlanWeek {
+  return {
+    id: start,
+    start,
+    end: addDays(start, 6),
+    days: Array.from({ length: 7 }, (_, index) => ({
+      date: addDays(start, index),
+      weather: quietWeather,
+      bookings: [],
+    })),
+  };
+}
+
+export function planningWeekTag(offset: number): string | undefined {
+  if (offset === 0) return "Diese Woche";
+  if (offset === 1) return "Nächste Woche";
+  return undefined;
+}
+
+export function planningWeeks(anchor: string, count = PLANNING_WEEK_COUNT): PlanWeek[] {
+  const monday = mondayOf(anchor);
+  const scripted = new Map(planWeeks.map((week) => [week.id, week]));
+  return Array.from({ length: count }, (_, index) => {
+    const start = addDays(monday, index * 7);
+    return scripted.get(start) ?? blankWeek(start);
+  });
+}
 
 export const DEMO_DATE = "2026-11-07";
 export const DEMO_CLOCK_START = h(16, 30);
