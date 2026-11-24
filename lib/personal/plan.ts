@@ -1,10 +1,9 @@
 import { checkAvailability } from "./availability";
 import {
-  OPEN_FROM,
-  OPEN_TO,
   dayKeyFor,
   expectedGuestsAt,
   leadRoleRank,
+  openingOf,
   requiredHeadcount,
   roleRank,
   weekdayKeyOf,
@@ -43,11 +42,31 @@ export type SpecialOpening = {
 
 export function specialOpeningOf(day: PlanDay, rules: Pick<Rules, "autoSpecialOpenings" | "specialOpeningLead">): SpecialOpening | null {
   if (!rules.autoSpecialOpenings) return null;
+  const opening = openingOf(day.date);
+  if (!opening) return null;
   const early = day.bookings
-    .filter((booking) => booking.kind === "kita" && booking.start < OPEN_FROM)
+    .filter((booking) => booking.kind === "kita" && booking.start < opening.start)
     .sort((a, b) => a.start - b.start)[0];
   if (!early) return null;
-  return { booking: early, openAt: early.start, coverFrom: early.start - rules.specialOpeningLead };
+  return { booking: early, openAt: early.start, coverFrom: Math.max(0, early.start - rules.specialOpeningLead) };
+}
+
+/** First minute someone must be present: the lead before the effective opening. */
+export function coverFromOf(day: PlanDay, rules: Pick<Rules, "autoSpecialOpenings" | "specialOpeningLead">): number | null {
+  const opening = openingOf(day.date);
+  if (!opening) return null;
+  const special = specialOpeningOf(day, rules);
+  const openAt = special ? special.openAt : opening.start;
+  return Math.max(0, openAt - Math.max(0, rules.specialOpeningLead));
+}
+
+function availabilityCheckStart(day: PlanDay, rules: Pick<Rules, "autoSpecialOpenings" | "specialOpeningLead">, start: number): number {
+  const opening = openingOf(day.date);
+  const coverFrom = coverFromOf(day, rules);
+  if (!opening || coverFrom === null) return start;
+  const openAt = specialOpeningOf(day, rules)?.openAt ?? opening.start;
+  if (start >= coverFrom && start < openAt) return openAt;
+  return start;
 }
 
 export type Slice = {
@@ -59,13 +78,14 @@ export type Slice = {
 };
 
 export function daySlices(day: PlanDay, rules: Rules): Slice[] {
+  const opening = openingOf(day.date);
+  if (!opening) return [];
   const key = dayKeyFor(day, rules);
   const rule = rules.days[key];
-  const special = specialOpeningOf(day, rules);
-  const from = special ? Math.min(special.coverFrom, OPEN_FROM) : OPEN_FROM;
+  const from = coverFromOf(day, rules) ?? opening.start;
   const slices: Slice[] = [];
-  for (let start = from; start < OPEN_TO; start += SLICE_MINUTES) {
-    const regular = start >= OPEN_FROM;
+  for (let start = from; start < opening.end; start += SLICE_MINUTES) {
+    const regular = start >= opening.start;
     const guests = expectedGuestsAt(day, key, start);
     slices.push({
       start,
@@ -121,15 +141,16 @@ export function evaluateWeek(week: PlanWeek, shifts: readonly Shift[], state: Pi
     const service = dayShifts.filter((shift) => shift.kind === "service");
     const slices = daySlices(day, rules);
     const special = specialOpeningOf(day, rules);
+    const opening = openingOf(day.date);
 
-    if (service.length === 0) {
+    if (service.length === 0 && opening) {
       issues.push({
         id: `keine-schichten:${day.date}`,
         severity: "blocker",
         date: day.date,
         code: "keine-schichten",
         message: `${dayLabel(day.date)}: Es sind keine Schichten eingeteilt.`,
-        fix: { type: "addShift", date: day.date, start: OPEN_FROM, end: OPEN_TO },
+        fix: { type: "addShift", date: day.date, start: coverFromOf(day, rules) ?? opening.start, end: opening.end },
       });
     } else {
       const under: number[] = [];
@@ -159,8 +180,18 @@ export function evaluateWeek(week: PlanWeek, shifts: readonly Shift[], state: Pi
             type: "addShift",
             date: day.date,
             start: special.coverFrom,
-            end: Math.max(special.booking.end, OPEN_FROM + 60),
+            end: Math.max(special.booking.end, (opening?.start ?? special.booking.end) + 60),
           },
+        });
+      } else if (!special && opening && specialUnder.length > 0) {
+        const coverFrom = coverFromOf(day, rules) ?? opening.start;
+        issues.push({
+          id: `vorlauf:${day.date}`,
+          severity: "blocker",
+          date: day.date,
+          code: "vorlauf",
+          message: `${dayLabel(day.date)}: Vor der Öffnung um ${formatTime(opening.start)} Uhr muss ab ${formatTime(coverFrom)} Uhr jemand eingeteilt sein.`,
+          fix: { type: "addShift", date: day.date, start: coverFrom, end: Math.min(opening.end, coverFrom + MIN_SHIFT) },
         });
       }
 
@@ -260,7 +291,7 @@ export function evaluateWeek(week: PlanWeek, shifts: readonly Shift[], state: Pi
     }
 
     for (const shift of dayShifts) {
-      const check = checkAvailability(availability[shift.employeeId], exceptions, shift.employeeId, shift.date, shift.start, shift.end);
+      const check = checkAvailability(availability[shift.employeeId], exceptions, shift.employeeId, shift.date, availabilityCheckStart(day, rules, shift.start), shift.end);
       if (!check.ok) {
         issues.push({
           id: `verfuegbarkeit:${shift.id}`,
@@ -374,8 +405,10 @@ export function dayPersons(day: PlanDay): number {
 }
 
 export function peakGuests(day: PlanDay, key: DayKey): number {
+  const opening = openingOf(day.date);
+  if (!opening) return 0;
   let peak = 0;
-  for (let minute = OPEN_FROM; minute < OPEN_TO; minute += SLICE_MINUTES) {
+  for (let minute = opening.start; minute < opening.end; minute += SLICE_MINUTES) {
     peak = Math.max(peak, expectedGuestsAt(day, key, minute));
   }
   return peak;
@@ -415,8 +448,8 @@ export function proposeWeek(
     };
   };
 
-  const canWork = (employee: Employee, date: string, start: number, end: number): boolean => {
-    if (!checkAvailability(availability[employee.id], exceptions, employee.id, date, start, end).ok) return false;
+  const canWork = (employee: Employee, date: string, start: number, end: number, availabilityStart = start): boolean => {
+    if (!checkAvailability(availability[employee.id], exceptions, employee.id, date, availabilityStart, end).ok) return false;
     const clash = all().some((shift) => shift.employeeId === employee.id && shift.date === date && shift.start < end && start < shift.end);
     if (clash) return false;
     return employeeMinutes(all(), employee.id) + (end - start) <= employee.maxHours * 60;
@@ -475,9 +508,11 @@ export function proposeWeek(
       for (const employee of employees) {
         if (employee.role === "reinigungskraft" || people.has(employee.id)) continue;
         if (needKasse && !employee.skills.kasse) continue;
-        if (!canWork(employee, day.date, first.start, first.start + SLICE_MINUTES)) continue;
-        let end = Math.min(Math.max(runEnd, first.start + MIN_SHIFT), OPEN_TO, first.start + MAX_SHIFT);
-        while (end > first.start + SLICE_MINUTES && !canWork(employee, day.date, first.start, end)) end -= SLICE_MINUTES;
+        const readyAt = availabilityCheckStart(day, rules, first.start);
+        if (!canWork(employee, day.date, first.start, first.start + SLICE_MINUTES, readyAt)) continue;
+        const closing = openingOf(day.date)?.end ?? first.start + MAX_SHIFT;
+        let end = Math.min(Math.max(runEnd, first.start + MIN_SHIFT), closing, first.start + MAX_SHIFT);
+        while (end > first.start + SLICE_MINUTES && !canWork(employee, day.date, first.start, end, readyAt)) end -= SLICE_MINUTES;
         const used = employeeMinutes(all(), employee.id);
         let score = priorityScore(employee) * 10;
         score += Math.round((employee.targetHours * 60 - used) / 6);

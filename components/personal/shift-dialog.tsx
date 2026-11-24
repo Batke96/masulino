@@ -11,12 +11,15 @@ import {
   durationLabel,
   formatFullDate,
   formatWeekdayLong,
+  laneRoles,
+  preferredEmployee,
   roleLabels,
   shiftsOn,
   type PersonalState,
   type PlanWeek,
   type Shift,
   type ShiftKind,
+  type ShiftLane,
 } from "@/lib/personal"
 import { Field, TimeField, useFocusReturn } from "./personal-ui"
 import { SegmentNav } from "./segment-nav"
@@ -28,6 +31,7 @@ export type ShiftDraft = {
   start: number
   end: number
   kind: ShiftKind
+  lane?: ShiftLane
 }
 
 const EARLIEST = 6 * 60
@@ -80,8 +84,15 @@ function ShiftForm({
   onRemove: (shift: Shift) => void
 }) {
   const existing = draft.id ? shifts.find((item) => item.id === draft.id) : undefined
+  const pool = useMemo(() => {
+    if (!draft.lane) return state.employees
+    const roles = new Set(laneRoles(draft.lane))
+    return state.employees.filter((item) => roles.has(item.role) || item.id === draft.employeeId)
+  }, [draft.employeeId, draft.lane, state.employees])
+
   const initialEmployee = useMemo(() => {
     if (draft.employeeId) return draft.employeeId
+    if (draft.lane) return preferredEmployee(pool, state.availability, state.exceptions, draft.lane, draft.date, draft.start, draft.end) ?? pool[0]?.id ?? ""
     const early = draft.start < 10 * 60
     const rank = (employee: PersonalState["employees"][number]): number => {
       if (draft.kind === "service" && employee.role === "reinigungskraft") return 9
@@ -93,8 +104,8 @@ function ShiftForm({
       const openingFit = early ? (employee.skills.oeffnung ? 0 : 1) : 0
       return 2 + openingFit
     }
-    return [...state.employees].sort((a, b) => rank(a) - rank(b))[0]!.id
-  }, [draft, state])
+    return [...pool].sort((a, b) => rank(a) - rank(b))[0]!.id
+  }, [draft, pool, state])
 
   const [employeeId, setEmployeeId] = useState(initialEmployee)
   const [date, setDate] = useState(draft.date)
@@ -104,7 +115,8 @@ function ShiftForm({
 
   const employee = state.employees.find((item) => item.id === employeeId)
   let error: string | null = null
-  if (start === null || end === null) error = "Bitte Beginn und Ende als Uhrzeit angeben, zum Beispiel 08:45."
+  if (!employeeId) error = "Für dieses Fenster ist niemand mit der passenden Rolle hinterlegt."
+  else if (start === null || end === null) error = "Bitte Beginn und Ende als Uhrzeit angeben, zum Beispiel 08:45."
   else if (end <= start) error = "Das Ende muss nach dem Beginn liegen."
   else if (start < EARLIEST || end > LATEST) error = "Schichten liegen zwischen 06:00 und 23:00 Uhr."
   else if (end - start < 30) error = "Eine Schicht dauert mindestens 30 Minuten."
@@ -118,7 +130,13 @@ function ShiftForm({
       ? checkAvailability(state.availability[employeeId], state.exceptions, employeeId, date, start, end)
       : null
 
-  const employeeOptions = state.employees.map((item) => ({ value: item.id, label: `${item.name} · ${roleLabels[item.role]}` }))
+  const employeeOptions = [...pool]
+    .sort((a, b) => {
+      const aFit = checkAvailability(state.availability[a.id], state.exceptions, a.id, date, start ?? draft.start, end ?? draft.end).ok ? 0 : 1
+      const bFit = checkAvailability(state.availability[b.id], state.exceptions, b.id, date, start ?? draft.start, end ?? draft.end).ok ? 0 : 1
+      return aFit - bFit || a.name.localeCompare(b.name, "de")
+    })
+    .map((item) => ({ value: item.id, label: `${item.name} · ${roleLabels[item.role]}` }))
   const dateOptions = week.days.map((day) => ({ value: day.date, label: `${formatWeekdayLong(day.date)}, ${formatFullDate(day.date)}` }))
 
   return (

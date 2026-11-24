@@ -70,6 +70,8 @@ export type GlideSelectProps = {
   highlightColor?: string
   textColor?: string
   size?: keyof typeof SIZES
+  /** Closed trigger matches the dark JellyButton. The menu keeps the same radius. */
+  variant?: "field" | "button"
   radius?: number
   menuWidth?: number
   placement?: "top" | "bottom"
@@ -97,6 +99,7 @@ export function GlideSelect({
   highlightColor = "var(--muted)",
   textColor = "var(--text)",
   size = "md",
+  variant = "field",
   radius = 14,
   menuWidth,
   placement = "bottom",
@@ -115,6 +118,7 @@ export function GlideSelect({
   const [phase, setPhase] = useState<"closed" | "open" | "closing">("closed")
   const [active, setActive] = useState<number | null>(null)
   const [side, setSide] = useState(placement)
+  const [menuSpace, setMenuSpace] = useState(0)
   const [fitWidth, setFitWidth] = useState<number | undefined>(menuWidth)
   const rootRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
@@ -125,6 +129,10 @@ export function GlideSelect({
   const scrub = useRef<{ id: number; top: number } | null>(null)
   const id = useId()
   const S = SIZES[size] ?? SIZES.md
+  const button = variant === "button"
+  const shape = button ? 18 : radius
+  const fontSize = button ? 14 : S.font
+  const triggerChrome = button ? 16 + 16 + 8 + 16 : TRIGGER_CHROME
   const step = S.row + GAP
   const popOut = Math.round((popDuration * 2) / 3)
   const itemsKey = items.map((it) => `${it.value}:${textOf(it)}:${it.tag ?? ""}`).join("|")
@@ -139,8 +147,8 @@ export function GlideSelect({
       "position:absolute",
       "visibility:hidden",
       "white-space:nowrap",
-      `font-size:${S.font}px`,
-      "font-weight:500",
+      `font-size:${fontSize}px`,
+      `font-weight:${button ? 600 : 500}`,
       "font-family:inherit",
       "pointer-events:none",
     ].join(";")
@@ -157,23 +165,26 @@ export function GlideSelect({
     probe.textContent = placeholder
     maxLabel = Math.max(maxLabel, probe.offsetWidth)
     document.body.removeChild(probe)
-    setFitWidth(Math.ceil(Math.max(maxLabel + TRIGGER_CHROME, maxLabel + MENU_CHROME)))
-  }, [itemsKey, S.font, menuWidth, placeholder, showTags, items])
+    setFitWidth(Math.ceil(Math.max(maxLabel + triggerChrome, maxLabel + MENU_CHROME)))
+  }, [button, fontSize, itemsKey, menuWidth, placeholder, showTags, items, triggerChrome])
 
   useLayoutEffect(() => {
-    if (phase !== "open") return
     const el = menuRef.current
     const root = rootRef.current
-    if (!el || !root) return
+    if (phase !== "open" || !el || !root) {
+      setMenuSpace(0)
+      return
+    }
     const r = root.getBoundingClientRect()
     const need = el.offsetHeight + MENU_GAP
-    setSide(
+    const nextSide =
       placement === "bottom" && r.bottom + need > window.innerHeight
         ? "top"
         : placement === "top" && r.top - need < 0
           ? "bottom"
-          : placement,
-    )
+          : placement
+    setSide(nextSide)
+    setMenuSpace(nextSide === "bottom" ? need : 0)
     el.style.transitionDuration = instant.current ? "0ms" : ""
     el.dataset.state = "closed"
     void el.offsetHeight
@@ -337,6 +348,7 @@ export function GlideSelect({
       data-slot="glide-select"
       className={cn("glide-select", className)}
       data-size={size}
+      data-variant={variant}
       data-disabled={disabled ? "" : undefined}
       style={
         {
@@ -345,16 +357,17 @@ export function GlideSelect({
           "--gs-surface": surfaceColor,
           "--gs-highlight": highlightColor,
           "--gs-text": textColor,
-          "--gs-radius": `${radius}px`,
-          "--gs-inner-radius": `${Math.max(3, radius - 4)}px`,
-          "--gs-chip": `${S.chip}px`,
+          "--gs-radius": `${shape}px`,
+          "--gs-inner-radius": `${button ? shape : Math.max(3, shape - 4)}px`,
+          "--gs-chip": `${button ? 36 : S.chip}px`,
           "--gs-row": `${S.row}px`,
-          "--gs-font": `${S.font}px`,
+          "--gs-font": `${fontSize}px`,
           "--gs-menu-w": "100%",
           "--gs-pop": `${popDuration}ms`,
           "--gs-pop-out": `${popOut}ms`,
           "--gs-glide": `${glideDuration}ms`,
           "--gs-origin": origin,
+          "--gs-menu-space": menuSpace > 0 ? `${menuSpace}px` : undefined,
         } as CSSProperties
       }
       onAnimationEnd={(e) => {
@@ -384,7 +397,7 @@ export function GlideSelect({
           {selected >= 0 ? items[selected].label : placeholder}
         </span>
         <span className="glide-select__chevron" aria-hidden="true">
-          <ChevronDown size={14} strokeWidth={1.8} />
+          <ChevronDown size={button ? 16 : 14} strokeWidth={1.8} />
         </span>
       </button>
       {phase !== "closed" ? (

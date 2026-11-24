@@ -1,0 +1,8 @@
+.data-table th.data-action-head,
+.data-table td.data-actions {
+  text-align: right;
+}
+
+.data-table td.data-actions {
+  justify-content: flex-end;
+}

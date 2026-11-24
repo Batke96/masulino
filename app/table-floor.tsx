@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { JellyButton } from "@/components/ui/jelly-button";
-import { JellyRadio } from "@/components/ui/jelly-radio";
+import { Block } from "@/components/ui/block";
+import { GlideSelect } from "@/components/ui/glide-select";
 import { formatDayLabel } from "@/lib/booking/period";
 import { windowLabel, windowsFor, type BookingKind } from "@/lib/booking/slots";
 import {
@@ -19,23 +18,6 @@ const kinds: Array<{ value: BookingKind; label: string }> = [
   { value: "group", label: "Gruppen" },
   { value: "birthday", label: "Geburtstage" },
 ];
-
-const jellyRadioProps = {
-  chipColor: "var(--muted)",
-  activeColor: "var(--ink)",
-  textColor: "var(--text-secondary)",
-  activeTextColor: "var(--primary-foreground)",
-  size: "md" as const,
-  gap: 8,
-  radius: 18,
-  swell: 0,
-  barge: 0,
-  shrink: 0,
-  jelly: 0.15,
-  bounce: 0.05,
-  stagger: 6,
-  stiffness: 780,
-};
 
 export function TableFloor({
   dates,
@@ -57,8 +39,7 @@ export function TableFloor({
   }, [defaultDay, datesKey]);
 
   if (dates.length === 0) return null;
-  const index = Math.max(0, dates.indexOf(day));
-  const current = dates[index] ?? dates[0]!;
+  const current = dates.includes(day) ? day : dates[0]!;
   const windows = windowsFor(current, kind);
   const active = windows.find((item) => item.start === windowStart) ?? windows[0] ?? null;
   const dayBookings = bookings.filter((booking) => booking.date === current);
@@ -75,62 +56,56 @@ export function TableFloor({
   const selectedTone = seatTone(selectedBookings);
 
   return (
-    <div className="list-block floor-block">
-    <div className="section-head">
-      <h2>Tischauslastung</h2>
-      <div className="floor-day">
-          {dates.length > 1 && (
-            <JellyButton
-              variant="icon"
-              aria-label="Vorheriger Tag"
-              disabled={index === 0}
-              onClick={() => setDay(dates[index - 1]!)}
-            >
-              <ChevronLeft size={18} strokeWidth={1.8} />
-            </JellyButton>
-          )}
-          <strong>{formatDayLabel(current)}</strong>
-          {dates.length > 1 && (
-            <JellyButton
-              variant="icon"
-              aria-label="Nächster Tag"
-              disabled={index >= dates.length - 1}
-              onClick={() => setDay(dates[index + 1]!)}
-            >
-              <ChevronRight size={18} strokeWidth={1.8} />
-            </JellyButton>
-          )}
-      </div>
-    </div>
-    <section className="surface floor-section" aria-label="Tischauslastung">
-      <div className="floor-band">
-        <JellyRadio
-          {...jellyRadioProps}
-          items={kinds}
-          value={kind}
-          ariaLabel="Art"
-          onChange={(value) => {
-            if (value !== "group" && value !== "birthday") return;
-            setKind(value);
-            setWindowStart(null);
-          }}
-        />
-        {windows.length === 0 ? (
-          <p className="floor-note">An diesem Tag gibt es kein Gruppenfenster.</p>
-        ) : (
-          <JellyRadio
-            {...jellyRadioProps}
-            items={windows.map((item) => ({ value: item.start, label: windowLabel(item) }))}
-            value={active?.start ?? ""}
-            ariaLabel="Zeitfenster"
+    <Block
+      className="floor-block"
+      title="Tischauslastung mit Plan"
+      columns={2}
+      controls={
+        <>
+          <GlideSelect
+            ariaLabel="Anlass"
+            options={kinds}
+            value={kind}
+            showTags={false}
+            size="md"
+            variant="button"
             onChange={(value) => {
-              if (windows.some((item) => item.start === value)) setWindowStart(value);
+              if (value !== "group" && value !== "birthday") return;
+              setKind(value);
+              setWindowStart(null);
             }}
           />
-        )}
-      </div>
-      <div className="floor-stage">
-        <div className="floor-plan" role="group" aria-label={`Saalplan am ${formatDayLabel(current)}`}>
+          {windows.length === 0 ? (
+            <p className="floor-note">An diesem Tag gibt es kein Gruppenfenster.</p>
+          ) : (
+            <GlideSelect
+              ariaLabel="Zeitfenster"
+              options={windows.map((item) => ({ value: item.start, label: windowLabel(item) }))}
+              value={active?.start ?? ""}
+              showTags={false}
+              size="md"
+              variant="button"
+              onChange={(value) => {
+                if (windows.some((item) => item.start === value)) setWindowStart(value);
+              }}
+            />
+          )}
+          <GlideSelect
+            ariaLabel="Tag"
+            options={dates.map((date) => ({ value: date, label: formatDayLabel(date) }))}
+            value={current}
+            showTags={false}
+            size="md"
+            variant="button"
+            onChange={(next) => {
+              if (dates.includes(next)) setDay(next);
+            }}
+          />
+        </>
+      }
+      note={unknown.length > 0 ? `Ohne Platz im Plan: ${unknown.join(" · ")}` : undefined}
+    >
+      <div className="floor-plan" role="group" aria-label={`Saalplan am ${formatDayLabel(current)}`}>
           <div className="room-wall" aria-hidden="true" />
           <div className="room-elbow" aria-hidden="true" />
           <div className="room-lintel t5" aria-hidden="true" />
@@ -169,13 +144,14 @@ export function TableFloor({
               </button>
             );
           })}
-        </div>
-        <div className="floor-detail" id="floor-booking" aria-live="polite">
-          <div className="floor-legend">
-            <span className="floor-swatch free">Frei</span>
-            <span className="floor-swatch reserved">Reserviert</span>
-            <span className="floor-swatch booked">Gebucht</span>
-          </div>
+      </div>
+      <div className="floor-aside">
+      <div className="floor-key">
+        <span className="floor-swatch free">Frei</span>
+        <span className="floor-swatch reserved">Reserviert</span>
+        <span className="floor-swatch booked">Gebucht</span>
+      </div>
+      <div className="floor-detail" id="floor-booking" aria-live="polite">
           {selectedSeat ? (
             <>
               <h3>T{selectedSeat.id}</h3>
@@ -193,12 +169,8 @@ export function TableFloor({
           ) : (
             <p>Tisch antippen, um die Buchung in diesem Fenster zu sehen.</p>
           )}
-        </div>
       </div>
-      {unknown.length > 0 && (
-        <p className="fine-print">Ohne Platz im Plan: {unknown.join(" · ")}</p>
-      )}
-    </section>
-    </div>
+      </div>
+    </Block>
   );
 }

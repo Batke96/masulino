@@ -70,6 +70,45 @@
   background: color-mix(in srgb, var(--gs-highlight) 72%, var(--ink) 8%);
 }
 
+.glide-select[data-variant="button"] .glide-select__trigger {
+  padding: 0 var(--space-4);
+  border-radius: 18px;
+  background: var(--ink);
+  color: var(--primary-foreground);
+  font-family: inherit;
+  font-size: var(--text-label);
+  font-weight: var(--font-weight-heading);
+}
+
+.glide-select[data-variant="button"] .glide-select__chevron {
+  color: var(--primary-foreground);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .glide-select[data-variant="button"] .glide-select__trigger:not(:disabled):hover {
+    background: var(--ink-hover);
+    color: var(--primary-foreground);
+  }
+}
+
+.glide-select[data-variant="button"] .glide-select__trigger[aria-expanded="true"] {
+  background: var(--ink-hover);
+  color: var(--primary-foreground);
+}
+
+.glide-select[data-variant="button"] .glide-select__menu,
+.glide-select[data-variant="button"] .glide-select__option,
+.glide-select[data-variant="button"] .glide-select__pill {
+  border-radius: 18px;
+}
+
+.glide-select[data-variant="button"] .glide-select__option,
+.glide-select[data-variant="button"] .glide-select__name {
+  font-family: inherit;
+  font-size: var(--text-label);
+  font-weight: var(--font-weight-heading);
+}
+
 .glide-select__trigger:not(:disabled):active {
   transform: scale(0.97);
 }

@@ -11,9 +11,15 @@ import {
   parseTime,
   personalReducer,
   planWeeks,
+  planningWeekTag,
+  planningWeeks,
+  laneRoles,
+  newEmployeeDraft,
+  preferredEmployee,
   proposeWeek,
   requiredHeadcount,
   specialOpeningOf,
+  staffDay,
   validateCorrection,
   weekStats,
   type PersonalState,
@@ -91,6 +97,34 @@ describe("Verfügbarkeit", () => {
   });
 });
 
+describe("Planwochen ab heute", () => {
+  const weeks = planningWeeks("2026-11-19");
+
+  it("beginnt am Montag der Ankerwoche und reicht sechs Wochen voraus", () => {
+    expect(weeks.map((week) => week.id)).toEqual([
+      "2026-11-16",
+      "2026-11-23",
+      "2026-11-30",
+      "2026-12-07",
+      "2026-12-14",
+      "2026-12-21",
+    ]);
+    expect(weeks[0]!.end).toBe("2026-11-22");
+    expect(planningWeeks("2026-11-16")[0]!.id).toBe("2026-11-16");
+    expect(planningWeeks("2026-11-22")[0]!.id).toBe("2026-11-16");
+  });
+
+  it("nennt nur diese und die nächste Woche relativ und übernimmt die Weihnachtswoche", () => {
+    expect(planningWeekTag(0)).toBe("Diese Woche");
+    expect(planningWeekTag(1)).toBe("Nächste Woche");
+    expect(planningWeekTag(2)).toBeUndefined();
+    expect(formatWeekRange(weeks[0]!.start, weeks[0]!.end)).toBe("16.–22. November");
+    expect(formatWeekRange(weeks[2]!.start, weeks[2]!.end)).toBe("30. November–06. Dezember");
+    expect(weeks[5]!.days[4]!.holiday).toBe("1. Weihnachtstag");
+    expect(weeks.some((week) => week.id === "2026-11-02")).toBe(false);
+  });
+});
+
 describe("Dienstplan 02.–08. November", () => {
   const state = seeded();
   const plan = state.plans[november.id]!;
@@ -125,7 +159,7 @@ describe("Dienstplan 02.–08. November", () => {
   });
 
   it("löst die Sonderöffnung mit einer Schicht ab 08:45 und nennt dann die Verfügbarkeit als Hinweis", () => {
-    const early: Shift = { id: "x", employeeId: "mb", date: "2026-11-06", start: 8 * 60 + 45, end: 12 * 60, kind: "service", origin: "manuell" };
+    const early: Shift = { id: "x", employeeId: "mb", date: "2026-11-06", start: 8 * 60 + 45, end: 10 * 60, kind: "service", origin: "manuell" };
     const issues = evaluateWeek(november, [...plan.shifts, early], state);
     expect(issues.filter((item) => item.severity === "blocker")).toHaveLength(0);
     expect(issues.some((item) => item.code === "verfuegbarkeit" && item.message.includes("Mitarbeiter B"))).toBe(true);
@@ -207,6 +241,42 @@ describe("Planvorschlag", () => {
     expect(rebuilt.shifts.every((item) => item.origin !== "vorlage")).toBe(true);
   });
 
+  it("plant am 2. Weihnachtstag jemanden 15 Minuten vor der Öffnung, ohne früher zu öffnen", () => {
+    const result = proposeWeek(december, [], state, "rebuild");
+    const saturday = december.days.find((day) => day.date === "2026-12-26")!;
+    expect(specialOpeningOf(saturday, state.rules)).toBeNull();
+    expect(result.shifts.some((item) => item.date === saturday.date && item.kind === "service" && item.start === 9 * 60 + 45)).toBe(true);
+    const open = evaluateWeek(december, result.shifts, state).filter((item) => item.date === saturday.date && item.code === "vorlauf");
+    expect(open).toEqual([]);
+    const late: Shift = { id: "late", employeeId: "me", date: saturday.date, start: 10 * 60, end: 19 * 60, kind: "service", origin: "manuell" };
+    const missing = evaluateWeek(december, [late], state).filter((item) => item.code === "vorlauf" && item.date === saturday.date);
+    expect(missing).toHaveLength(1);
+    expect(missing[0]!.message).toContain("09:45");
+  });
+
+  it("legt den 2. Weihnachtstag in Schichtleiter, Mitarbeiter und Putzkraft", () => {
+    const result = proposeWeek(december, [], state, "rebuild");
+    const saturday = december.days.find((day) => day.date === "2026-12-26")!;
+    const roster = staffDay(saturday, result.shifts, state.employees, state.rules);
+    expect(roster.lead).not.toBeNull();
+    const lead = state.employees.find((item) => item.id === roster.lead?.employeeId);
+    expect(lead && (lead.role === "leitung" || lead.role === "schichtleiter")).toBe(true);
+    expect(roster.cleaning.every((bar) => state.employees.find((item) => item.id === bar.employeeId)?.role === "reinigungskraft")).toBe(true);
+    expect(roster.staff.some((bar) => state.employees.find((item) => item.id === bar.employeeId)?.role === "reinigungskraft")).toBe(false);
+    const window = bookingWindows(saturday, result.shifts, state.rules).find((item) => item.start === 11 * 60);
+    expect(window).toMatchObject({ birthdays: 1, kita: 0, persons: 16 });
+    expect(window!.children + window!.adults).toBe(window!.persons);
+  });
+
+  it("wählt im Mitarbeiterfenster eine verfügbare Person und keine Reinigungskraft", () => {
+    expect(laneRoles("mitarbeiter")).not.toContain("reinigungskraft");
+    expect(laneRoles("putzkraft")).toEqual(["reinigungskraft"]);
+    const picked = preferredEmployee(state.employees, state.availability, state.exceptions, "mitarbeiter", "2026-12-26", 10 * 60, 19 * 60);
+    const person = state.employees.find((item) => item.id === picked);
+    expect(person?.role).not.toBe("reinigungskraft");
+    expect(checkAvailability(state.availability[picked!], state.exceptions, picked!, "2026-12-26", 10 * 60, 19 * 60).ok).toBe(true);
+  });
+
   it("bleibt bei der Sonderöffnung ehrlich, wenn niemand ab 08:45 verfügbar ist", () => {
     const result = proposeWeek(november, [], state, "rebuild");
     const issues = evaluateWeek(november, result.shifts, state);
@@ -278,5 +348,44 @@ describe("Zeiterfassung und Zustand", () => {
     state = personalReducer(state, { type: "resetEmployee", id: "ma" });
     expect(state.employees.find((item) => item.id === "ma")).toMatchObject({ targetHours: 12 });
     expect(state.employees.find((item) => item.id === "ma")!.skills.reinigung).toBe(false);
+  });
+
+  it("speichert Profil, Verfügbarkeit und Ausnahmen einer Person gemeinsam", () => {
+    const state = seeded();
+    const employee = state.employees.find((item) => item.id === "mf")!;
+    const next = personalReducer(state, {
+      type: "saveEmployeeSheet",
+      employee: { ...employee, targetHours: 20 },
+      availability: { ...state.availability.mf!, mo: { available: false, from: 10 * 60, to: 19 * 60 } },
+      exceptions: [
+        ...state.exceptions.filter((item) => item.employeeId === "mf" && item.id !== "ex-2"),
+        { id: "draft-1", employeeId: "mf", startDate: "2026-11-20", endDate: "2026-11-20", kind: "ganztags" },
+      ],
+    });
+    expect(next.employees.find((item) => item.id === "mf")).toMatchObject({ targetHours: 20 });
+    expect(next.availability.mf!.mo.available).toBe(false);
+    expect(next.exceptions.some((item) => item.employeeId === "mf" && item.kind === "vormittags")).toBe(false);
+    expect(next.exceptions.some((item) => item.employeeId === "mf" && item.startDate === "2026-11-20" && item.kind === "ganztags")).toBe(true);
+    expect(next.exceptions.some((item) => item.employeeId === "mc")).toBe(true);
+  });
+
+  it("legt eine neue Person erst beim Speichern an", () => {
+    const state = seeded();
+    const draft = newEmployeeDraft(state.employees);
+    const unchanged = personalReducer(state, {
+      type: "saveEmployeeSheet",
+      employee: draft.employee,
+      availability: draft.availability,
+      exceptions: [],
+    });
+    expect(unchanged.employees).toHaveLength(state.employees.length);
+    const next = personalReducer(state, {
+      type: "saveEmployeeSheet",
+      employee: { ...draft.employee, name: "Nova" },
+      availability: { ...draft.availability, mo: { available: true, from: 10 * 60, to: 18 * 60 } },
+      exceptions: [],
+    });
+    expect(next.employees.at(-1)).toMatchObject({ id: draft.employee.id, name: "Nova", role: "mitarbeiter" });
+    expect(next.availability[draft.employee.id]?.mo.available).toBe(true);
   });
 });

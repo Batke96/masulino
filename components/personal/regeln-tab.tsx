@@ -276,15 +276,15 @@ function Openings() {
         <li>
           <div>
             <strong id="rule-special">Sonderöffnungen automatisch erkennen</strong>
-            <p>Eine Kita- oder Schulbuchung vor 10:00 Uhr gilt als Sonderöffnung. Die Planprüfung verlangt dann eine Frühschicht.</p>
+            <p>Früher als die reguläre Öffnung wird nur geöffnet, wenn eine Kita-Buchung davor geplant ist.</p>
           </div>
           <Switch aria-labelledby="rule-special" checked={rules.autoSpecialOpenings} onCheckedChange={(value) => commit({ type: "setRuleFlags", patch: { autoSpecialOpenings: value } }, value ? "Sonderöffnungen werden erkannt" : "Sonderöffnungen werden ignoriert")} />
         </li>
         <li>
           <div>
-            <strong id="rule-lead">Frühschicht beginnt vor der Öffnung</strong>
-            <p>So viel früher als die gebuchte Öffnung muss die Schicht beginnen.</p>
-            <SegmentNav label="Vorlaufzeit der Frühschicht" value={String(rules.specialOpeningLead)} onChange={(value) => dispatch({ type: "setRuleFlags", patch: { specialOpeningLead: Number(value) } })} items={leadItemsList} />
+            <strong id="rule-lead">Vorlauf vor der Öffnung</strong>
+            <p>So viele Minuten vor der Öffnung muss jemand eingeteilt sein. Das gilt an jedem geöffneten Tag.</p>
+            <SegmentNav label="Vorlauf vor der Öffnung" value={String(rules.specialOpeningLead)} onChange={(value) => dispatch({ type: "setRuleFlags", patch: { specialOpeningLead: Number(value) } })} items={leadItemsList} />
           </div>
         </li>
         <li>

@@ -1,19 +1,21 @@
-import { normalizeAvailabilityDay } from "./availability";
+import { emptyAvailability, normalizeAvailabilityDay } from "./availability";
 import { initialPersonalState } from "./fixtures";
 import { clampRule, nextId } from "./rules";
-import type {
-  AvailabilityDay,
-  AvailabilityException,
-  CleaningService,
-  DayKey,
-  DayRule,
-  Employee,
-  LoadCondition,
-  PersonalState,
-  Punch,
-  Rules,
-  Shift,
-  WeekdayKey,
+import {
+  weekdayKeys,
+  type Availability,
+  type AvailabilityDay,
+  type AvailabilityException,
+  type CleaningService,
+  type DayKey,
+  type DayRule,
+  type Employee,
+  type LoadCondition,
+  type PersonalState,
+  type Punch,
+  type Rules,
+  type Shift,
+  type WeekdayKey,
 } from "./types";
 
 export type PersonalAction =
@@ -24,6 +26,7 @@ export type PersonalAction =
   | { type: "setAvailabilityDay"; employeeId: string; key: WeekdayKey; day: AvailabilityDay }
   | { type: "addException"; exception: Omit<AvailabilityException, "id"> }
   | { type: "removeException"; id: string }
+  | { type: "saveEmployeeSheet"; employee: Employee; availability: Availability; exceptions: AvailabilityException[] }
   | { type: "setDayRule"; key: DayKey; patch: Partial<DayRule> }
   | { type: "saveCondition"; condition: Omit<LoadCondition, "id"> & { id?: string } }
   | { type: "removeCondition"; id: string }
@@ -87,6 +90,31 @@ export function personalReducer(state: PersonalState, action: PersonalAction): P
 
     case "removeException":
       return { ...state, exceptions: state.exceptions.filter((item) => item.id !== action.id) };
+
+    case "saveEmployeeSheet": {
+      const name = action.employee.name.trim();
+      if (!name) return state;
+      const employee = { ...action.employee, id: action.employee.id, name };
+      const exists = state.employees.some((item) => item.id === employee.id);
+      if (exists && !state.availability[employee.id]) return state;
+      const nextAvailability = exists ? { ...state.availability[employee.id] } : emptyAvailability();
+      for (const key of weekdayKeys) nextAvailability[key] = normalizeAvailabilityDay(action.availability[key]);
+      const kept = state.exceptions.filter((item) => item.employeeId !== action.employee.id);
+      const previousOwn = new Set(state.exceptions.filter((item) => item.employeeId === action.employee.id).map((item) => item.id));
+      const own: AvailabilityException[] = [];
+      for (const item of action.exceptions) {
+        const id = previousOwn.has(item.id) ? item.id : nextId("ex", [...kept, ...own]);
+        own.push({ ...item, id, employeeId: employee.id });
+      }
+      return {
+        ...state,
+        employees: exists
+          ? state.employees.map((item) => (item.id === employee.id ? employee : item))
+          : [...state.employees, employee],
+        availability: { ...state.availability, [employee.id]: nextAvailability },
+        exceptions: [...kept, ...own],
+      };
+    }
 
     case "setDayRule":
       return {

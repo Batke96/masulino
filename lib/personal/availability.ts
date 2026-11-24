@@ -1,5 +1,5 @@
 import { formatRange, formatTime } from "./time";
-import { weekdayKeyOf } from "./rules";
+import { nextId, weekdayKeyOf } from "./rules";
 import {
   NOON,
   exceptionLabels,
@@ -7,6 +7,7 @@ import {
   type Availability,
   type AvailabilityDay,
   type AvailabilityException,
+  type Employee,
   type ExceptionKind,
   type WeekdayKey,
 } from "./types";
@@ -14,6 +15,21 @@ import {
 export function emptyAvailability(): Availability {
   const day = (): AvailabilityDay => ({ available: false, from: 10 * 60, to: 19 * 60 });
   return { mo: day(), di: day(), mi: day(), do: day(), fr: day(), sa: day(), so: day() };
+}
+
+export function newEmployeeDraft(existing: readonly { id: string }[]): { employee: Employee; availability: Availability } {
+  return {
+    employee: {
+      id: nextId("emp", existing),
+      name: "",
+      role: "mitarbeiter",
+      targetHours: 0,
+      maxHours: 40,
+      priority: "standard",
+      skills: { kasse: false, reinigung: false, oeffnung: false, stosszeit: false },
+    },
+    availability: emptyAvailability(),
+  };
 }
 
 export function makeAvailability(entries: Partial<Record<WeekdayKey, [number, number]>>): Availability {

@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import { Cake, Check, Users } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Cake, Users } from "lucide-react";
 import { DataTable, type DataColumn } from "@/components/data-table";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { Block } from "@/components/ui/block";
 import { JellyButton } from "@/components/ui/jelly-button";
+import { RowAction } from "@/components/ui/row-action";
+import { actionIcon } from "@/lib/ui/actions";
 import { formatDayLabel } from "@/lib/booking/period";
 
 export type ScheduleRow = {
@@ -86,10 +88,55 @@ const columns: DataColumn<ScheduleRow>[] = [
   },
 ];
 
+export function ListSearch({ query, onChange }: { query: string; onChange: (value: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const expanded = open || query.length > 0;
+  const SearchIcon = actionIcon("search");
+
+  useEffect(() => {
+    if (expanded) inputRef.current?.focus();
+  }, [expanded]);
+
+  return (
+    <div className={expanded ? "list-search is-open" : "list-search"}>
+      {expanded ? (
+        <input
+          ref={inputRef}
+          type="search"
+          value={query}
+          placeholder="Suchen"
+          aria-label="In der Liste suchen"
+          onChange={(event) => onChange(event.target.value)}
+          onBlur={(event) => {
+            const next = event.relatedTarget;
+            if (next instanceof Node && event.currentTarget.parentElement?.contains(next)) return;
+            if (!query) setOpen(false);
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== "Escape") return;
+            onChange("");
+            setOpen(false);
+          }}
+        />
+      ) : null}
+      <JellyButton
+        variant="icon"
+        aria-label="Suchen"
+        aria-expanded={expanded}
+        onClick={() => setOpen(true)}
+      >
+        <SearchIcon size={16} strokeWidth={1.8} aria-hidden="true" />
+      </JellyButton>
+    </div>
+  );
+}
+
 export function BookingSchedule({
   title,
   rows,
   canRemove,
+  actions,
   tools,
   onOpen,
   onCheckIn,
@@ -98,61 +145,55 @@ export function BookingSchedule({
   title: string;
   rows: ScheduleRow[];
   canRemove: boolean;
+  actions?: ReactNode;
   tools?: ReactNode;
   onOpen: (id: string) => void;
   onCheckIn: (id: string) => void;
   onRemove: (row: ScheduleRow) => Promise<boolean>;
 }) {
-  const [pending, setPending] = useState<ScheduleRow | null>(null);
-  const [busy, setBusy] = useState(false);
+  const inflight = useRef(new Set<string>());
+  const [removing, setRemoving] = useState<ReadonlySet<string>>(new Set());
+  const [query, setQuery] = useState("");
 
-  async function confirm() {
-    if (!pending || busy) return;
-    setBusy(true);
-    const removed = await onRemove(pending);
-    setBusy(false);
-    if (removed) setPending(null);
+  async function remove(row: ScheduleRow) {
+    if (inflight.current.has(row.id)) return;
+    inflight.current.add(row.id);
+    setRemoving((ids) => new Set(ids).add(row.id));
+    try {
+      await onRemove(row);
+    } finally {
+      inflight.current.delete(row.id);
+      setRemoving((ids) => {
+        const next = new Set(ids);
+        next.delete(row.id);
+        return next;
+      });
+    }
   }
 
   return (
-    <div className="list-block">
-      <div className="section-head">
-        <div className="section-title">
-          <h2>{title}</h2>
-          <span className="pill">{rows.length.toLocaleString("de-DE")}</span>
-        </div>
-        {tools}
-      </div>
-      <section className="surface">
+    <Block
+      title={title}
+      count={rows.length}
+      actions={<>{actions}<ListSearch query={query} onChange={setQuery} /></>}
+      controls={tools}
+    >
         <DataTable
           rows={rows}
           columns={columns}
           rowKey={(row) => row.id}
+          query={query}
+          onQueryChange={setQuery}
           initialSort={{ id: "date", direction: "asc" }}
           empty={<div className="empty-state"><h3>Keine Buchung</h3><p>In diesem Zeitraum steht hier nichts an.</p></div>}
           actions={(row) => (
             <>
-              <JellyButton variant="soft" onClick={() => onOpen(row.id)}>Öffnen</JellyButton>
-              <JellyButton variant={row.checkedIn ? "dark" : "soft"} className="checkin" aria-pressed={row.checkedIn} onClick={() => onCheckIn(row.id)}>
-                {row.checkedIn ? <><Check size={14} strokeWidth={1.8} />Check-in aufheben</> : "Check-in"}
-              </JellyButton>
-              {canRemove ? <JellyButton variant="soft" onClick={() => setPending(row)}>Buchung entfernen</JellyButton> : null}
+              <RowAction action="open" rowName={row.name} onClick={() => onOpen(row.id)} />
+              <RowAction action="checkIn" rowName={row.name} pressed={row.checkedIn} onClick={() => onCheckIn(row.id)} />
+              {canRemove ? <RowAction action="remove" rowName={row.name} disabled={removing.has(row.id)} onClick={() => { void remove(row); }} /> : null}
             </>
           )}
         />
-      </section>
-      <Dialog open={pending !== null} onOpenChange={(open) => { if (!open && !busy) setPending(null); }}>
-        <DialogContent showCloseButton={false} className="article-dialog">
-          <DialogTitle>Buchung entfernen</DialogTitle>
-          <DialogDescription>
-            {pending ? `${pending.name} wird storniert. Der Tisch wird frei. Es geht keine Nachricht an die Website.` : ""}
-          </DialogDescription>
-          <div className="request-actions">
-            <JellyButton variant="soft" disabled={busy} onClick={() => setPending(null)}>Abbrechen</JellyButton>
-            <JellyButton disabled={busy} onClick={() => void confirm()}>{busy ? "Wird storniert …" : "Stornieren"}</JellyButton>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+    </Block>
   );
 }

@@ -1,46 +1,127 @@
+@property --fuse-turn {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 100%;
+}
+
 .jelly-button {
+  position: relative;
   display: inline-flex;
   min-height: var(--space-9);
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
   padding: 0 var(--space-4);
-  border: var(--border-width) solid var(--ink);
+  border: 0;
   border-radius: 18px;
   background: var(--ink);
   color: var(--primary-foreground);
   font-size: var(--text-label);
   font-weight: var(--font-weight-heading);
   line-height: 1;
-  box-shadow: var(--elevation-control);
+  box-shadow: none;
   transform-origin: center;
   transition:
     color var(--motion-duration-fast) var(--motion-easing-standard),
-    background var(--motion-duration-fast) var(--motion-easing-standard),
-    border-color var(--motion-duration-fast) var(--motion-easing-standard);
+    background var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .jelly-button:hover {
-  border-color: var(--ink-hover);
   background: var(--ink-hover);
   color: var(--primary-foreground);
 }
 
 .jelly-button[data-variant="soft"] {
-  border-color: var(--border);
-  background: var(--background);
-  color: var(--text);
+  background: color-mix(in srgb, var(--ink) 14%, var(--background));
+  color: var(--ink);
 }
 
 .jelly-button[data-variant="soft"]:hover {
-  border-color: var(--input);
-  background: var(--muted);
-  color: var(--text);
+  background: color-mix(in srgb, var(--ink) 22%, var(--background));
+  color: var(--ink);
 }
 
 .jelly-button[data-variant="icon"] {
   width: var(--space-9);
   padding: 0;
+}
+
+.jelly-button[data-tone="present"] {
+  --fuse: var(--primary-foreground);
+  background: var(--success);
+  color: var(--primary-foreground);
+}
+
+.jelly-button[data-tone="present"]:hover,
+.jelly-button[data-tone="present"][aria-pressed="true"] {
+  background: color-mix(in srgb, var(--success) 76%, black);
+  color: var(--primary-foreground);
+}
+
+.jelly-button[data-tone="danger"] {
+  --fuse: var(--primary-foreground);
+  background: var(--destructive);
+  color: var(--destructive-foreground);
+}
+
+.jelly-button[data-tone="danger"]:hover {
+  background: color-mix(in srgb, var(--destructive) 82%, black);
+  color: var(--destructive-foreground);
+}
+
+.jelly-button[data-phase="undo"] {
+  --fuse: var(--primary-foreground);
+  background: var(--warning);
+  color: var(--primary-foreground);
+}
+
+.jelly-button[data-tone="present"][data-phase="undo"] {
+  --fuse: var(--primary-foreground);
+  background: var(--success);
+  color: var(--primary-foreground);
+}
+
+.jelly-button[data-tone="danger"][data-phase="undo"] {
+  --fuse: var(--primary-foreground);
+  background: var(--destructive);
+  color: var(--destructive-foreground);
+}
+
+.jelly-button[data-phase="undo"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: var(--fuse-thickness);
+  background: conic-gradient(from -90deg, var(--fuse) var(--fuse-turn), transparent 0);
+  pointer-events: none;
+  animation: jelly-fuse var(--undo-window) linear forwards;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+.jelly-button[data-fuse-paused="true"]::before {
+  animation-play-state: paused;
+}
+
+.jelly-button-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  animation: jelly-label-in var(--motion-duration-standard) var(--motion-easing-standard);
+}
+
+@keyframes jelly-fuse {
+  from { --fuse-turn: 100%; }
+  to { --fuse-turn: 0%; }
+}
+
+@keyframes jelly-label-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .jelly-button:disabled {
@@ -51,6 +132,10 @@
 @media (prefers-reduced-motion: reduce) {
   .jelly-button {
     transform: none !important;
+  }
+
+  .jelly-button[data-phase="undo"]::before {
+    display: none;
   }
 }
 
