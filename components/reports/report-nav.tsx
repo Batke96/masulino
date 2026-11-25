@@ -1,19 +1,13 @@
 "use client"
 
+import { useLayoutEffect, useState } from "react"
+import { createPortal } from "react-dom"
 import { GlideSelect } from "@/components/ui/glide-select"
-import { JellyRadio } from "@/components/ui/jelly-radio"
 import { monthTitle } from "@/lib/reports/dates"
 import { tabLabel, tabOrder, type TabId } from "@/lib/reports/measures"
 import type { PosReport } from "@/lib/workspace/client"
 
 const tabItems = tabOrder.map((id) => ({ value: id, label: tabLabel[id] }))
-
-const jellyTone = {
-  chipColor: "var(--muted)",
-  activeColor: "var(--ink)",
-  textColor: "var(--text-secondary)",
-  activeTextColor: "var(--primary-foreground)",
-} as const
 
 function isTab(value: string): value is TabId {
   return tabOrder.includes(value as TabId)
@@ -26,43 +20,25 @@ export function ReportTabNav({
   value: TabId
   onChange: (tab: TabId) => void
 }) {
-  return (
-    <div className="period-toggle report-tab-nav">
-      <div className="period-toggle-pills">
-        <JellyRadio
-          items={tabItems}
-          value={value}
-          onChange={(next) => {
-            if (isTab(next)) onChange(next)
-          }}
-          {...jellyTone}
-          size="md"
-          gap={8}
-          radius={18}
-          swell={0}
-          barge={0}
-          shrink={0}
-          jelly={0.15}
-          bounce={0.05}
-          stagger={6}
-          stiffness={780}
-          ariaLabel="Auswertung"
-        />
-      </div>
-      <div className="period-toggle-select">
-        <GlideSelect
-          options={tabItems}
-          value={value}
-          onChange={(next) => {
-            if (isTab(next)) onChange(next)
-          }}
-          showTags={false}
-          size="sm"
-          ariaLabel="Auswertung"
-          align="left"
-        />
-      </div>
-    </div>
+  const [slot, setSlot] = useState<HTMLElement | null>(null)
+  useLayoutEffect(() => {
+    setSlot(document.getElementById("report-area-slot"))
+  }, [])
+  if (!slot) return null
+  return createPortal(
+    <GlideSelect
+      options={tabItems}
+      value={value}
+      onChange={(next) => {
+        if (isTab(next)) onChange(next)
+      }}
+      showTags={false}
+      variant="button"
+      size="md"
+      ariaLabel="Auswertung"
+      align="right"
+    />,
+    slot,
   )
 }
 
@@ -90,8 +66,8 @@ export function ReportPeriodTools({
   return (
     <div className="report-toolbar-tools">
       {tab === "kasse" ? (
-        <JellyRadio
-          items={[
+        <GlideSelect
+          options={[
             { value: "month", label: "Monat" },
             { value: "year", label: "Jahr" },
           ]}
@@ -99,39 +75,32 @@ export function ReportPeriodTools({
           onChange={(next) => {
             if (next === "month" || next === "year") onView(next)
           }}
-          {...jellyTone}
+          showTags={false}
           size="md"
-          gap={8}
-          radius={18}
-          swell={0}
-          barge={0}
-          shrink={0}
-          jelly={0.15}
-          bounce={0.05}
-          stagger={6}
-          stiffness={780}
+          variant="button"
           ariaLabel="Zeitraum"
+          align="right"
         />
       ) : null}
       {yearMode ? (
         <GlideSelect
-          className="period-choice"
           options={report.years.map((item) => ({ value: String(item), label: String(item) }))}
           value={yearValue}
           onChange={(next) => onMonth(`${next}-01`)}
           showTags={false}
-          size="sm"
+          size="md"
+          variant="button"
           ariaLabel="Jahr"
           align="right"
         />
       ) : (
         <GlideSelect
-          className="period-choice"
           options={report.months.map((item) => ({ value: item, label: monthTitle(item) }))}
           value={monthValue}
           onChange={onMonth}
           showTags={false}
-          size="sm"
+          size="md"
+          variant="button"
           ariaLabel="Monat"
           align="right"
         />

@@ -9,7 +9,7 @@ import { ReportPeriodTools, ReportTabNav } from "@/components/reports/report-nav
 import { ZielTab } from "@/components/reports/ziel-tab"
 import type { SpanBooking } from "@/lib/reports/booking-window"
 import { monthBounds, reportSpan, shiftMonth } from "@/lib/reports/dates"
-import { initialSlots, tabOrder, type SlotChoice, type TabId } from "@/lib/reports/measures"
+import { initialSlots, tabLabel, type SlotChoice, type TabId } from "@/lib/reports/measures"
 import { fetchBootstrap, fetchPosReport, fetchReservationSpan, isWorkspaceMode, type PosReport } from "@/lib/workspace/client"
 
 type LoadState = "loading" | "ready" | "empty" | "failed"
@@ -169,6 +169,7 @@ export function PosDashboard() {
   return (
     <div className="report-page">
       <div className="report-toolbar">
+        <h2 className="report-toolbar-title">{tabLabel[tab]}</h2>
         <ReportTabNav value={tab} onChange={setTab} />
         <ReportPeriodTools tab={tab} view={view} onView={setView} month={month} onMonth={setMonth} report={monthReport} />
       </div>

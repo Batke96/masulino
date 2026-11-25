@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { Bar, CartesianGrid, Cell, ComposedChart, Line, Pie, PieChart, XAxis, YAxis } from "recharts"
 import { BarList } from "@/components/reports/bar-list"
 import { KpiSlots } from "@/components/reports/kpi-slots"
-import { ReportLead } from "@/components/reports/report-lead"
+import { Block } from "@/components/ui/block"
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 import { JellyButton } from "@/components/ui/jelly-button"
 import { JellyRadio } from "@/components/ui/jelly-radio"
@@ -121,15 +121,11 @@ export function KasseTab({
 
   return (
     <div className="report-groups">
-      <section className="report-block">
-        <ReportLead
-          alert={report.incomplete && report.throughDate ? (
-            <div className="callout blue"><div><strong>Unvollständiger Zeitraum</strong><p>Die Daten reichen bis zum {new Date(`${report.throughDate}T00:00:00Z`).toLocaleDateString("de-DE", { timeZone: "UTC" })}.</p></div></div>
-          ) : null}
-          note="Wirtschaftlicher Ist-Wert aus der Kasse. Buchungen sind hier nicht enthalten."
-        />
+      <Block windowClassName="report-open">
         <KpiSlots facts={facts} choices={choices} onChange={onChoice} />
+      </Block>
 
+      <Block title="Umsatzverteilung" windowClassName="report-open">
         <div className="grid gap-4 lg:grid-cols-2">
           <section className="surface">
             <div className="section-head flex-wrap">
@@ -219,17 +215,15 @@ export function KasseTab({
             />
           </section>
         </div>
+      </Block>
 
-        {view === "month" ? (
-          <section className="surface">
-            <div className="section-head flex-wrap">
-              <h2>Monatsübersicht</h2>
-              {report.targetLabel ? <p className="fine-print">Tagesziel aus {report.targetLabel}</p> : null}
-            </div>
-            <p className="fine-print mb-3">
-              Balken in Euro, Linie in Stück. Samstag und Sonntag sind gedämpft, die übrigen Tage im Akzent.
-              {report.days.some((day) => day.partial) ? " Der blasse Balken ist der letzte erfasste Tag." : ""}
-            </p>
+      {view === "month" ? (
+        <Block title="Monatsübersicht">
+          {report.targetLabel ? <p className="fine-print">Tagesziel aus {report.targetLabel}</p> : null}
+          <p className="fine-print mb-3">
+            Balken in Euro, Linie in Stück. Samstag und Sonntag sind gedämpft, die übrigen Tage im Akzent.
+            {report.days.some((day) => day.partial) ? " Der blasse Balken ist der letzte erfasste Tag." : ""}
+          </p>
             <ChartContainer config={dayConfig} className="aspect-auto h-80 w-full max-w-none">
               <ComposedChart data={dayRows}>
                 <CartesianGrid vertical={false} />
@@ -264,9 +258,8 @@ export function KasseTab({
                 <ChartLegend content={<ChartLegendContent />} />
               </ComposedChart>
             </ChartContainer>
-          </section>
-        ) : null}
-      </section>
+        </Block>
+      ) : null}
 
       <section className="report-block">
         <div className="section-head"><h2>Vergleich</h2></div>
