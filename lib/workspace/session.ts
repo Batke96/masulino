@@ -1,4 +1,5 @@
 import type { StaffCapabilities } from "./capabilities";
+import { forgetCached } from "./read-cache";
 
 export type StaffSession =
   | { authenticated: false }
@@ -47,6 +48,7 @@ export async function signInStaff(
   email: string,
   password: string,
 ): Promise<{ ok: true; twoFactorRedirect: boolean } | { ok: false; offline?: boolean }> {
+  forgetCached();
   try {
     const response = await fetch("/api/auth/sign-in/email", {
       method: "POST",
@@ -115,6 +117,7 @@ export async function enableStaffTotp(
 }
 
 export async function signOutStaff(): Promise<void> {
+  forgetCached();
   await fetch("/api/auth/sign-out", {
     method: "POST",
     credentials: "include",

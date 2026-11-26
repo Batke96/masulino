@@ -24,6 +24,9 @@ describe("action catalog", () => {
     expect(actionCatalog.propose.verb).toBe("Vorschlagen")
     expect(actionCatalog.propose.icon).toBe("Sparkles")
     expect(actionCatalog.propose.label).toBe("Planvorschlag")
+    expect(actionCatalog.reload.verb).toBe("Nachladen")
+    expect(actionCatalog.reload.icon).toBe("RefreshCw")
+    expect(actionCatalog.reload.undo).toBeUndefined()
   })
 
   it("binds button tones to the color tokens", () => {

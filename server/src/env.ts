@@ -17,6 +17,7 @@ const schema = z.object({
    * Unset and "0" keep password sign-in, including a production deploy.
    */
   MASULINO_REQUIRE_MFA: z.enum(["0", "1"]).optional(),
+  READY2ORDER_ACCOUNT_TOKEN: z.string().optional(),
 });
 
 export function env() {
@@ -30,7 +31,13 @@ export function env() {
     MASULINO_API_PORT: process.env.MASULINO_API_PORT ?? "8787",
     MASULINO_DEV_SESSION: process.env.MASULINO_DEV_SESSION,
     MASULINO_REQUIRE_MFA: process.env.MASULINO_REQUIRE_MFA,
+    READY2ORDER_ACCOUNT_TOKEN: optionalSecret(process.env.READY2ORDER_ACCOUNT_TOKEN),
   });
+}
+
+function optionalSecret(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
 }
 
 export function allowDevSession(): boolean {

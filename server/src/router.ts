@@ -28,7 +28,7 @@ import {
   handleWorkspaceBootstrap,
 } from "./handlers/sections";
 import { handleFeedback } from "./handlers/feedback";
-import { handlePosReport } from "./handlers/pos";
+import { handlePosReport, handlePosSync } from "./handlers/pos";
 import { handleListWebsiteRequests, handleWebsiteDecision, handleWebsiteIntake } from "./handlers/buchungen";
 import { handleReservationSpan } from "./handlers/reservation-span";
 import { handleComposedOutbox } from "./outbox";
@@ -81,6 +81,10 @@ export async function route(request: Request): Promise<Response> {
 
   if (pathname === "/api/pos/report" && request.method === "GET") {
     return handlePosReport(request);
+  }
+
+  if (pathname === "/api/pos/sync" && request.method === "POST") {
+    return handlePosSync(request);
   }
 
   if (pathname === "/api/reservations/span" && request.method === "GET") {

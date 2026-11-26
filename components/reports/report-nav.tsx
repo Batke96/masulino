@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useState } from "react"
 import { createPortal } from "react-dom"
+import { ActionButton } from "@/components/ui/row-action"
 import { GlideSelect } from "@/components/ui/glide-select"
 import { monthTitle } from "@/lib/reports/dates"
 import { tabLabel, tabOrder, type TabId } from "@/lib/reports/measures"
@@ -49,6 +50,8 @@ export function ReportPeriodTools({
   month,
   onMonth,
   report,
+  onReload,
+  reloading,
 }: {
   tab: TabId
   view: "month" | "year"
@@ -56,16 +59,19 @@ export function ReportPeriodTools({
   month: string | undefined
   onMonth: (month: string) => void
   report: PosReport | null
+  onReload?: () => void
+  reloading?: boolean
 }) {
   if (tab !== "kasse" && tab !== "besucher" && tab !== "ziel") return null
-  if (!report || (report.months.length === 0 && report.years.length === 0)) return null
+  const period = report && (report.months.length > 0 || report.years.length > 0) ? report : null
+  if (!period && tab !== "kasse") return null
   const yearMode = tab === "kasse" && view === "year"
-  const monthValue = report.month ?? month ?? ""
+  const monthValue = period?.month ?? month ?? ""
   const yearValue = month?.slice(0, 4) ?? ""
 
   return (
     <div className="report-toolbar-tools">
-      {tab === "kasse" ? (
+      {period && tab === "kasse" ? (
         <GlideSelect
           options={[
             { value: "month", label: "Monat" },
@@ -82,9 +88,9 @@ export function ReportPeriodTools({
           align="right"
         />
       ) : null}
-      {yearMode ? (
+      {period && yearMode ? (
         <GlideSelect
-          options={report.years.map((item) => ({ value: String(item), label: String(item) }))}
+          options={period.years.map((item) => ({ value: String(item), label: String(item) }))}
           value={yearValue}
           onChange={(next) => onMonth(`${next}-01`)}
           showTags={false}
@@ -93,9 +99,10 @@ export function ReportPeriodTools({
           ariaLabel="Jahr"
           align="right"
         />
-      ) : (
+      ) : null}
+      {period && !yearMode ? (
         <GlideSelect
-          options={report.months.map((item) => ({ value: item, label: monthTitle(item) }))}
+          options={period.months.map((item) => ({ value: item, label: monthTitle(item) }))}
           value={monthValue}
           onChange={onMonth}
           showTags={false}
@@ -104,7 +111,10 @@ export function ReportPeriodTools({
           ariaLabel="Monat"
           align="right"
         />
-      )}
+      ) : null}
+      {tab === "kasse" && onReload ? (
+        <ActionButton action="reload" variant="soft" disabled={reloading} onClick={onReload} />
+      ) : null}
     </div>
   )
 }

@@ -10,27 +10,70 @@ import { ZielTab } from "@/components/reports/ziel-tab"
 import type { SpanBooking } from "@/lib/reports/booking-window"
 import { monthBounds, reportSpan, shiftMonth } from "@/lib/reports/dates"
 import { initialSlots, tabLabel, type SlotChoice, type TabId } from "@/lib/reports/measures"
-import { fetchBootstrap, fetchPosReport, fetchReservationSpan, isWorkspaceMode, type PosReport } from "@/lib/workspace/client"
+import { toast } from "sonner"
+import { fetchBootstrap, fetchPosReport, fetchReservationSpan, forgetPosReports, isWorkspaceMode, peekBootstrap, peekLastPosReport, peekPosReport, peekReservationSpan, syncPos, type PosReport } from "@/lib/workspace/client"
 
 type LoadState = "loading" | "ready" | "empty" | "failed"
 type PreviousState = "loading" | "ready" | "missing" | "failed"
+
+function spanWindow(localDate: string, month?: string) {
+  const aroundToday = reportSpan(localDate)
+  const fromMonth = month ? `${shiftMonth(month, -12)}-01` : aroundToday.from
+  const toMonth = month ? monthBounds(month).to : aroundToday.to
+  return {
+    from: fromMonth < aroundToday.from ? fromMonth : aroundToday.from,
+    to: toMonth > aroundToday.to ? toMonth : aroundToday.to,
+  }
+}
+
+function rememberedPrevious(locationId?: string, month?: string): { report: PosReport | null; state: PreviousState } | null {
+  if (!month) return null
+  const target = shiftMonth(month, -1)
+  const next = peekPosReport({ locationId, month: target, view: "month" })
+  if (!next) return null
+  if (next.empty || next.month !== target) return { report: null, state: "missing" }
+  return { report: next, state: "ready" }
+}
+
+function reportState(report: PosReport | null): LoadState {
+  if (!report) return "loading"
+  return report.empty ? "empty" : "ready"
+}
 
 export function PosDashboard() {
   const [tab, setTab] = useState<TabId>("kasse")
   const [slots, setSlots] = useState(initialSlots)
   const [view, setView] = useState<"month" | "year">("month")
-  const [month, setMonth] = useState<string | undefined>()
-  const [locationId, setLocationId] = useState<string | undefined>()
-  const [localDate, setLocalDate] = useState<string | null>(null)
-  const [clock, setClock] = useState<"loading" | "ready" | "failed">("loading")
-  const [monthReport, setMonthReport] = useState<PosReport | null>(null)
-  const [monthState, setMonthState] = useState<LoadState>("loading")
-  const [yearReport, setYearReport] = useState<PosReport | null>(null)
-  const [yearState, setYearState] = useState<LoadState>("loading")
-  const [previous, setPrevious] = useState<PosReport | null>(null)
-  const [previousState, setPreviousState] = useState<PreviousState>("loading")
-  const [rows, setRows] = useState<SpanBooking[] | null>(null)
-  const [rowsState, setRowsState] = useState<"loading" | "ready" | "failed">("loading")
+  const [month, setMonth] = useState<string | undefined>(() => peekLastPosReport("month")?.month ?? undefined)
+  const [locationId, setLocationId] = useState<string | undefined>(() => peekLastPosReport("month")?.locationId ?? peekBootstrap()?.locationId)
+  const [localDate, setLocalDate] = useState<string | null>(() => peekBootstrap()?.localDate ?? null)
+  const [clock, setClock] = useState<"loading" | "ready" | "failed">(() => (peekBootstrap() ? "ready" : "loading"))
+  const [monthReport, setMonthReport] = useState<PosReport | null>(() => peekLastPosReport("month"))
+  const [monthState, setMonthState] = useState<LoadState>(() => reportState(peekLastPosReport("month")))
+  const [yearReport, setYearReport] = useState<PosReport | null>(() => peekLastPosReport("year"))
+  const [yearState, setYearState] = useState<LoadState>(() => reportState(peekLastPosReport("year")))
+  const [previous, setPrevious] = useState<PosReport | null>(() => {
+    const current = peekLastPosReport("month")
+    return rememberedPrevious(current?.locationId, current?.month ?? undefined)?.report ?? null
+  })
+  const [previousState, setPreviousState] = useState<PreviousState>(() => {
+    const current = peekLastPosReport("month")
+    return rememberedPrevious(current?.locationId, current?.month ?? undefined)?.state ?? "loading"
+  })
+  const [rows, setRows] = useState<SpanBooking[] | null>(() => {
+    const date = peekBootstrap()?.localDate
+    if (!date) return null
+    const range = spanWindow(date, peekLastPosReport("month")?.month ?? undefined)
+    return peekReservationSpan(range.from, range.to)
+  })
+  const [reloadTick, setReloadTick] = useState(0)
+  const [reloading, setReloading] = useState(false)
+  const [rowsState, setRowsState] = useState<"loading" | "ready" | "failed">(() => {
+    const date = peekBootstrap()?.localDate
+    if (!date) return "loading"
+    const range = spanWindow(date, peekLastPosReport("month")?.month ?? undefined)
+    return peekReservationSpan(range.from, range.to) ? "ready" : "loading"
+  })
 
   useEffect(() => {
     if (!isWorkspaceMode()) return
@@ -54,9 +97,9 @@ export function PosDashboard() {
   useEffect(() => {
     if (!isWorkspaceMode()) return
     let cancelled = false
-    setMonthState("loading")
     void (async () => {
-      const next = await fetchPosReport({ locationId, month, view: "month" })
+      if (!peekPosReport({ locationId, month, view: "month" })) setMonthState("loading")
+      const next = await fetchPosReport({ locationId, month, view: "month", anchor: true })
       if (cancelled) return
       if (!next) {
         setMonthState("failed")
@@ -70,15 +113,16 @@ export function PosDashboard() {
     return () => {
       cancelled = true
     }
-  }, [locationId, month])
+  }, [locationId, month, reloadTick])
 
   useEffect(() => {
     if (!isWorkspaceMode() || view !== "year") return
     let cancelled = false
-    setYearState("loading")
+    const year = month?.slice(0, 4)
+    const yearMonth = year ? `${year}-01` : undefined
+    if (!peekPosReport({ locationId, month: yearMonth, view: "year" })) setYearState("loading")
     void (async () => {
-      const year = month?.slice(0, 4)
-      const next = await fetchPosReport({ locationId, month: year ? `${year}-01` : undefined, view: "year" })
+      const next = await fetchPosReport({ locationId, month: yearMonth, view: "year", anchor: true })
       if (cancelled) return
       if (!next) {
         setYearState("failed")
@@ -91,14 +135,14 @@ export function PosDashboard() {
     return () => {
       cancelled = true
     }
-  }, [locationId, month, view])
+  }, [locationId, month, view, reloadTick])
 
   useEffect(() => {
     if (!isWorkspaceMode() || !month) return
     let cancelled = false
-    setPreviousState("loading")
+    const target = shiftMonth(month, -1)
+    if (!peekPosReport({ locationId, month: target, view: "month" })) setPreviousState("loading")
     void (async () => {
-      const target = shiftMonth(month, -1)
       const next = await fetchPosReport({ locationId, month: target, view: "month" })
       if (cancelled) return
       if (!next) {
@@ -117,7 +161,7 @@ export function PosDashboard() {
     return () => {
       cancelled = true
     }
-  }, [locationId, month])
+  }, [locationId, month, reloadTick])
 
   useEffect(() => {
     if (!isWorkspaceMode()) return
@@ -127,14 +171,10 @@ export function PosDashboard() {
     }
     if (!localDate || clock !== "ready") return
     let cancelled = false
-    setRowsState("loading")
+    const range = spanWindow(localDate, month)
+    if (!peekReservationSpan(range.from, range.to)) setRowsState("loading")
     void (async () => {
-      const aroundToday = reportSpan(localDate)
-      const fromMonth = month ? `${shiftMonth(month, -12)}-01` : aroundToday.from
-      const toMonth = month ? monthBounds(month).to : aroundToday.to
-      const from = fromMonth < aroundToday.from ? fromMonth : aroundToday.from
-      const to = toMonth > aroundToday.to ? toMonth : aroundToday.to
-      const next = await fetchReservationSpan(from, to)
+      const next = await fetchReservationSpan(range.from, range.to)
       if (cancelled) return
       if (!next) {
         setRowsState("failed")
@@ -159,6 +199,25 @@ export function PosDashboard() {
 
   const kasseReport = view === "year" ? yearReport : monthReport
   const kasseState = view === "year" ? yearState : monthState
+  async function reloadTill() {
+    if (reloading) return
+    setReloading(true)
+    const result = await syncPos()
+    setReloading(false)
+    if (!result.ok) {
+      const description = result.error === "validation"
+        ? "Der ready2order-Zugang fehlt. Es wurde nichts geschrieben."
+        : result.error === "rate_limited"
+          ? "ready2order begrenzt gerade die Abrufe. Es wurde nichts geschrieben."
+          : "Es wurde nichts geschrieben."
+      toast("Die Kasse konnte nicht nachgeladen werden.", { description })
+      return
+    }
+    forgetPosReports()
+    setReloadTick((value) => value + 1)
+    toast(`${result.data.written.toLocaleString("de-DE")} Positionen nachgeladen.`)
+  }
+
   const choose = (id: TabId) => (index: number, choice: SlotChoice) => {
     setSlots((current) => ({
       ...current,
@@ -171,7 +230,16 @@ export function PosDashboard() {
       <div className="report-toolbar">
         <h2 className="report-toolbar-title">{tabLabel[tab]}</h2>
         <ReportTabNav value={tab} onChange={setTab} />
-        <ReportPeriodTools tab={tab} view={view} onView={setView} month={month} onMonth={setMonth} report={monthReport} />
+        <ReportPeriodTools
+          tab={tab}
+          view={view}
+          onView={setView}
+          month={month}
+          onMonth={setMonth}
+          report={monthReport}
+          onReload={() => { void reloadTill() }}
+          reloading={reloading}
+        />
       </div>
       {tab === "kasse" ? (
         <KasseTab

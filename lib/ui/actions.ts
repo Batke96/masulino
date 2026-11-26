@@ -9,6 +9,7 @@ import {
   Pencil,
   Plus,
   RefreshCcw,
+  RefreshCw,
   RotateCcw,
   Search,
   Sparkles,
@@ -39,6 +40,7 @@ export type ActionId =
   | "accept"
   | "search"
   | "propose"
+  | "reload"
 
 export type ActionDefinition = {
   verb: string
@@ -68,6 +70,7 @@ export const actionCatalog: Record<ActionId, ActionDefinition> = {
   accept: { verb: "Annehmen", icon: "CalendarCheck", label: "Annehmen", tone: "neutral", undo: "fuse", unambiguous: false },
   search: { verb: "Suchen", icon: "Search", label: "Suchen", tone: "neutral", unambiguous: true },
   propose: { verb: "Vorschlagen", icon: "Sparkles", label: "Planvorschlag", tone: "neutral", unambiguous: false },
+  reload: { verb: "Nachladen", icon: "RefreshCw", label: "Nachladen", tone: "neutral", unambiguous: false },
 }
 
 const icons: Record<ActionDefinition["icon"], LucideIcon> = {
@@ -84,6 +87,7 @@ const icons: Record<ActionDefinition["icon"], LucideIcon> = {
   CornerUpLeft,
   X,
   RefreshCcw,
+  RefreshCw,
   RotateCcw,
   CalendarCheck,
   Search,
